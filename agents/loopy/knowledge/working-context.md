@@ -3,7 +3,7 @@ name: loopy-working-context
 description: Loopy's running context — open decisions, what Dan and Loopy are working on, session continuity
 sources:
   - cowork
-last_updated: 2026-09-19
+last_updated: 2026-09-23
 ---
 
 # Loopy — Working Context
@@ -27,15 +27,19 @@ Set the team up for success. Maintain topology integrity. Evolve the system base
 the agents return. Do not hold the bet, certify viability, build artifacts, or do market research
 — those belong to PM, Exec, Delivery, GTM respectively.
 
-## Current system state — 2026-09-19
+## Current system state — 2026-09-23 (post-release)
 
 ### What exists
 - base.yaml: full topology with actors, actions, entities, edges, bypass loops
 - moonshot.yaml: the 18–36 month north star scenario
 - agents/ folder structure: created this session (per-agent: SKILL.md, knowledge/, generates/, research/; Loopy keeps returns/ for briefings)
 - knowledge/team-registry.md: role table with generates/consumes rows
+- knowledge/standing-rules.md: team-wide governance (rule 8: tone/fairness for public accounts)
+- knowledge/claims-certainty-standard.md: selective labeling for high-stakes claims ([Verified], [Unverified], [Hypothesis], [Our Interpretation])
+- knowledge/social-agent-publishing-standard.md: three-stage workflow (draft -> human review -> official API publication) for agent social media posting
 - agents/gtm/generates/entityR3-v0.md: market signal template with loopi.tech competitive section
 - agents/loopy/: this folder
+- Public release: Loopsense repository pushed to GitHub (2026-09-23) with intentionally-public audit trail (loopsense.log.json, history/)
 
 ### What doesn't exist yet (iteration 0 open items)
 - entityR1.md (Exec hasn't written viability signal yet)
@@ -67,6 +71,7 @@ the agents return. Do not hold the bet, certify viability, build artifacts, or d
 | 2026-09-19 | Slim instructions; ignore context.md; stale-name cleanup | Stubs + Session protocol in SKILL.md, standing-rules.md added, SKILL.md names fixed |
 | 2026-09-19 | Generalise bet versioning to all entities | generates/ scheme adopted, files migrated, SKILL.md/registry/standing-rules/yaml updated, PM and Exec handoffs drafted |
 | 2026-09-22 | Lightweight retro prompt + iteration-1.yaml skeleton | retro-prompt-lightweight-v1.md written, iteration-1.yaml created (both Dan-approved) |
+| 2026-09-23 | Public release safeguards and social media governance | Enhanced standing rule 8 (tone/fairness), claims-certainty standard (context-aware), social-agent-publishing-standard.md (3-stage workflow, Anthropic compliance) created and committed; agents authorized for Twitter/X and LinkedIn posting |
 
 ### Retro after each iteration (agreed 2026-09-21; lightened 2026-09-22)
 - Dan chats with each agent (PM, Exec, Delivery, GTM) after an iteration closes: async, one chat each, about what it was like working in the harness. Ideally one shared retro later.
