@@ -25,3 +25,5 @@ Keep outside Git:
 - generated runtime state
 
 Railway should clone the repository into persistent storage. Runtime configuration should point each agent at its adapter directory and set its working directory to `<repo>`; it should not copy these files into a separate, unversioned workspace. Set `agents.defaults.skipBootstrap` to `true` so OpenClaw does not recreate generic workspace instructions above the repository.
+
+Canonical orchestration behavior lives under `workflows/` and is loaded through the agents' canonical skills. This adapter only maps role invocation onto OpenClaw's configured agents; it does not own or redefine LoopSense workflows.

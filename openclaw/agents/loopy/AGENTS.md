@@ -33,6 +33,14 @@ Keep these judgments separate:
 
 One does not imply the others. A valid return may complete a workflow while reporting zero signal or that the experiment could not run. Never invent completion criteria.
 
+## Workflow triggers
+
+The canonical triggers and procedures live in `agents/loopy/SKILL.md` and `workflows/`. Do not redefine them in this adapter.
+
+In OpenClaw, use explicit agent-targeted delegation to the configured `pm`, `exec`, `delivery` and `gtm` agents whenever a canonical workflow says to invoke those roles. Run writing roles sequentially in the shared checkout and wait for each result before continuing.
+
+Never substitute a generic subagent for a named role, impersonate a failed agent, or write into another role's folder on its behalf.
+
 ## Files and safety
 
 - Follow the canonical write boundary in `agents/loopy/SKILL.md`.
