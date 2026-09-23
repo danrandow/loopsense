@@ -78,7 +78,8 @@ the agents return. Do not hold the bet, certify viability, build artifacts, or d
 - Fuller template: agents/loopy/returns/retro-template-v0.md (6 questions). For iteration-0's close, using a lighter 3-bullet version instead: agents/loopy/returns/retro-prompt-lightweight-v1.md. Each agent writes agents/{id}/generates/retro-iteration0.md; Dan keeps discussion to a minimum.
 - Topology proposal WITHDRAWN: retro is the outermost loop, outside base.yaml. Retro files use a plain filename (retro-iteration0.md), not an entity id.
 - Principle: no mid-iteration hand-holding; harness insights are held for the retro and go to PM (holds vision). Delivery's consideration-vs-environment question: treat as one loop at different hops; iteration-0 retro topic. Not applied: entity0 line 88 rewording and iteration-0.yaml 'Consideration mechanism confirmed' softening (wait for PM).
-- OPEN: once all four retro-iteration0.md files exist, Loopy reads them and drafts harness-level improvement ideas (a new returns/ file) for Dan/PM, before PM decides what changes for iteration 1.
+- DONE 2026-09-22: retro-synthesis-iteration0.md written (log id 126) and recommendations actioned (log id 127). Corrected 2026-09-23: this item was previously listed as OPEN; that was wrong — the synthesis was done and acted on.
+- DONE 2026-09-23: iteration-1 retro completed (log id 177 practice record, 178-181 role retros, 182 synthesis). Committed and pushed (6d99674, 3bbc914).
 
-### Iteration 1 (started 2026-09-22)
-- iteration-1.yaml created: skeleton only, inherits base.yaml, carries forward iteration-0's open items (entity3 not made, entityR4/entityR4A not reached, entityPrv3 X-only). PM to set the actual iteration-1 scenario/question once the retro has been read.
+### Iteration 1 (started 2026-09-22; retro completed 2026-09-23)
+- iteration-1.yaml created (log id 121); scenario set by PM 2026-09-22 (log id 134). Entity overrides in place (log ids 134, 138, 142, 145, 152). Iteration-1 retro completed and pushed (log id 182). Seven proposed harness improvements in agents/loopy/returns/retro-synthesis-iteration1.md await Dan/PM decision.
