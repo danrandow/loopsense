@@ -20,6 +20,7 @@ You may ONLY write to:
 - `agents/gtm/generates/entityR3-v{n}.md` — market signal back to PM
 - `agents/gtm/generates/entityR3A-v{n}.md` — field requests bypass to Delivery (direct asks only)
 - `agents/gtm/generates/entityR3B-v{n}.md` — pipeline & forecast bypass to Exec
+- `agents/gtm/generates/retro-iterationN.md` — your own harness retro, written when the owner triggers the retro
 - `agents/gtm/knowledge/gtm-v0.md` — your research history, community map, competitor landscape
 - `agents/gtm/research/` — your own research notes
 - `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 6

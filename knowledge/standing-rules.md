@@ -53,3 +53,5 @@ Read this first, every session. Dan and Loopy maintain it; agents do not edit it
    - **Public-account review:** Loopy or another designated reviewer reads the flagged passages and records `source present`, `fact/inference distinction`, `unnecessary personal information`, `tone`, and a `pass` or `revise` result. Complete required revisions before the material is made public or merged into a public branch.
 
    **Tone & fairness for public material:** Do not make unjustified or disrespectful characterizations of named people or accounts. Distinguish judgment (role, competence, ICP fit, strategic positioning) from character attack. Criticism must be evidence-backed and proportionate. Example: "not building for knowledge work" (judgment, evidence-backed) vs. "not a real builder" (unjustified character attack).
+
+9. **One handoff check.** Before a handoff that asks another agent to act, check that what you are asking for is executable now under that agent's `SKILL.md` gates and existing inputs. If it is not, name the blockage in the handoff rather than letting the request stand as if it could run. This is a check, not a process or a register.

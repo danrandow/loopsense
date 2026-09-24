@@ -72,6 +72,7 @@ the agents return. Do not hold the bet, certify viability, build artifacts, or d
 | 2026-09-19 | Generalise bet versioning to all entities | generates/ scheme adopted, files migrated, SKILL.md/registry/standing-rules/yaml updated, PM and Exec handoffs drafted |
 | 2026-09-22 | Lightweight retro prompt + iteration-1.yaml skeleton | retro-prompt-lightweight-v1.md written, iteration-1.yaml created (both Dan-approved) |
 | 2026-09-23 | Public release safeguards and social media governance | Enhanced standing rule 8 (tone/fairness), claims-certainty standard (context-aware), social-agent-publishing-standard.md (3-stage workflow, Anthropic compliance) created and committed; agents authorized for Twitter/X and LinkedIn posting |
+| 2026-09-23 | Owner decisions on iteration-1 retro findings | Items 4/7 implemented, item 3 as standing rule 9; items 1/2/5 and 6 returned as drafts (log 184-194); convergence nuance corrected in retro-synthesis-iteration1-addendum.md |
 
 ### Retro after each iteration (agreed 2026-09-21; lightened 2026-09-22)
 - Dan chats with each agent (PM, Exec, Delivery, GTM) after an iteration closes: async, one chat each, about what it was like working in the harness. Ideally one shared retro later.
@@ -80,6 +81,7 @@ the agents return. Do not hold the bet, certify viability, build artifacts, or d
 - Principle: no mid-iteration hand-holding; harness insights are held for the retro and go to PM (holds vision). Delivery's consideration-vs-environment question: treat as one loop at different hops; iteration-0 retro topic. Not applied: entity0 line 88 rewording and iteration-0.yaml 'Consideration mechanism confirmed' softening (wait for PM).
 - DONE 2026-09-22: retro-synthesis-iteration0.md written (log id 126) and recommendations actioned (log id 127). Corrected 2026-09-23: this item was previously listed as OPEN; that was wrong — the synthesis was done and acted on.
 - DONE 2026-09-23: iteration-1 retro completed (log id 177 practice record, 178-181 role retros, 182 synthesis). Committed and pushed (6d99674, 3bbc914).
+- OWNER DECISIONS 2026-09-23 (see agents/loopy/returns/retro-synthesis-iteration1-addendum.md): items 4/7 implemented (log 184-189), item 3 as one handoff check in standing rule 9 (log 190); items 1/2/5 consolidated into harness-proposal-state-and-inputs-v0.md and item 6 into harness-proposal-gtm-tooling-v0.md (drafts for Dan, log 192-193, not implemented). Synthesis convergence nuance corrected in the addendum; retros and synthesis preserved unchanged.
 
 ### Iteration 1 (started 2026-09-22; retro completed 2026-09-23)
-- iteration-1.yaml created (log id 121); scenario set by PM 2026-09-22 (log id 134). Entity overrides in place (log ids 134, 138, 142, 145, 152). Iteration-1 retro completed and pushed (log id 182). Seven proposed harness improvements in agents/loopy/returns/retro-synthesis-iteration1.md await Dan/PM decision.
+- iteration-1.yaml created (log id 121); scenario set by PM 2026-09-22 (log id 134). Entity overrides in place (log ids 134, 138, 142, 145, 152). Iteration-1 retro completed and pushed (log id 182). Owner decided the seven retro recommendations 2026-09-23 (see agents/loopy/returns/retro-synthesis-iteration1-addendum.md): items 3/4/7 implemented (log 184-190); items 1/2/5 and 6 returned as drafts (log 192-193) awaiting Dan's go-ahead.

@@ -18,6 +18,7 @@ First read `knowledge/standing-rules.md` (team-wide rules; includes ignoring any
 
 You may ONLY write to:
 - `agents/pm/generates/entity0-v{n}.md` — the aligned bet (full); one file per iteration
+- `agents/pm/generates/retro-iterationN.md` — your own harness retro, written when the owner triggers the retro
 - `agents/pm/knowledge/pm.md` — running knowledge: pointer to current bet, practitioner signals, sources, iteration log
 - `agents/pm/research/` — your own research notes
 - `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 6

@@ -19,6 +19,7 @@ First read `knowledge/standing-rules.md` (team-wide rules; includes ignoring any
 You may ONLY write to:
 - `agents/exec/generates/entity1-v{n}.md` — the validated bet and brief, forward to Delivery and GTM (only when you certify)
 - `agents/exec/generates/entityR1-v{n}.md` — your viability signal back to PM
+- `agents/exec/generates/retro-iterationN.md` — your own harness retro, written when the owner triggers the retro
 - `agents/exec/knowledge/exec-v0.md` — your business model thesis and certification history
 - `agents/exec/research/` — your own research notes
 - `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 6

@@ -19,6 +19,7 @@ You may ONLY write to:
 - `agents/delivery/generates/entity2-v{n}.md` — the product: practitioner-readable description, pointing to the artifacts
 - `agents/delivery/generates/entityR2-v{n}.md` — delivery reality back to PM
 - `agents/delivery/generates/entityR2A-v{n}.md` — cost & risk bypass to Exec (urgent feasibility constraints only)
+- `agents/delivery/generates/retro-iterationN.md` — your own harness retro, written when the owner triggers the retro
 - `agents/delivery/knowledge/delivery-v0.md` — what has been built, feasibility constraints
 - `agents/delivery/research/` — your own research notes
 - `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 6
@@ -95,7 +96,7 @@ You have no authority over the bet (PM), the viability question (Exec), or the m
 1. **Your knowledge file** (`agents/delivery/knowledge/delivery-v0.md`, or current iteration version):
    current state of the build, what exists, what's missing, what's been requested.
 
-2. **The Exec brief** (`agents/exec/knowledge/exec-v0.md`): who is the customer, what is the positioning,
+2. **The Exec brief** (`agents/exec/generates/entity1-v{n}.md`): who is the customer, what is the positioning,
    what are the constraints. You are building for the customer the Exec certified. If the brief
    is missing or vague, return the iteration to Exec — you cannot build for a vague customer.
 
@@ -105,7 +106,7 @@ You have no authority over the bet (PM), the viability question (Exec), or the m
 4. **entityR4C** — usage and defects from Practitioners. What broke? What was confusing?
    These are the quality signal. Treat them as bugs, not as complaints.
 
-5. **entity1** — the current aligned bet from PM. The artifact must serve the bet. If it doesn't,
+5. **entity0** (`agents/pm/generates/entity0-v{n}.md`) — the current aligned bet from PM. The artifact must serve the bet. If it doesn't,
    flag it. That is a delivery failure that starts upstream.
 
 ---

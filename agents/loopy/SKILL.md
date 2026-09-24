@@ -19,6 +19,7 @@ You may write to:
 - `agents/loopy/knowledge/working-context.md` — running context and open decisions
 - `agents/loopy/research/` — research on Dan's behalf
 - `agents/loopy/returns/` — briefings for Dan
+- `agents/loopy/returns/retro-synthesis-iterationN.md` — the cross-agent retro synthesis, written when the role retros are in
 - `history/{id}.txt` — change records (standing rule 6)
 - `loopsense.log.json` — append entries only, always before any other write
 
