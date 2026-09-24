@@ -37,6 +37,12 @@ Signal still missing: a practitioner describing the *experience of crossing* fro
 
 ---
 
+## Standing practices
+
+- **Iteration question prefix (owner direction, 2026-09-24):** always phrase the iteration question — the `map.scenario` line and the bet's stated question — so it begins with `Iteration N:`, matching iteration-0's and iteration-1's scenario lines. Keep it one tight sentence after the prefix.
+
+---
+
 ## Iteration log
 
 ### Iteration 0 — 2026-09-17 to 2026-09-19
@@ -101,7 +107,7 @@ Handoff: ready for Exec, with the standing-rule-9 flags above named.
 
 Owner feedback and checkpoint answers (`decisions/2026-09-24-iteration-2-checkpoint-answers.md`) routed via Loopy. Revised `entity0-v2.md` in place (iteration 2 open) and iteration-2.yaml's scenario line and entity0 override label/notes:
 
-1. The iteration question is now one tight sentence: "Can a system without a continuous human close the verification gap by learning from how the world responds to its work?"
+1. The iteration question is now one tight sentence, prefixed `Iteration 2:` per the iteration-0/1 scenario-line pattern (owner correction 2026-09-24): "Iteration 2: Can a system without a continuous human close the verification gap by learning from how the world responds to its work?" Recorded as a standing practice above.
 2. Stop logic revised: one failed test is evidence, not a claim-killer — the claim survives it; counter-evidence accumulates across iterations instead of grounding an immediate pivot or stop.
 3. Strict-stop framing removed: if external evidence cannot be obtained, scoped fallback learnings run first (failure-mode diagnosis of the attempt; Delivery's mechanism analysis completed regardless; the grounded catalogue completed regardless; a sharper next test with readable-signal instrumentation) before any stop question is revisited.
 4. The ten-post evidence run is sequenced after Delivery's mechanism analysis — the owner overrules the parallel call in the visible kickoff record above; the dependency is now explicit in the run section and in the asks to Delivery and GTM.

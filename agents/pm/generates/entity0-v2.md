@@ -15,8 +15,10 @@ status: aligned-bet
 Record: `decisions/2026-09-24-iteration-2-checkpoint-answers.md`, routed via Loopy. Five
 changes; everything else in the bet is preserved.
 
-**The question this iteration tests (one tight sentence):** *Can a system without a continuous
-human close the verification gap by learning from how the world responds to its work?*
+**The question this iteration tests (one tight sentence):** *Iteration 2: Can a system without
+a continuous human close the verification gap by learning from how the world responds to its
+work?* (The question carries the `Iteration N:` prefix, matching iteration-0 and iteration-1's
+scenario-line pattern.)
 
 1. The iteration question is now the single sentence above (also set as iteration-2.yaml's
    scenario line).
