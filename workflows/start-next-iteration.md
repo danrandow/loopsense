@@ -67,7 +67,7 @@ If no harness changes were approved, skip this commit.
 
 ### 6. Run the forward pass sequentially
 
-Use the harness's role-invocation mechanism to run `pm`, `exec`, `delivery`, then `gtm`. Each invocation must load that role's canonical skill in an isolated agent/session context. Never run two writing roles concurrently in one checkout.
+Use the harness's role-invocation mechanism to run `pm`, `exec`, `delivery`, then `gtm`. Each invocation must load that role's canonical skill in an isolated agent/session context. Each role runs in its own visible persistent session (label `Iteration N <pass> — <role>`, group `Iteration N`) with the complete prompt and response preserved; hidden subagent runs are not acceptable for these. Never run two writing roles concurrently in one checkout.
 
 Before each role, require a clean tree and pull from the upstream with `--ff-only`. Stop on failure.
 

@@ -14,4 +14,4 @@ Dan must be able to inspect the complete prompt and response of every role inter
 
 ## Consequences
 
-Each role interaction costs one persistent sidebar session and keeps its full transcript. The iteration-2 PM kickoff is repeated visibly. The wording change that makes this rule portable and durable (`agents/loopy/SKILL.md`, `workflows/start-next-iteration.md`, `workflows/retro.md`) is proposed separately and awaits owner approval.
+Each role interaction costs one persistent sidebar session and keeps its full transcript. The iteration-2 PM kickoff is repeated visibly. The wording change that makes this rule portable and durable (`agents/loopy/SKILL.md`, `workflows/start-next-iteration.md`, `workflows/retro.md`) was approved by the owner the same day and applied.

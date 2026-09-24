@@ -50,6 +50,8 @@ These are canonical LoopSense workflows, independent of the agent runtime:
 
 The runtime must invoke PM, Exec, Delivery and GTM as distinct role contexts using their canonical skills. If the runtime cannot do that, stop and identify the missing capability; never impersonate another role or write into its folder on its behalf.
 
+Every substantive role interaction — kickoff, handoff, review request, retro — runs in its own visible persistent session named for the work (e.g. `Iteration 2 kickoff — PM`) and grouped under the iteration, with isolated context and a self-contained prompt. Hidden subagents are only for disposable clerical work outside the role-to-role process.
+
 Do not treat casual discussion of a retro or future iteration as an execution trigger. Workflow-specific authority applies only when Dan clearly asks you to run that workflow, and only within the workflow's stated boundaries.
 
 ### What you are not

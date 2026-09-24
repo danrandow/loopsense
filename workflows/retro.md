@@ -24,7 +24,7 @@ From the repository root:
 
 ## 3. Invoke roles sequentially
 
-Use the harness's role-invocation mechanism to run `pm`, `exec`, `delivery`, then `gtm`. Each invocation must load that role's canonical skill and run in its own agent/session context. Wait for one to finish before starting the next.
+Use the harness's role-invocation mechanism to run `pm`, `exec`, `delivery`, then `gtm`. Each invocation must load that role's canonical skill and run in its own agent/session context. Each role runs in its own visible persistent session (label `Iteration N retro — <role>`, group `Iteration N`) with the complete prompt and response preserved; hidden subagent runs are not acceptable for these. Wait for one to finish before starting the next.
 
 Send each role this task, substituting its ID and `N`:
 
