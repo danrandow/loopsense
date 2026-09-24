@@ -3,7 +3,7 @@ name: loopy-working-context
 description: Loopy's running context — open decisions, what Dan and Loopy are working on, session continuity
 sources:
   - cowork
-last_updated: 2026-09-23
+last_updated: 2026-09-24
 ---
 
 # Loopy — Working Context
@@ -73,6 +73,7 @@ the agents return. Do not hold the bet, certify viability, build artifacts, or d
 | 2026-09-22 | Lightweight retro prompt + iteration-1.yaml skeleton | retro-prompt-lightweight-v1.md written, iteration-1.yaml created (both Dan-approved) |
 | 2026-09-23 | Public release safeguards and social media governance | Enhanced standing rule 8 (tone/fairness), claims-certainty standard (context-aware), social-agent-publishing-standard.md (3-stage workflow, Anthropic compliance) created and committed; agents authorized for Twitter/X and LinkedIn posting |
 | 2026-09-23 | Owner decisions on iteration-1 retro findings | Items 4/7 implemented, item 3 as standing rule 9; items 1/2/5 and 6 returned as drafts (log 184-194); convergence nuance corrected in retro-synthesis-iteration1-addendum.md |
+| 2026-09-24 | Iteration 2 start per workflows/start-next-iteration.md | Changes A/B applied (42e6bb6), skeleton (f9a4192), PM kickoff (1759578); owner checkpoint issued with PM's proposed question and bet — see returns/iteration-2-owner-checkpoint.md |
 
 ### Retro after each iteration (agreed 2026-09-21; lightened 2026-09-22)
 - Dan chats with each agent (PM, Exec, Delivery, GTM) after an iteration closes: async, one chat each, about what it was like working in the harness. Ideally one shared retro later.
@@ -85,3 +86,12 @@ the agents return. Do not hold the bet, certify viability, build artifacts, or d
 
 ### Iteration 1 (started 2026-09-22; retro completed 2026-09-23)
 - iteration-1.yaml created (log id 121); scenario set by PM 2026-09-22 (log id 134). Entity overrides in place (log ids 134, 138, 142, 145, 152). Iteration-1 retro completed and pushed (log id 182). Owner decided the seven retro recommendations 2026-09-23 (see agents/loopy/returns/retro-synthesis-iteration1-addendum.md): items 3/4/7 implemented (log 184-190); items 1/2/5 and 6 returned as drafts (log 192-193) awaiting Dan's go-ahead.
+
+### Iteration 2 (started 2026-09-24; at owner checkpoint)
+
+- Owner direction (2026-09-24): use-case catalogue of problems unsolved by current harness/loop/graph approaches and the groups who have them; README presents LoopSense completely with replication guidance; GTM primary market researcher/practitioner listener (Dan's direct directions = raw leads via entityR3, not findings); Delivery mechanism analysis (sense-observe-interpret-learn; topology not presumed; Dan's seven sub-questions as inputs to PM's framing). PM frames the iteration question and bet; framing returns to Dan before downstream execution.
+- Harness drafts approved and applied 2026-09-24 (42e6bb6): State & inputs kickoff block convention in all five SKILL.md files + decisions/2026-09-24-state-and-inputs-block.md; GTM tooling runtime-neutral split + decisions/2026-09-24-gtm-tooling-wording-split.md.
+- Owner decisions recorded (decisions/2026-09-24-posting-gate-and-account.md): evidence run may proceed at Low-Medium (scoped to the run); @loopsense confirmed as posting account.
+- Skeleton f9a4192 (direction, carry-forward, State & inputs block); PM kickoff 1759578 (entity0-v2: continue — real external evidence or explicit stop).
+- OPEN at owner checkpoint (returns/iteration-2-owner-checkpoint.md): (1) evidence run in parallel or sequence with Delivery's mechanism analysis; (2) root README ownership/scope (outside every agent's write boundary); (3) sign-off on the stop framing.
+- Anomaly: an uncommitted .gitignore change (private-state ignores, commented "Dan 2026-09-24") appeared in the worktree after PM settled and after boundary verification; left in place and reported to Dan, not absorbed.
