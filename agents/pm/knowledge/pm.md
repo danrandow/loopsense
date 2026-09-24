@@ -96,3 +96,17 @@ Wrote `entity0-v2.md`; set iteration-2.yaml's scenario line and entity0 override
 3. **The explicit-stop framing needs no separate owner sign-off**: it implements the owner's own primary lesson ("real external evidence, or explicitly stopping when that cannot happen"). The stop conditions are PM's counter-evidence threshold in entity0-v2.md.
 
 Handoff: ready for Exec, with the standing-rule-9 flags above named.
+
+### Iteration 2 framing revision — 2026-09-24
+
+Owner feedback and checkpoint answers (`decisions/2026-09-24-iteration-2-checkpoint-answers.md`) routed via Loopy. Revised `entity0-v2.md` in place (iteration 2 open) and iteration-2.yaml's scenario line and entity0 override label/notes:
+
+1. The iteration question is now one tight sentence: "Can a system without a continuous human close the verification gap by learning from how the world responds to its work?"
+2. Stop logic revised: one failed test is evidence, not a claim-killer — the claim survives it; counter-evidence accumulates across iterations instead of grounding an immediate pivot or stop.
+3. Strict-stop framing removed: if external evidence cannot be obtained, scoped fallback learnings run first (failure-mode diagnosis of the attempt; Delivery's mechanism analysis completed regardless; the grounded catalogue completed regardless; a sharper next test with readable-signal instrumentation) before any stop question is revisited.
+4. The ten-post evidence run is sequenced after Delivery's mechanism analysis — the owner overrules the parallel call in the visible kickoff record above; the dependency is now explicit in the run section and in the asks to Delivery and GTM.
+5. Root README assigned: Delivery authors it under Dan's direction, public scope = everything needed for someone else to get Loopsense working, subject to standing rule 8 review before publication and no credentials or private material. The README blockage is cleared.
+
+Superseded by this revision: the parallel resolution and the strict-stop framing recorded in the visible kickoff record above. Standing-rule-9 flags unchanged at handoff: entityR2A never produced, entityR3B stale at v0 (both Exec inputs), entityR4 / practitioners folder absent.
+
+Handoff: ready for Exec — say "start iteration 2" in the Exec project next.
