@@ -7,7 +7,7 @@ description: PM running knowledge — pointer to the current bet, practitioner s
 
 ## Current bet
 
-The aligned bet (entity0) is versioned, one file per iteration: `agents/pm/generates/entity0-v{n}.md`. Read the highest version present. Current: `entity0-v1.md` (iteration 1, open). This file holds what the PM learns around the bet, not the bet itself.
+The aligned bet (entity0) is versioned, one file per iteration: `agents/pm/generates/entity0-v{n}.md`. Read the highest version present. Current: `entity0-v2.md` (iteration 2, open). This file holds what the PM learns around the bet, not the bet itself.
 
 ---
 
@@ -78,3 +78,13 @@ Retro synthesis read (Loopy, all four agents converged on the log-append mechani
 Set `iteration-1.yaml`'s scenario line to iteration 1's actual question (run the content-loop dogfood test) and added an entity0 override pointing to entity0-v1.
 
 Handoff: ready for Exec — say "start iteration 1" in the Exec project next.
+
+### Iteration 2 kickoff — 2026-09-24
+
+Trigger: Loopy, under workflows/start-next-iteration.md, owner-approved. Read (in order): standing-rules.md, team-registry.md, reading-the-map.md, this file, entity0-v1, entityR3-v1, entityR1-v1, entityR2-v1 (entityR4: `agents/practitioners/generates/` does not exist — noted per standing rule 2), dna.md, retro-synthesis-iteration1.md + addendum, decisions/2026-09-24-posting-gate-and-account.md, and iteration-2.yaml including its new State & inputs block.
+
+Starting question asked: alternatives still do not do this (loopi.tech = synthetic personas; Grep.ai = regulated work), the problem is confirmed in the wild — but the mechanism has zero direct signal across two completed iterations because the test has never run, and the buyer is unconfirmed after seven empty listening cycles. The retro's primary lesson governs: two artifact loops, zero external evidence.
+
+**Decision: continue — designed around real external evidence, with explicit stop.** Iteration 2 = (1) the ten-post evidence run, now unblocked by the owner decisions (Low-Medium gate waiver scoped to the run; @loopsense confirmed; stale handle flag cleared); (2) use-case catalogue grounded in real problems → groups to listen to (GTM primary researcher; Dan's directions raw leads); (3) Delivery's mechanism analysis on the central question — sense/observe/interpret/learn — without presuming topology (Dan's seven sub-questions as inputs, not solution); (4) README credibility deliverable (ownership flagged to Dan). Evidence threshold = all three of grounded catalogue, concrete mechanism statement, first live run; counter-evidence (a)–(d) includes stopping if external evidence cannot be obtained. Vocabulary-commoditization risk (entityR3-v1 addendum) integrated as a differentiation caution.
+
+Wrote `entity0-v2.md`; set iteration-2.yaml's scenario line and entity0 override. Flags at handoff (standing rule 9): entityR2A never produced, entityR3B stale at v0 (both Exec inputs; State & inputs block current as of today), entityR4 / practitioners folder absent. Output pauses at the owner checkpoint per owner direction before any downstream execution.
