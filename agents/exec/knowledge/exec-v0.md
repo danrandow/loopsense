@@ -13,6 +13,7 @@ sources:
 - **2026-09-17:** Certified the first bet (topology as a lightweight manufactured referee for orchestration engineers). Low-medium confidence. Brief archived in `agents/exec/research/exec-v0-prev-2026-09-17.md`.
 - **2026-09-21:** PM revised the bet (real-world feedback through structured return flows replaces the manufactured referee; Dan's insight). Re-certified on Dan's reframe: aim is to not need a human to verify. Low-medium on the problem, low on the mechanism. Brief: `agents/exec/generates/entity1-v0.md`. Signal and questions to PM: `agents/exec/generates/entityR1-v0.md`. Inputs missing: no entityR2A; R3B shows zero pipeline.
 - **2026-09-22:** Certified PM's iteration-1 bet (`entity0-v1.md`, continue / run the ten-post content loop). Low-medium on the problem (now independently confirmed in the wild), low on the mechanism (unchanged, zero direct evidence). Brief: `agents/exec/generates/entity1-v1.md`. Signal to PM: `agents/exec/generates/entityR1-v1.md`. Inputs still missing: no entityR2A; entityR3B on file is still iteration-0's (pipeline: none). ICP supply-side gap is now the sharpest open risk in the bet.
+- **2026-09-24:** Certified PM's iteration-2 bet (`entity0-v2.md`, commit f8bac77 — external evidence first: Delivery's mechanism analysis gates the ten-post run; grounded use-case catalogue; README by Delivery under Dan's direction). **Certified on partial inputs, explicitly:** `entityR2A` never produced, `entityR3B` stale at v0 — no cost & risk case behind this certification. Low-Medium on the problem, Low on the mechanism, Low on the business model (fresh read: vocabulary commoditisation removes naming as a moat; the monetisable asset, if any, is accumulated real-outcome data or the instrumentation itself — so the run tests the monetisation substrate too). Brief: `agents/exec/generates/entity1-v2.md`. Signal to PM: `agents/exec/generates/entityR1-v2.md`. Buyer still unidentified after seven cycles; the grounded catalogue is the designated instrument.
 
 ## Business model thesis
 
@@ -30,6 +31,7 @@ Attention-first, open spec, revenue later; no revenue target this iteration. Pai
 - Is the environmental-feedback mechanism a category people will pay for, and who is the buyer? (entityR1 Q2)
 - Can a small account produce a usable signal? (entityR1 Q4)
 - Does the paid layer (signal routing) hold up if platforms restrict analytics access?
+- If signal is unreadable at our size even with good instrumentation, is the first product the instrument rather than the loop? (entityR1-v2, from the fresh business-model read)
 
 ### Technical positioning — composable loop topologies
 
