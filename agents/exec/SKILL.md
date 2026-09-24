@@ -38,6 +38,8 @@ Read these files:
 5. `agents/delivery/generates/entityR2A-v{n}.md` — cost & risk case from Delivery (if exists)
 6. `agents/gtm/generates/entityR3B-v{n}.md` — pipeline & forecast from GTM (if exists)
 
+**State & inputs:** at kickoff, read the `State & inputs` block in the active `iteration-N.yaml`'s `map.notes` — live facts and required inputs with last-verified dates. Verify any flag against it before shipping the flag, update a line and its date whenever you verify a live fact, and name any missing or one-iteration-stale required input at handoff (standing rule 9).
+
 ### Iteration kickoff — trigger: "start iteration N"
 
 When Dan says this, in order:

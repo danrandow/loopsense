@@ -35,6 +35,8 @@ Then read whatever is relevant to what Dan needs:
 - `knowledge/dna.md` — what makes this unique
 - `agents/*/generates/` — entity flows, forward and return (for briefings to Dan)
 
+**State & inputs:** at kickoff, read the `State & inputs` block in the active `iteration-N.yaml`'s `map.notes` — live facts and required inputs with last-verified dates. Verify any flag against it before shipping the flag, update a line and its date whenever you verify a live fact, and name any missing or one-iteration-stale required input at handoff (standing rule 9).
+
 ### Starting question each session
 
 > "What does Dan need to make a good decision right now?"

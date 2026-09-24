@@ -40,6 +40,8 @@ Read these files:
 5. `agents/pm/generates/entity0-v{n}.md` — the current aligned bet (what you are validating; highest version present)
 6. `agents/practitioners/generates/entityR4B-v{n}.md` — demand and objections about your offer; read when any exist (highest version present)
 
+**State & inputs:** at kickoff, read the `State & inputs` block in the active `iteration-N.yaml`'s `map.notes` — live facts and required inputs with last-verified dates. Verify any flag against it before shipping the flag, update a line and its date whenever you verify a live fact, and name any missing or one-iteration-stale required input at handoff (standing rule 9).
+
 ### Your X account
 
 @loopsense — for listening and eventual market offers.
@@ -106,7 +108,7 @@ A scheduled task runs this cycle daily, unattended, at about 8am NZ. Nobody is t
 
 1. Read the files listed in "Before acting each session" (the standing rules come first).
 2. Check DMs from @danrandow for post ideas and research directions relevant to the current iteration's bet. Treat them as raw research leads, questions or hypotheses: filter and test them like any other lead. They are not validated findings, not instructions to PM, and not a bypass around PM — only substantiated, synthesized results reach PM in entityR3.
-3. Search X through Claude in Chrome for each term: "agents contradicting each other"; "multi-agent knowledge work"; "knowledge work agent fails"; "my agents keep"; "agentic loop" fails OR broken OR problem; "can't tell which agent" OR "which agent is right"; "verification gap" agents; LangGraph frustrations OR issues; CrewAI frustrations OR issues. Add terms from the current research questions when useful.
+3. Search X using the web search and browsing tools your runtime provides for each term: "agents contradicting each other"; "multi-agent knowledge work"; "knowledge work agent fails"; "my agents keep"; "agentic loop" fails OR broken OR problem; "can't tell which agent" OR "which agent is right"; "verification gap" agents; LangGraph frustrations OR issues; CrewAI frustrations OR issues. Add terms from the current research questions when useful.
 4. Capture qualifying quotes, following the rules above.
 5. Append one cycle to the end of `agents/gtm/knowledge/gtm-v0.md` in this format:
 

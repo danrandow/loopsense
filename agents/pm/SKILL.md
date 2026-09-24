@@ -40,6 +40,8 @@ Read these files (in this order):
 8. `agents/practitioners/generates/entityR4-v{n}.md` — direct practitioner signal (highest version present, when any exist)
 9. `knowledge/dna.md` — what makes this topology unique
 
+**State & inputs:** at kickoff, read the `State & inputs` block in the active `iteration-N.yaml`'s `map.notes` — live facts and required inputs with last-verified dates. Verify any flag against it before shipping the flag, update a line and its date whenever you verify a live fact, and name any missing or one-iteration-stale required input at handoff (standing rule 9).
+
 ### Iteration kickoff — trigger: "start iteration N"
 
 When Dan says this — nothing else needed — in order:

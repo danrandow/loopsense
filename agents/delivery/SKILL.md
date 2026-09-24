@@ -38,6 +38,8 @@ Read these files:
 5. `agents/exec/generates/entity1-v{n}.md` — the validated bet and brief (if Exec has certified)
 6. `agents/gtm/generates/entityR3A-v{n}.md` — field requests from GTM (if exists)
 
+**State & inputs:** at kickoff, read the `State & inputs` block in the active `iteration-N.yaml`'s `map.notes` — live facts and required inputs with last-verified dates. Verify any flag against it before shipping the flag, update a line and its date whenever you verify a live fact, and name any missing or one-iteration-stale required input at handoff (standing rule 9).
+
 ### Your output each iteration
 
 Write to `agents/delivery/generates/entityR2-v{n}.md` (n = current iteration):
