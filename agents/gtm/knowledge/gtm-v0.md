@@ -370,3 +370,25 @@ Reviewed replies on 3 of 5 posts (omarsar0's NVIDIA-harness post: 112 replies; h
 - @mattinfra — LangGraph builder documenting a checkpoint/crash reliability gap with linked GitHub issue (langchain-ai/langgraph#8764), a 60-trial evidence report, and a merged test fixture; same reliability theme as @AgentEtna (2026-09-20) but a new account and more rigorously sourced.
 
 **Summary:** One qualifying verbatim this cycle, and it is a strong one on evidence quality (issue + trial report + merged fixture, not just a complaint), reinforcing the existing LangGraph checkpoint/reliability thread rather than opening a new one — this is a recurrence of the known "resume vs. restart" failure mode, now with harder evidence. Other queries returned off-target results: a reply lacking first-hand detail ("agents contradicting each other"); a re-sighted market report (@mfishbein); a positive product claim, not pain (@Pkorfoxyliotis on agent memory); a revenue-forecast article; a Chinese-language "is LangGraph the best choice" review article (not read in full — language and time budget); a Jev vs. Opus 5 cost/speed comparison thread (competitive/promotional, not pain). CrewAI query returned zero results. loopi.tech: not sighted this cycle; verdict stays monitor. No posts, replies, likes, follows or messages.
+
+### Research cycle — 2026-09-25 (iteration 2 kickoff, interactive)
+
+*Run note: NZ run date 2026-09-25 (UTC 2026-09-24 12:20+). Interactive session, "start iteration 2". **Tooling gap, recorded per the listening-tooling rule:** the term sweeps did not run — `web_search` returned "disabled or no provider is available" on every query, and the browser tool could not start ("No supported browser found" on this host). No substitute research channel was used. DMs from @danrandow could not be checked (no account session available in this runtime). One read-only fetch was used for build step 0's pre-check only (x.com/loopsense profile at 2026-09-24 12:23 UTC: 8 following / 1 follower as shown). Dedupe: nothing new captured, so nothing re-sighted or duplicated.*
+
+No relevant signals found this cycle — because no sweep channel was available, not because searches came back empty. Do not read this as a null market result.
+
+**Summary:** The gap is tooling, not market. The iteration-2 catalogue and run design therefore rest on the verified record through 2026-09-23 (see [[entityR3-v2]] and `agents/gtm/research/use-case-catalogue-v2.md`). First follow-up when tooling returns: a fresh sweep pass to warm the catalogue and test its clusters for recency.
+
+## Evidence run (iteration 2) — run log
+
+Ledger rows live in this section (D2 permits the knowledge file as ledger home; the Dan-named `signal-ledger-v0.md` is outside GTM's current strict write boundary — flagged in [[entityR3-v2]]). Schema, verdict rule and capture schedule: `agents/gtm/generates/entity3-v2.md` §2–§5.
+
+### Run opened — 2026-09-25 (NZ)
+
+- **Pre-registered verdict rule** filed in entity3-v2 §2 before any data exists (zero posts, zero rows). Directional only (n=10, one account, confounded) required in every verdict. Amendment policy attached.
+- **Ledger schema** set (entity3-v2 §3): extended row per entity2-v2 — response_type, response_cost, responder_type with reasons, raw snapshot per window, interpretation record per window, divergence flag, D3 override fields unchanged. Raw layers never collapsed into the score.
+- **Capture schedule** set (entity3-v2 §4): T+24h ±2h, T+72h ±4h, T+7d where available; gaps recorded, never estimated; out-of-band signal logged with provenance.
+- **Build step 0 pre-check (read-only, as far as access allows):** profile-level numbers readable on x.com/loopsense (fetched 2026-09-24 12:23 UTC). Per-post metrics unverifiable until a post exists. Step 0 completes at post 1's 24h/72h reads; if unreachable there → record gap → stop the run → condition (a) → entity0-v2's fallback learnings.
+- **Baseline drafts (A4: loop off, no ledger reads acted on):** five posts drafted and queued at Stage 1 — post-20260925-001…005 (entity3-v2 §8; publication-ledger.md). Verdict-window drafts (posts 6–10) deliberately not pre-drafted (change-note check requires cited baseline rows).
+- **Status: NOTHING PUBLISHED.** Stage 2 human review (Delivery agent or Dan) required per the publishing standard; the owner's Low-Medium waiver cleared only the PM-confidence gate. Stage 3 via official platform APIs only.
+- **Override log:** empty (no gate actions yet). **Divergence count:** 0 (no windows read yet).
