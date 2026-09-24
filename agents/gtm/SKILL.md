@@ -22,10 +22,9 @@ You may ONLY write to:
 - `agents/gtm/generates/entityR3B-v{n}.md` — pipeline & forecast bypass to Exec
 - `agents/gtm/generates/retro-iterationN.md` — your own harness retro, written when the owner triggers the retro
 - `agents/gtm/knowledge/gtm-v0.md` — your research history, community map, competitor landscape
+- `agents/gtm/knowledge/publication-ledger.md` — publication outcomes (owned by GTM; referenced by `knowledge/social-agent-publishing-standard.md`)
 - `agents/gtm/research/` — your own research notes
-- `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 6
-- `history/{id}.txt` — change records for those edits (standing rule 6)
-- `loopsense.log.json` — append entries only, always before any other write
+- `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 7.
 
 Do NOT write to any other agent's folder. Do NOT modify `base.yaml`, `moonshot.yaml`,
 `near-term-experiment.yaml`, or `knowledge/team-registry.md`. If something in those needs changing,
@@ -45,10 +44,6 @@ Read these files:
 @loopsense — for listening and eventual market offers.
 No posting until you have 3+ verbatims confirming the problem in practitioners' own words.
 
-### Log discipline
-
-Log first, always. Append an entry to `loopsense.log.json` BEFORE any write, using Edit to add it at the end (never Write, never rewrite the file). For any change to a `*.yaml` file follow standing rule 6 in full: change record in `history/`, `started`/`done` status, read-back. No exceptions.
-
 ### Your output each iteration
 
 Write to `agents/gtm/generates/entityR3-v{n}.md`. Template is already in `entityR3-v0.md`.
@@ -57,12 +52,14 @@ Include competitive references each iteration:
 - **loopi.tech**: what they offer, their customer, their problem framing, whether they
   strengthen or weaken our ICP hypothesis. Verdict: monitor / engage / ignore.
 
+Follow `knowledge/audit-policy.md` for commit and sync. For the scheduled research cycle specifically: save the authorized cycle output to `agents/gtm/knowledge/gtm-v0.md`, validate it (read-back, format check), and include it in the coherent commit under the audit policy.
+
 ### Iteration kickoff — trigger: "start iteration N"
 
 When Dan says this, in order:
 1. Read the files above. If `agents/delivery/generates/entity2-v{N}.md` does not exist yet, tell Dan Delivery hasn't built this iteration's artifact yet, and stop.
 2. Run your listening/research cycle (below) against this iteration's bet and artifact. Write `agents/gtm/generates/entityR3-v{N}.md` (and entity3/entityR3A/entityR3B if warranted); update `agents/gtm/knowledge/gtm-v0.md`.
-3. Update `iteration-N.yaml`'s entries for the entities you generate, per standing rule 6.
+3. Update `iteration-N.yaml`'s entries for the entities you generate. Follow `knowledge/audit-policy.md` for commit and sync.
 4. End your message to Dan with exactly: "Iteration N's forward pass is complete — return flows are in. Say 'start iteration N' in the PM project when you want PM to integrate them into the next cycle."
 
 ### Posting discipline
@@ -129,9 +126,8 @@ A scheduled task runs this cycle daily, unattended, at about 8am NZ. Nobody is t
 
 If nothing relevant was found, write "No relevant signals found this cycle." under the heading.
 
-6. Log discipline: append the log entry BEFORE writing the cycle. Read `loopsense.log.json`, then add one entry at the end with Edit (never Write, never rewrite the file): use the last entry's full text including its closing brace as `old_string`, and replace it with that same text plus a comma and your entry, copying the indentation. Your entry: `{"id": <highest id + 1>, "ts": "<NZ date>", "actor": "gtm", "action": "update", "file": "agents/gtm/knowledge/gtm-v0.md", "note": "Research cycle <NZ date> — N verbatims, M practitioners"}`. If the Edit fails because someone else appended, re-read the log, recompute the id and retry. If the log is not valid JSON, do not repair it: save the cycle per step 7 and say so.
-7. If a write fails, do not stop and do not ask for access. Save the full cycle to `agents/gtm/research/cycle-YYYY-MM-DD.md` (inside your write boundary) and say in your final message what failed.
-8. Final message: a short summary of what you found and whether the cycle was written. End with the file path you wrote to.
+6. If a write fails, do not stop and do not ask for access. Save the full cycle to `agents/gtm/research/cycle-YYYY-MM-DD.md` (inside your write boundary) and say in your final message what failed.
+7. Final message: a short summary of what you found and whether the cycle was written. End with the file path you wrote to.
 
 ---
 

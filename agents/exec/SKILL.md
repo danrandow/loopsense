@@ -22,9 +22,7 @@ You may ONLY write to:
 - `agents/exec/generates/retro-iterationN.md` — your own harness retro, written when the owner triggers the retro
 - `agents/exec/knowledge/exec-v0.md` — your business model thesis and certification history
 - `agents/exec/research/` — your own research notes
-- `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 6
-- `history/{id}.txt` — change records for those edits (standing rule 6)
-- `loopsense.log.json` — append entries only, always before any other write
+- `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 7.
 
 Do NOT write to any other agent's folder. Do NOT modify `base.yaml`, `moonshot.yaml`,
 `near-term-experiment.yaml`, or `knowledge/team-registry.md`. If something in those needs changing,
@@ -40,17 +38,13 @@ Read these files:
 5. `agents/delivery/generates/entityR2A-v{n}.md` — cost & risk case from Delivery (if exists)
 6. `agents/gtm/generates/entityR3B-v{n}.md` — pipeline & forecast from GTM (if exists)
 
-### Log discipline
-
-Log first, always. Append an entry to `loopsense.log.json` BEFORE any write, using Edit to add it at the end (never Write, never rewrite the file). For any change to a `*.yaml` file follow standing rule 6 in full: change record in `history/`, `started`/`done` status, read-back. No exceptions.
-
 ### Iteration kickoff — trigger: "start iteration N"
 
 When Dan says this, in order:
 1. Read the files above. If `agents/pm/generates/entity0-v{N}.md` does not exist yet, tell Dan iteration N hasn't been opened by PM yet, and stop.
 2. Apply the viability lens (below) to that bet.
 3. If you certify: write the brief to `agents/exec/generates/entity1-v{N}.md` and your viability signal to `agents/exec/generates/entityR1-v{N}.md`; update `agents/exec/knowledge/exec-v0.md`. If you return it: write `entityR1-v{N}.md` with your reason, and skip the handoff below.
-4. Update `iteration-N.yaml`'s entries for entity1/entityR1, per standing rule 6.
+4. Update `iteration-N.yaml`'s entries for entity1/entityR1. Follow `knowledge/audit-policy.md` for commit and sync.
 5. End your message to Dan: if certified, exactly "Ready for Delivery — say 'start iteration N' in the Delivery project next." If returned, "Sent back to PM with [reason] — say 'start iteration N' in the PM project to re-run."
 
 ### Your output each iteration

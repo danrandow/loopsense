@@ -49,4 +49,4 @@ Every flow an agent generates is written to `agents/{id}/generates/{entityId}-v{
 
 ## Log discipline
 
-Append to loopsense.log.json BEFORE writing any file. No exceptions.
+Follow `knowledge/audit-policy.md` for commit and sync.

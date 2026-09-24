@@ -49,7 +49,7 @@ PLATFORM: Twitter
 AUTHOR: gtm-agent v2.1
 TIMESTAMP: 2026-09-23T14:32:00Z
 
-[Verified] Multi-agent error amplification can reach 17Ã— under specific conditions
+[Verified] Multi-agent error amplification can reach 17x under specific conditions
 ([source: Bag of Agents 2026 empirical study](https://link...))
 
 This explains why single-agent systems often fail to catch compounding mistakes.
@@ -106,7 +106,7 @@ Designated reviewer (Delivery agent or Dan) performs pre-publication audit:
 - ðŸ”„ **REVISE**: Specific feedback provided; agent resubmits
 - âœ— **REJECTED**: Post does not meet standard; guidance provided
 
-Reviewer records: name, date, approval status, reasoning (logged in loopsense.log.json).
+Reviewer records: name, date, approval status, reasoning in `agents/gtm/knowledge/publication-ledger.md`.
 
 ### Stage 3: Publication
 Approved posts are published via official platform APIs:
@@ -114,28 +114,7 @@ Approved posts are published via official platform APIs:
 - **LinkedIn**: Official LinkedIn Share API
 - **No web automation or scrapers**
 
-Published post metadata is recorded:
-```json
-{
-  "id": "post-20260923-001",
-  "platform": "twitter",
-  "status": "published",
-  "timestamp": "2026-09-23T14:35:00Z",
-  "author": "gtm-agent",
-  "reviewer": "dan",
-  "review_date": "2026-09-23T14:33:00Z",
-  "platform_url": "https://twitter.com/loopsense/status/...",
-  "claims": [
-    {
-      "text": "Multi-agent error amplification can reach 17Ã—",
-      "certainty": "Verified",
-      "source": "https://..."
-    }
-  ]
-}
-```
-
-Post URL is added to loopsense.log.json history entry for audit trail.
+Post URL and review metadata is recorded in `agents/gtm/knowledge/publication-ledger.md` per `knowledge/social-agent-publishing-standard.md`.
 
 ## Platform-Specific Guidance
 
@@ -208,7 +187,7 @@ Every social post must pass this verification before human review:
 
 ### Sourcing Rules by Certainty Level
 
-#### [Verified] â8”K Source Linked, Direct Evidence
+#### [Verified] - Source Linked, Direct Evidence
 - Direct quote from primary source, or
 - Metric/statistic from official account, or
 - Published research with DOI/peer review
@@ -220,7 +199,7 @@ Example:
 ([source: Bag of Agents 2026 empirical study](https://arxiv.org/abs/...))
 ```
 
-#### [Unverified] â8”K Claim Circulates; We Haven't Checked
+#### [Unverified] - Claim Circulates; We Haven't Checked
 - Widely repeated claim in the market
 - Source is "what we've seen cited" not "what we've verified"
 - **Rule**: Use only when the claim is well-known enough to warrant mention
@@ -231,18 +210,18 @@ Example:
 (cited in recent posts; we haven't independently verified latest count)
 ```
 
-#### [Hypothesis] â8”K Our Working Assumption
+#### [Hypothesis] - Our Working Assumption
 - Our prediction about market/practitioners
 - Not yet validated by evidence
 - **Rule**: Mark as live hypothesis; update to [Verified] when evidence arrives
 
 Example:
 ```
-[Hypothesis] Knowledge-work()practitioners will prioritize error auditability
+[Hypothesis] Knowledge-work practitioners will prioritize error auditability
 over raw token throughput in 2026-2027
 ```
 
-#### [Our Interpretation] â8”K We're Synthesizing Data
+#### [Our Interpretation] - We're Synthesizing Data
 - Combining multiple sources into conclusion
 - Our read of raw data or trends
 - **Rule**: Cite the sources being interpreted; show the synthesis
@@ -271,19 +250,7 @@ competitor positioning shifts, and GitHub issue sentiment analysis)
 5. **Repeated violations**: Agent publishing suspended pending Dan review
 
 ### Audit Trail
-All decisions logged in loopsense.log.json:
-```
-{
-  "id": 172,
-  "status": "done",
-  "timestamp": "2026-09-23T14:35:00Z",
-  "actor": "dan",
-  "action": "review_and_approve",
-  "file": "social-posts/post-20260923-001",
-  "record": "history/172.txt",
-  "note": "Approved Twitter thread on error amplification. Sources verified; standing rule 8 passed; certainty labels applied."
-}
-```
+All review decisions and published post URLs are recorded in `agents/gtm/knowledge/publication-ledger.md`, owned by GTM. The legacy ledger (`loopsense.log.json`) is frozen; never record publications there.
 
 ## Evolution
 
@@ -291,7 +258,7 @@ This standard applies to all social posts from 2026-09-23 forward. Changes to th
 - Proposed by Loopy or agents
 - Reviewed by Dan
 - Recorded in standing-rules.md or this file
-- Logged in loopsense.log.json
+- Publication outcomes recorded in `agents/gtm/knowledge/publication-ledger.md`
 
 ### Iteration Roadmap
 - **Iteration 0 (current)**: Manual human review for every post

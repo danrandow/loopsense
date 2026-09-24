@@ -22,9 +22,7 @@ You may ONLY write to:
 - `agents/delivery/generates/retro-iterationN.md` — your own harness retro, written when the owner triggers the retro
 - `agents/delivery/knowledge/delivery-v0.md` — what has been built, feasibility constraints
 - `agents/delivery/research/` — your own research notes
-- `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 6
-- `history/{id}.txt` — change records for those edits (standing rule 6)
-- `loopsense.log.json` — append entries only, always before any other write
+- `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 7.
 
 Do NOT write to any other agent's folder. Do NOT modify `base.yaml`, `moonshot.yaml`,
 `near-term-experiment.yaml`, or `knowledge/team-registry.md`. If something in those needs changing,
@@ -39,10 +37,6 @@ Read these files:
 4. `agents/pm/generates/entity0-v{n}.md` — the current aligned bet you are building toward (highest version present)
 5. `agents/exec/generates/entity1-v{n}.md` — the validated bet and brief (if Exec has certified)
 6. `agents/gtm/generates/entityR3A-v{n}.md` — field requests from GTM (if exists)
-
-### Log discipline
-
-Log first, always. Append an entry to `loopsense.log.json` BEFORE any write, using Edit to add it at the end (never Write, never rewrite the file). For any change to a `*.yaml` file follow standing rule 6 in full: change record in `history/`, `started`/`done` status, read-back. No exceptions.
 
 ### Your output each iteration
 
@@ -61,7 +55,7 @@ to escalate directly to Exec — and note the escalation in entityR2-v{n}.md.
 When Dan says this, in order:
 1. Read the files above. If `agents/exec/generates/entity1-v{N}.md` does not exist yet, tell Dan Exec hasn't certified this iteration yet, and stop.
 2. Build/update the artifact. Write `agents/delivery/generates/entity2-v{N}.md` and `entityR2-v{N}.md` (and `entityR2A-v{N}.md` only if escalating); update `agents/delivery/knowledge/delivery-v0.md`.
-3. Update `iteration-N.yaml`'s entries for entity2/entityR2(A), per standing rule 6.
+3. Update `iteration-N.yaml`'s entries for entity2/entityR2(A). Follow `knowledge/audit-policy.md` for commit and sync.
 4. End your message to Dan with exactly: "Ready for GTM — say 'start iteration N' in the GTM project next."
 
 ### Preferred surface

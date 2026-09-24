@@ -21,9 +21,7 @@ You may ONLY write to:
 - `agents/pm/generates/retro-iterationN.md` — your own harness retro, written when the owner triggers the retro
 - `agents/pm/knowledge/pm.md` — running knowledge: pointer to current bet, practitioner signals, sources, iteration log
 - `agents/pm/research/` — your own research notes
-- `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 6
-- `history/{id}.txt` — change records for those edits (standing rule 6)
-- `loopsense.log.json` — append entries only, always before any other write
+- `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 7.
 
 Do NOT write to any other agent's folder. Do NOT modify `base.yaml`, `moonshot.yaml`,
 `near-term-experiment.yaml`, or `knowledge/team-registry.md`. If you think something in those
@@ -41,11 +39,6 @@ Read these files (in this order):
 7. `agents/delivery/generates/entityR2-v{n}.md` — delivery reality (what it actually takes)
 8. `knowledge/dna.md` — what makes this topology unique
 
-
-### Log discipline
-
-Log first, always. Append an entry to `loopsense.log.json` BEFORE any write, using Edit to add it at the end (never Write, never rewrite the file). For any change to a `*.yaml` file follow standing rule 6 in full: change record in `history/`, `started`/`done` status, read-back. No exceptions.
-
 ### Iteration kickoff — trigger: "start iteration N"
 
 When Dan says this — nothing else needed — in order:
@@ -53,7 +46,7 @@ When Dan says this — nothing else needed — in order:
 2. Read the files above, plus, if it exists, the prior iteration's retro synthesis (`agents/loopy/returns/retro-synthesis-iteration{N-1}.md`) and `iteration-N.yaml`'s carried-forward notes.
 3. Ask the starting question below. Decide: continue / pivot / stop.
 4. Write the updated bet to `agents/pm/generates/entity0-v{N}.md` and the iteration log entry in `agents/pm/knowledge/pm.md`.
-5. Set `iteration-N.yaml`'s `map.scenario` line — the one sentence this iteration is actually testing — and the `entity0` override label/notes. Follow standing rule 6 in full (history record, log first, targeted edit, read-back).
+5. Set `iteration-N.yaml`'s `map.scenario` line — the one sentence this iteration is actually testing — and the `entity0` override label/notes. Follow `knowledge/audit-policy.md` for commit and sync.
 6. End your message to Dan with exactly: "Ready for Exec — say 'start iteration N' in the Exec project next." If you decide to pivot or stop instead, say that plainly and what Dan should do instead, and skip the handoff line.
 
 ### Your output
@@ -225,7 +218,7 @@ The PM listens for **pain and problems**: what people are trying to do, where th
 5. **Feed verbatims to the bet.** Every quote that confirms or contradicts the problem statement updates the bet's evidence base. If the language practitioners use doesn't match the bet's language, the bet is wrong.
 
 **Where to look:**
-- X/Twitter: search "agents contradicting", "knowledge work agent", "multi-agent fails", "can't tell which agent is right"
+- X/Twitter: search "agents contradicting", "knowledge work agent", "multi-agent fails", "my agents keep", "can't tell which agent is right"
 - GitHub issues: LangGraph, CrewAI, AutoGen — what do practitioners actually complain about?
 - Hacker News: threads on AI agent failures, knowledge work automation
 - Substack/newsletters: AI practitioners writing about what doesn't work

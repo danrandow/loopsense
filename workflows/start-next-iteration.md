@@ -49,9 +49,9 @@ If the owner changes the proposal materially without clearly approving the revis
 
 1. Repeat the clean-tree and fast-forward preflight immediately after approval.
 2. Apply only the file changes explicitly approved by the owner. Loopy may edit files outside its normal free-write area only because this conversation contains that specific approval.
-3. Follow `knowledge/standing-rules.md`: log first, history records for harness changes, targeted edits, read-back and verification.
+3. Follow `knowledge/standing-rules.md` and `knowledge/audit-policy.md`: targeted edits, read-back, one coherent commit per change batch.
 4. Do not implement rejected, deferred or newly inferred changes.
-5. Validate JSON, run `git diff --check`, apply standing rule 8 to affected public material, and inspect `git status --short`.
+5. Validate what changed (`git diff --check`, JSON/YAML read-back, standing rule 8 for public material) and inspect `git status --short`.
 6. Stage exact approved paths only. Commit as `harness: apply iteration N retro improvements` and push normally to the configured upstream. Never force-push.
 
 If no harness changes were approved, skip this commit.
@@ -61,9 +61,9 @@ If no harness changes were approved, skip this commit.
 1. Confirm `iteration-N.yaml` does not exist. If it does, stop and ask whether to resume it; do not overwrite it.
 2. Create a minimal scenario file that inherits `base.yaml`, identifies iteration `N`, records the approved direction, carries forward incomplete items explicitly, and marks its scenario as provisional for PM synthesis.
 3. Do not claim the prior experiment ran or hypothesis succeeded unless current evidence says so.
-4. Follow the YAML and harness-change audit requirements in standing rules 6 and 7.
+4. Follow `knowledge/audit-policy.md` for commit and sync.
 5. Read back and validate the file. Note that the renderer has not been checked.
-6. Stage the exact iteration file, history record and log change. Commit as `iteration N: create approved skeleton`, pull from the upstream with `--ff-only`, then push normally.
+6. Stage the exact iteration file. Commit as `iteration N: create approved skeleton`, pull from the upstream with `--ff-only`, then push normally.
 
 ### 6. Run the forward pass sequentially
 
@@ -71,13 +71,13 @@ Use the harness's role-invocation mechanism to run `pm`, `exec`, `delivery`, the
 
 Before each role, require a clean tree and pull from the upstream with `--ff-only`. Stop on failure.
 
-Send the role its canonical trigger, `start iteration N`, plus the approved direction and a pointer to the retro synthesis. Require its canonical read order, write boundary, logging and handoff rules. Do not prescribe the role's substantive conclusion.
+Send the role its canonical trigger, `start iteration N`, plus the approved direction and a pointer to the retro synthesis. Require its canonical read order, write boundary and handoff rules. Do not prescribe the role's substantive conclusion.
 
 After each role:
 
 1. Inspect its report and `git status --short`.
-2. Verify that every changed path is within that role's boundary, shared log/history requirements, or its permitted entries in `iteration-N.yaml`.
-3. Read back outputs, validate `loopsense.log.json`, run `git diff --check`, and apply standing rule 8 where relevant.
+2. Verify that every changed path is within that role's boundary or its permitted entries in `iteration-N.yaml`.
+3. Read back outputs, validate JSON/YAML where relevant, run `git diff --check`, and apply standing rule 8 where relevant.
 4. Stage exact paths only; never use `git add -A` or `git add .`.
 5. Commit as `iteration N: PM kickoff`, `iteration N: Exec review`, `iteration N: Delivery pass`, or `iteration N: GTM pass`.
 6. Pull from the upstream with `--ff-only`, then push normally. Never force-push, merge or rebase automatically.
