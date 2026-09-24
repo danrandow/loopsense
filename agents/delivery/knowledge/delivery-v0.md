@@ -83,3 +83,42 @@ No research files yet for delivery. When practitioners use the system and report
 - D3's A4 assumption (baseline posts drafted without acting on ledger reads) remains adopted by PM
   into the evidence threshold but not independently reconfirmed this iteration; carried forward as
   open.
+
+## Iteration 2 (2026-09-24)
+
+- Exec certified `entity1-v2.md` at Low-Medium on explicitly partial inputs (entityR2A never
+  produced, entityR3B stale at v0). Per standing rule 9, checked `agents/gtm/generates/` and
+  `agents/practitioners/` for entityR3A/entityR4C — neither exists; nothing blocked this pass.
+- **Deliverable 1 — mechanism analysis first (gates GTM's evidence run, owner sequencing
+  2026-09-24):** `entity2-v2.md` answers the central question (can a system without a
+  continuous human close the verification gap, and what is the mechanism?) through the
+  sense–observe–interpret–learn frame and Dan's seven sub-questions, without presuming
+  topology. **Verdict: partially — the gap is relocated and shrunk, not solved.** The
+  record-verifiable reformulation ("what did the world do, and did the next output change
+  because of it?") makes the observe→learn half checkable from files; interpretation remains
+  human judgment, so the human retreats from once-per-output to once-per-frame (frame-setting,
+  ambiguity, exposure authorization, strategy). What must be built is mostly discipline and
+  record formats (response typing, interpretation records, citation enforcement, divergence
+  flag), not technology; build order and the run's required instrumentation are specified in
+  `entity2-v2.md` (build step 0 = one-post platform-numbers readability check; condition (a)
+  lives or dies there).
+- **Deliverable 2 — root `README.md`** (owner-authorized this iteration only, per
+  `decisions/2026-09-24-iteration-2-checkpoint-answers.md`): complete product story, repo map,
+  step-by-step iteration run, fork/adaptation guide (files, SKILL.md and knowledge-file
+  contents, base.yaml topology), tested-vs-not-tested, FAQ, governance. Standing rule 8:
+  agent self-check done; questionable passages flagged in the handoff report for Loopy's
+  mechanical scan and public-account review — nothing self-cleared. Uncited figures excluded
+  (entity1-v2's 11%/64% production statistics carry no source and appear nowhere in the
+  README).
+- Wrote `entityR2-v2.md` (delivery reality + mechanism conclusion for PM). **No entityR2A** —
+  the analysis found a structural constraint (interpretation stays human judgment) but not an
+  urgent one that reshapes Exec's certification; the urgent risk (platform numbers unreadable)
+  is already inside Exec's condition (a) and is handled by the run's readability check, whose
+  failure report would be the escalation.
+- **Open flags carried forward / new:** D3's A4 assumption still unconfirmed (carried).
+  Vocabulary-commoditisation caution (entity0-v2) means the README deliberately positions on
+  tested/untested status, not naming. `landing-page-v0.mdx` remains stale (do-not-use list) —
+  superseded in practice by the root README; removal is Dan/Loopy's call.
+  `iteration-2.yaml` entity2/entityR2 entries updated; State & inputs lines re-verified
+  2026-09-24, all current as written (entityR2A still missing — now deliberate; entityR3B
+  still stale at v0, GTM's to refresh).
