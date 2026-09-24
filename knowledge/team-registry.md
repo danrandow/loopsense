@@ -26,6 +26,8 @@ Entity IDs reference base.yaml. Descriptions live there — not duplicated here.
 
 **Practitioners** (actor4) are customers, not team members. Their return flows (entityR4, entityR4A, entityR4B, entityR4C) are recorded in agents/practitioners/generates/.
 
+Routing clarifications: GTM is the primary market researcher and practitioner listener; it generates entity3 (the practitioner-facing offer) and entityR3, and consumes entityR4B (demand and objections about that offer). PM integrates GTM's synthesized entityR3 and direct practitioner entityR4 into the iteration question and the aligned bet.
+
 ## Entity file locations
 
 Every flow an agent generates is written to `agents/{id}/generates/{entityId}-v{n}.md` (n = iteration; frozen when the iteration closes; readers take the highest v present). `Prv` entities are the agent's `knowledge/` files; `Pub` entities live in `research/`. Loopy's briefings to Dan stay in `agents/loopy/returns/`.
