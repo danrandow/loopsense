@@ -19,7 +19,6 @@ The agent harness exists. It is the map itself.
 - `knowledge/` — team-wide files (standing rules, team registry, reading the map, dna) and `knowledge/research/`
 - `iteration-0.yaml` — scenario: current iteration state
 - `moonshot.yaml` — scenario: long horizon
-- `near-term-experiment.yaml` — scenario: iteration 1 targets
 
 ## Status (2026-09-21)
 

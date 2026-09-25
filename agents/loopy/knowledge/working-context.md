@@ -75,6 +75,7 @@ the agents return. Do not hold the bet, certify viability, build artifacts, or d
 | 2026-09-23 | Owner decisions on iteration-1 retro findings | Items 4/7 implemented, item 3 as standing rule 9; items 1/2/5 and 6 returned as drafts (log 184-194); convergence nuance corrected in retro-synthesis-iteration1-addendum.md |
 | 2026-09-24 | Iteration 2 start per workflows/start-next-iteration.md | Changes A/B applied (42e6bb6), skeleton (f9a4192), PM kickoff (1759578); owner checkpoint issued with PM's proposed question and bet — see returns/iteration-2-owner-checkpoint.md |
 | 2026-09-25 | GTM browser follow-up (visible session), reconcile + publish | Browser sweeps filed by GTM across five files; PM "Iteration 2:" prefix change preserved (53913cf); GTM follow-up committed and pushed (11459b8) after rule-8 scan + public-account review (pass) |
+| 2026-09-25 | Retire near-term-experiment.yaml | Dan: drop as noise. File deleted; active references cleaned in reading-the-map, standing rule 5, four SKILL.md files, delivery-v0, README. Frozen outputs untouched. Decision record in decisions/2026-09-25-retire-near-term-experiment.md |
 
 ### Retro after each iteration (agreed 2026-09-21; lightened 2026-09-22)
 - Dan chats with each agent (PM, Exec, Delivery, GTM) after an iteration closes: async, one chat each, about what it was like working in the harness. Ideally one shared retro later.

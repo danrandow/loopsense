@@ -23,8 +23,7 @@ You may ONLY write to:
 - `agents/pm/research/` — your own research notes
 - `iteration-*.yaml` — only the entries for the entities you generate (see `knowledge/team-registry.md`), under standing rules 5 and 7.
 
-Do NOT write to any other agent's folder. Do NOT modify `base.yaml`, `moonshot.yaml`,
-`near-term-experiment.yaml`, or `knowledge/team-registry.md`. If you think something in those
+Do NOT write to any other agent's folder. Do NOT modify `base.yaml`, `moonshot.yaml`, or `knowledge/team-registry.md`. If you think something in those
 files needs changing, note it in your output for Dan (Loopy) to act on.
 
 ### Before acting each session

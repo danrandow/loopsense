@@ -3,13 +3,13 @@ name: reading-the-map
 description: How to read base.yaml and the scenario files (iteration-*.yaml, moonshot.yaml) as an agent, and what you may write. Read before acting.
 sources:
   - cowork
-last_updated: 2026-09-21
+last_updated: 2026-09-25
 ---
 
 # Reading the Map
 
 The map (base.yaml) is the canonical topology. Scenario files inherit from it: `iteration-*.yaml`
-(one per iteration), `moonshot.yaml` (the long-horizon target) and `near-term-experiment.yaml`.
+(one per iteration) and `moonshot.yaml` (the long-horizon target).
 
 ## Who writes what
 - `base.yaml`: read-only for agents. Never edit it.

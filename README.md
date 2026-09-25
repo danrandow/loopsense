@@ -84,7 +84,6 @@ base.yaml                 The canonical topology: actors, actions, entities, edg
 iteration-N.yaml          One scenario per iteration: state, overrides, entity summaries.
                           The only map file agents edit (their own entries only).
 moonshot.yaml             The long-horizon target state — direction instead of guardrails.
-near-term-experiment.yaml Near-term scenario targets.
 agents/
   <role>/SKILL.md         The role: starting question, read order, outputs, write boundary.
   <role>/knowledge/       The role's running knowledge (and private entities, Prv).
