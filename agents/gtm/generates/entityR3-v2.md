@@ -1,6 +1,6 @@
 ---
 name: entityR3-v2
-description: Market Signal — return flow from GTM to PM. Iteration 2. Grounded use-case catalogue filed; ten-post evidence run designed and queued but not published (Stage 2 review pending); listening sweeps unavailable this session (gap recorded).
+description: Market Signal — return flow from GTM to PM. Iteration 2. Grounded use-case catalogue filed; ten-post evidence run designed and queued but not published (Stage 2 review pending); browser-enabled listening sweeps now run (X remains HTTP 403 — precise gap kept visible).
 entity: entityR3
 direction: return
 from: actor3 (GTM)
@@ -15,8 +15,10 @@ sources:
 # entityR3 — Market Signal (iteration 2)
 
 *Basis: the recorded listening cycles 2026-09-17 → 2026-09-23 (`agents/gtm/knowledge/gtm-v0.md`),
-the 2026-09-22 Dan-lead review, and this iteration-kickoff session (2026-09-25 NZ). Nothing has
-been posted, published or sent. One tooling gap this session, recorded below.*
+the 2026-09-22 Dan-lead review, this iteration-kickoff session (2026-09-25 NZ), and the
+browser-enabled follow-up pass of 2026-09-25 (see "Follow-up pass" below). Nothing has been
+posted, published or sent. The X gap is unchanged and stated precisely below and in the follow-up
+section.*
 
 ## What the bet claims (entity0-v2)
 
@@ -93,12 +95,70 @@ section is the run's design input. What exists now:
   are unreachable there, that is condition-(a) evidence, the run stops, and entity0-v2's fallback
   learnings run.
 
-**What this pass could NOT do, precisely (one tooling gap):** the listening sweeps did not run —
+**What this pass could NOT do, precisely:** at kickoff the listening sweeps did not run —
 `web_search` returned "disabled or no provider is available" and the browser tool could not start
-("No supported browser found"). Per the listening-tooling rule the gap is recorded in the run note
-(gtm-v0.md) and no substitute research channel was used. Also uncheckable this session: DMs from
-@danrandow (no account session available). Consequence: the catalogue rests on the verified record
-above; a fresh sweep pass is the first follow-up when tooling returns.
+("No supported browser found"). Per the listening-tooling rule the gap was recorded in the run note
+(gtm-v0.md) and no substitute research channel was used. The browser now works (read-only via the
+`openclaw` profile) and the follow-up sweep pass below has run; `web_search` remains disabled and
+was not used.
+
+**X gap — exact and unchanged (2026-09-25):** X (x.com) returns HTTP 403 from this headless cloud
+environment. X and X DMs were NOT checked, searched or read — in the kickoff pass or the follow-up
+— and no unofficial proxy, mirror or scraper was used as if it were X. The @danrandow DM check
+therefore remains **not performed**. Findings from Hacker News, GitHub and the open web are not X
+evidence and do not narrow this gap.
+
+### Follow-up pass — 2026-09-25 (browser-enabled sweeps)
+
+Run note and full captures: `agents/gtm/knowledge/gtm-v0.md`, "Research cycle — 2026-09-25
+(follow-up run 2)". Trimmed scope per Dan: write first, sweep the remainder once, skip anything
+that will not load after two attempts.
+
+- **Hacker News (via its public Algolia index, comments since 2026-08-24):** "verification gap",
+  "which agent is right"/"agents disagree"/"agents contradicting", "multi-agent" failure terms,
+  "agentic loop"/"my agents"/"which agent"/"agents keep" — **0 hits** in the window. [Our
+  Interpretation] the problem vocabulary in our record is X-side; this is a channel difference,
+  not a market result.
+- **New verbatim + practitioner (HN, new to the record):** demeyer1 (2026-09-18,
+  https://news.ycombinator.com/item?id=49749222) — building Autobot, an OSS/MIT agent harness for
+  long unattended runs and knowledge work, mechanism "a canonical event ledger, heartbeat […],
+  extends foundation memory to encrypted disk storage", "Entirely free, nothing to sell";
+  verifiable at github.com/demeyer1/Autobot. Benchmark claims self-reported ([Unverified]), posted
+  in a self-promo thread. [Our Interpretation] the closest observed mechanism to a real-outcome
+  return path outside our own design — a partial-solution candidate for catalogue P6/P7, worth
+  watching rather than engaging.
+- **New verbatim (HN):** km144 (2026-09-22, https://news.ycombinator.com/item?id=49804122) —
+  "the non-code output was nonsensical, and that is not being benchmarked at the moment" — the
+  measurement side of catalogue P1. Not a practitioner (no evidence of building).
+- **Not X evidence, kept separate from the X gap:** these are HN captures only.
+- **GitHub issues (public search API via browser, created since 2026-08-24):** langgraph
+  `checkpoint` 61 hits — captured langgraph#9074 "No error. The filter silently returns no
+  results." (samintisar, 2026-09-24, minimal repro + tested one-line fix) and langgraph#9070
+  silent empty restore (kwsYegar, 2026-09-24); langgraph#8764 re-sighted (recorded 2026-09-23),
+  not repeated. CrewAI (`verification/hallucinat/wrong/contradict`, 41 hits): crewAI#7736 error
+  *misattribution* — "a timeout, an authentication failure, a permissions error or an unreachable
+  node all report that the bucket does not exist" (ericdelorefice, 2026-09-23) — and crewAI#7724
+  a fallback loop that "held the agent executor for more than a minute on a one-word user
+  message" (TehilaTheStudent, 2026-09-23; issue self-discloses AI-assisted writing). AutoGen
+  (5 hits): autogen#8276 a *verifier* recording failure as pass — "it specifically converts 'the
+  agent failed to produce a real answer' into a recorded pass" (shaurya416, 2026-09-23) — and
+  autogen#8239 host code execution by default with a documented sanitizer that "does not exist"
+  (AUTHENSOR, 2026-09-15, named commit). [Our Interpretation] the GitHub corpus extends catalogue
+  P3 (silent/misattributed failure) and adds a P1 data point in the measurement layer itself
+  (a scorer that lies silently); full quotes and URLs in gtm-v0.md's continuation blocks.
+- **loopi.tech:** homepage re-read 2026-09-25 (vendor copy): positioning unchanged, "AI-synthesized
+  insights" on their own copy keeps the real-vs-simulated foil; "Free to start" shown, tier prices
+  not on the homepage (prior Free/$10/$40 now [Unverified today]). Verdict: **monitor** (details in
+  Competitive references below).
+- **Not X evidence, kept separate from the X gap:** all of these are HN/GitHub/open-web captures.
+- **Primary-source verification (vendor blog):** the Anthropic line quoted inside km144's comment
+  is **verified verbatim** at anthropic.com/claude-opus-5-5 (read 2026-09-25) — "benchmark margins
+  have become a less reliable guide to real-world differences" — upgrading that inner quote from
+  (secondhand) to [Verified] vendor statement. The same page markets "easier to follow and check"
+  and (in an Anthropic-published tester testimonial) "Self-verification loops feel easier to set
+  up" (Mitch Fierro, Column — vendor-page testimonial tag). [Our Interpretation] P1 now has
+  frontier vendor-copy anchors, and the checking language is being normalized as a *model* feature
+  — sharpening our differentiation question (reading real outcomes ≠ self-checking).
 
 **What blocks the run now:** Stage 2 human review (Delivery agent or Dan) of the five queued
 drafts, per `knowledge/social-agent-publishing-standard.md`. The owner's Low-Medium waiver cleared
@@ -114,11 +174,25 @@ are all legible now (pre-registered rule + fallback learnings). The bet is suppo
 level and untouched at the mechanism level — still zero direct signal, by construction, until the
 run executes.
 
+**What the follow-up pass adds (2026-09-25):** the problem level is now corroborated outside X for
+the first time — GitHub issue corpora across LangGraph, CrewAI and AutoGen show the same P3
+failure signature (silent/misattributed failure) and a P1 data point in the measurement layer
+itself (a scorer that silently records failure as pass). [Our Interpretation] this matters because
+seven prior cycles were X-only: the problem record no longer depends on the one channel we cannot
+currently check. Two watch items: demeyer1/Autobot (long-run harness with an event-ledger
+mechanism — closest observed partial-solution candidate, P6/P7) and the Anthropic release copy
+normalizing "self-verification loops" as a model feature (differentiation pressure on our
+outcome-return framing). Evidence vs inference: captures and URLs are evidence; cluster mappings
+and the differentiation reading are GTM's interpretation.
+
 ## Recommended bet update
 
 No bet change from this pass. Three smaller asks:
-1. **Tooling:** restore a search/browse channel for GTM listening (or accept the catalogue's
-   cold-record limitation and say so in the bet's evidence notes).
+1. **Tooling (partly resolved):** the browse channel is restored (read-only `openclaw` profile) and
+   this pass used it; `web_search` remains disabled. The residual gap is X specifically (HTTP 403
+   from this environment) — GTM listening on X stays impossible until access is restored, and
+   non-X findings must not be read as X evidence. Accept and state the X gap in the bet's evidence
+   notes, or arrange X access.
 2. **Boundary:** SKILL.md's strict write boundary does not include `agents/gtm/knowledge/
    signal-ledger-v0.md`, which Delivery's D2 names as the Dan-approved ledger home. Either extend
    the boundary or confirm rows live in gtm-v0.md's run log (D2 allows this). Flagged for Dan
@@ -128,9 +202,12 @@ No bet change from this pass. Three smaller asks:
 
 ## Competitive references
 
-**loopi.tech:** not sighted in any cycle since 2026-09-21 (no sweep channel this session to check).
-Verdict unchanged: **monitor**. Positioning as recorded: synthetic-persona validation — the clean
-foil (real outcome vs simulated outcome) but no pricing/traction change observed.
+**loopi.tech:** homepage re-read via browser 2026-09-25 (https://loopi.tech/). Positioning unchanged:
+"AI Copilot that helps product teams and innovators turn insights into products in one intelligent
+loop"; loop is Idea → Discovery → MVP Design → Experiment → Insight, closing on "AI-synthesized
+insights" (their copy) — the real-outcome vs simulated-outcome foil stands. "Free to start" shown;
+tier prices not on the homepage (previously recorded Free/$10/$40 now [Unverified today]; Pricing
+page not read). Verdict unchanged: **monitor**.
 **Grep.ai (AgentRun):** no new activity since 2026-09-21 beyond the cited article. Verdict:
 **monitor** — serves repetitive regulated work; the strongest external evidence our segment is
 unserved.
@@ -163,3 +240,4 @@ entity-entry edits.
 | 0 | 2026-09-22 | Sixth cycle, no new signal. ICP supply side still empty; mechanism has zero signal either way |
 | 1 | 2026-09-22 | Seventh cycle (ICP-focused). Still no supply-side signal. Ten-post ledger not run: blocked on posting-gate/confidence tension and unconfirmed account handle, both flagged to Dan |
 | 2 | 2026-09-25 | Grounded catalogue filed (8 problem clusters, 7 groups) — the problems are real and sourced. Run designed, pre-registered and queued (5 baseline drafts, Stage 1); nothing published. Sweeps unavailable (tooling gap recorded) |
+| 2 | 2026-09-25 (follow-up) | Browser-enabled sweeps: problem record corroborated outside X (GitHub silent/misattributed-failure corpus; AutoGen scorer recording failure as pass); demeyer1/Autobot partial-solution watch; Anthropic copy verifies the benchmark-misalignment quote at source and normalizes "self-verification loops". X still HTTP 403 — no X evidence obtained |

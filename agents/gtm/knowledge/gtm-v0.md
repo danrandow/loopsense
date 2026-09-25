@@ -46,6 +46,7 @@ Orchestration (hub + specialists) works. Free mesh failed. Sequential pipelines 
 | Grep.ai (AgentRun) | Typed judgment nodes for repetitive regulated knowledge work | Not novel/complex work |
 | loopi.tech | AI copilot for PM idea validation: idea to GO/PIVOT/KILL via synthetic AI personas; Free/$10/$40 per month | Simulated feedback, not real-world; serves PMs, not agent builders; traction unverified; name overlaps "Loopsense" |
 | Single-loop tools | Verified by criteria, works for code | Breaks for knowledge work (no manufactured referee) |
+| Autobot (github.com/demeyer1/Autobot) | OSS/MIT harness for long unattended runs ("up to 4 days"), event-ledger + heartbeat + extended memory; claims knowledge-work competence (self-reported benchmarks, [Unverified]) | No outcome-return mechanism observed; self-reported claims; appeared on HN 2026-09-18 — watch, not engage |
 
 ## Market signal log
 
@@ -392,3 +393,80 @@ Ledger rows live in this section (D2 permits the knowledge file as ledger home; 
 - **Baseline drafts (A4: loop off, no ledger reads acted on):** five posts drafted and queued at Stage 1 — post-20260925-001…005 (entity3-v2 §8; publication-ledger.md). Verdict-window drafts (posts 6–10) deliberately not pre-drafted (change-note check requires cited baseline rows).
 - **Status: NOTHING PUBLISHED.** Stage 2 human review (Delivery agent or Dan) required per the publishing standard; the owner's Low-Medium waiver cleared only the PM-confidence gate. Stage 3 via official platform APIs only.
 - **Override log:** empty (no gate actions yet). **Divergence count:** 0 (no windows read yet).
+
+### Research cycle — 2026-09-25 (follow-up run 2: browser-enabled listening)
+
+*Run note: NZ run date 2026-09-25. Same NZ date as the iteration-2 kickoff entry above; this is the follow-up run that entry anticipated ("first follow-up when tooling returns"), labelled as a follow-up per the dedupe rule. Channel: read-only browsing via the `openclaw` browser profile (Dan confirmed this channel works; the earlier run's "no browser" gap is superseded). `web_search` remains unavailable (provider disabled) and was not used. **X gap, unchanged and exact: X (x.com) returns HTTP 403 from this headless cloud environment. X and X DMs were NOT checked, searched or read this run; no unofficial proxy, mirror or scraper was used as if it were X. The @danrandow DM check remains not performed.** Sweeps run (Hacker News via its public Algolia search index, comments, window = posts since 2026-08-24, roughly the last 30 days): "verification gap"; "verification gap" OR "which agent is right" OR "agents disagree" OR "agents contradicting"; "multi-agent" (fail OR broken OR disagree OR wrong); "agentic loop" OR "my agents" OR "which agent" OR "agents keep"; "knowledge work" agent; "Autobot harness". The first four queries returned 0 hits in the window. Excluded as non-qualifying: two comments on the Claude Opus 5.5 release thread that only quote the vendor page (no first-hand experience); one long comment on LLM-ified hiring pipelines (off-target). Dedupe: nothing re-sighted from the cycles above — both captures below are new to the record.*
+
+**Verbatim signals:**
+
+> "OSS/MIT Harness that helps agentic tasks run for up to 4 days using without performance degradation. […] Does a good job with knowledge work, managing computer use "leases" in a way that avoids conflicts across sub agents.. or deploying an entire AWS infrastructure pattern from zero and launching 100 different VM images." — demeyer1, Hacker News, 2026-09-18 https://news.ycombinator.com/item?id=49749222 (profile: https://news.ycombinator.com/user?id=demeyer1; posted in a "Share your AI Setup" self-promotion thread about his own open-source project, github.com/demeyer1/Autobot; his accompanying benchmark claims — "Currently top of AssistantBench Leaderboard; and, benchmarked at the top of OS World 2.0" — are [Unverified] self-reported)
+
+> "It was certainly the biggest problem with the previous generation of Claude models for a different reason, because the non-code output was nonsensical, and that is not being benchmarked at the moment." — km144, Hacker News, 2026-09-22 https://news.ycombinator.com/item?id=49804122 (profile: https://news.ycombinator.com/user?id=km144; the same comment quotes "benchmark margins have become a less reliable guide to real-world differences" from Anthropic's Claude Opus 5.5 release page — that inner phrase is Anthropic's words quoted by km144, **(secondhand: via km144 quoting anthropic.com/claude-opus-5-5)**, not km144's own words)
+
+**Practitioners identified:**
+- demeyer1 — building Autobot, an OSS/MIT agent harness for long unattended runs ("up to 4 days without performance degradation") and knowledge work; stated mechanism: "Uses a canonical event ledger, heartbeat (for persistence by low cost orchestration), extends foundation memory to encrypted disk storage"; "Entirely free, nothing to sell". Verifiable: github.com/demeyer1/Autobot.
+
+km144 — **not** counted as a practitioner (no evidence of building); measurement-gap commentary, useful to P1.
+
+**Summary:** HN's last ~30 days is quiet on our core vocabulary — "verification gap", "which agent is right", "agents disagree/contradicting", "agentic loop" all returned zero comments in the window. [Our Interpretation] the named vocabulary in our record is X-side, not HN-side; that is a channel difference, not a market result. Two new signals: (1) a verifiable builder, demeyer1, is attacking P6 head-on (long unattended runs) with an event-ledger/heartbeat mechanism and claims knowledge-work competence — [Our Interpretation] the closest observed thing to a real-outcome return path outside our own design, and a partial-solution candidate to watch, though his claims are self-reported in a promo thread; (2) km144 independently reaches the measurement side of P1 — non-code output quality "is not being benchmarked at the moment". Neither confirms nor challenges the mechanism claim. No market offer, posts, replies, likes, follows or messages.
+
+**Continuation (same run, later capture — GitHub issues, 2026-09-25):** GitHub issues sweep via the public search API in the browser (not X): `langchain-ai/langgraph` issues matching `checkpoint`, created since 2026-08-24 — 61 open-window hits. Top captures below. (`crewAIInc/crewAI` and `microsoft/autogen` sweeps follow in a later continuation block; dedupe: langgraph#8764 (@mattinfra, already recorded 2026-09-23) is part of this corpus and is **re-sighted, not repeated**.)
+
+**Verbatim signals (continuation):**
+
+> "No error. The filter silently returns no results." — samintisar, GitHub issue langchain-ai/langgraph#9074, 2026-09-24 https://github.com/langchain-ai/langgraph/issues/9074 (title: "SqliteSaver.list(filter=...) silently misses nested metadata values containing non-ASCII text"; full minimal repro and a proposed one-line fix in the issue body; the reporter also states "#8786, #8759 and #8829 are similar filter divergences" in a different code path — that is the reporter's claim, not independently checked here)
+
+> "Stored: {'my_key': 'meow', 'node': 'node'} / Restored: {} / AssertionError" — kwsYegar, GitHub issue langchain-ai/langgraph#9070, 2026-09-24 https://github.com/langchain-ai/langgraph/issues/9070 (title: "checkpoint README Usage example restores empty channel_values"; the observed restore silently returns an empty state; the reporter attributes the root cause to the README example's `new_versions` argument and proposes a README fix — root-cause claim is theirs)
+
+**Practitioners identified (continuation):**
+- samintisar — filing detailed LangGraph checkpoint bug reports with minimal repros and a tested one-line fix (github.com/samintisar). Observable behaviour: rigorous bug-reporting practice in the checkpoint layer.
+- kwsYegar — LangGraph checkpoint user hitting silent state loss on restore (github.com/kwsYegar); one report, contribution-framed.
+
+**Continuation summary:** [Our Interpretation] both issues are catalogue P3 (silent failure — the system does not say what happened) living in the checkpoint/state layer of the dominant graph framework: one silent filter divergence, one silent empty restore. Neither is a knowledge-work task complaint; both are evidence that "it didn't tell me" is the recurring failure signature practitioners hit and file reproducible issues about. Evidence vs inference: the quotes, dates and URLs are evidence; the P3 mapping is our interpretation. No X evidence — X not checked (HTTP 403 gap, unchanged).
+
+**Continuation (same run, later capture — GitHub issues, CrewAI, 2026-09-25):** `crewAIInc/crewAI` issues matching `verification OR hallucinat OR wrong OR contradict`, created since 2026-08-24 — 41 hits in the window. Two captures below. Dedupe: no overlap with anything already in this file. No X evidence — X not checked (HTTP 403 gap, unchanged).
+
+**Verbatim signals (continuation):**
+
+> "So a timeout, an authentication failure, a permissions error or an unreachable node all report that the bucket does not exist and tell the user to create it. On a live cluster the bucket is already there, and acting on that message is the wrong thing to do." — ericdelorefice, GitHub issue crewAIInc/crewAI#7736, 2026-09-23 https://github.com/crewAIInc/crewAI/issues/7736 (title: "CouchbaseFTSVectorSearchTool reports any cluster error as a missing bucket"; the report also states the desired behaviour: "A missing bucket reports a missing bucket. Any other failure surfaces as itself, so the user can tell a configuration problem from an infrastructure one.")
+
+> "the refinement loop does not finish: each plan mentions `NOT READY`, so the handler asks for another plan. […] That loop held the agent executor for more than a minute on a one-word user message." — TehilaTheStudent, GitHub issue crewAIInc/crewAI#7724, 2026-09-23 https://github.com/crewAIInc/crewAI/issues/7724 (title: "[BUG] reasoning=True create_reasoning_plan schema 400s on OpenAI strict models and the text fallback loops"; the issue self-discloses "This report was written with AI assistance" — evidence caveat recorded)
+
+**Practitioners identified (continuation):**
+- ericdelorefice — building with CrewAI tools against a live Couchbase cluster; files precise bug reports with diagnosis down to the exception-handling line (github.com/ericdelorefice).
+- TehilaTheStudent — building with CrewAI's reasoning mode; captures request-level evidence of a fallback loop (github.com/TehilaTheStudent). Report self-discloses AI assistance; handle suggests a student — role tag: builder, experience level not established.
+
+**Continuation summary (CrewAI):** [Our Interpretation] both hits are the P3 failure signature one level up from the framework's plumbing: #7736 is error *misattribution* (the system names the wrong cause and sends the user to the wrong fix — the exact inverse of "which part actually failed"), and #7724 is an unattended loop that does not terminate or report. Evidence vs inference: quotes/URLs/dates are evidence; the P3 mapping and the "inverse of our value proposition" reading are ours.
+
+**Continuation (same run, later capture — GitHub issues, AutoGen, 2026-09-25):** `microsoft/autogen` issues matching `verification OR wrong OR contradict OR hallucinat`, created since 2026-08-24 — 5 hits in the window, 2 captured below. Dedupe: no overlap with anything already in this file. No X evidence — X not checked (HTTP 403 gap, unchanged).
+
+**Verbatim signals (continuation):**
+
+> "it specifically converts 'the agent failed to produce a real answer' into a recorded pass" — shaurya416, GitHub issue microsoft/autogen#8276, 2026-09-23 https://github.com/microsoft/autogen/issues/8276 (title: "gaia_question_scorer vacuously scores a degenerate/empty agent answer as correct when the ground truth normalizes to empty"; full diagnosis of the scorer's normalize-then-compare path with a minimal fix proposed. The report's further claim that GAIA test-split reference answers are "withheld/placeholder values" is the reporter's claim, not checked here.)
+
+> "peer content reaches host subprocesses with no approval and no model in the loop; the shipped docstring additionally tells developers a filter exists when it does not." — AUTHENSOR, GitHub issue microsoft/autogen#8239, 2026-09-15 https://github.com/microsoft/autogen/issues/8239 (title: "CodeExecutorAgent defaults execute any participant's code blocks on the host without approval; documented dangerous-command sanitizer does not exist"; verified by the reporter on autogen-agentchat 0.7.5 / autogen-ext 0.7.5 at a named commit.)
+
+**Practitioners identified (continuation):**
+- shaurya416 — auditing benchmark-scoring code (AG2/AutoGen GAIA scorer) and filing reproducible scorer-bug reports (github.com/shaurya416).
+- AUTHENSOR — auditing AutoGen's default execution posture; report cites exact code lines and a named commit (github.com/AUTHENSOR). Experience level not established.
+
+**Continuation summary (AutoGen):** [Our Interpretation] #8276 is the strongest new thematic hit of this sweep — a *verifier* silently recording failure as pass, which is catalogue P1 (checking is the problem) showing up in the measurement layer itself: if the scorer can lie silently, the green light downstream is not evidence. #8239 is governance/side-effects adjacent (P5 family): real host execution by default with a documented safety filter that does not exist. Evidence vs inference: quotes/URLs/dates/commits are evidence; the P1/P5 mapping is ours.
+
+**Continuation (same run, later capture — primary-source verification + vendor blog, 2026-09-25):** The Anthropic line km144 quoted has been **verified at its primary source** — anthropic.com/claude-opus-5-5 (read via browser 2026-09-25) contains verbatim: "at these levels of capability we've found that benchmark margins have become a less reliable guide to real-world differences." The km144 quote above stays attributed to him, but the inner quote's provenance upgrades from (secondhand) to **[Verified] at anthropic.com/claude-opus-5-5** (vendor statement; page published with the Opus 5.5 release, HN discussion 2026-09-22). Two further primary-source lines worth the record (vendor copy — corporate statements, not independent sentiment):
+
+> "In our own use, this has made Opus 5.5's work easier to follow and check—which is a safety benefit as well as a practical one." — Anthropic, Claude Opus 5.5 release page, accessed 2026-09-25 https://www.anthropic.com/claude-opus-5-5
+
+> "Claude Opus 5.5 delegates to subagents far more effectively and checks its own work in creative ways. Self-verification loops feel easier to set up." — Mitch Fierro, Engineering, Column, in an Anthropic-published early-tester testimonial, accessed 2026-09-25 https://www.anthropic.com/claude-opus-5-5 (role tag: **vendor-page testimonial**, wording published by Anthropic — evidence about vocabulary in circulation, not independent practitioner sentiment)
+
+[Our Interpretation] P1 gains two primary-source anchors: the vendor itself now markets "easier to follow and check" and "self-verification loops" as selling points, and admits benchmark scores diverge from real-world differences. The problem is acknowledged in vendor copy at the frontier — and the checking language is being normalized as a model feature, which sharpens the differentiation question (our claim is about reading real outcomes, not self-checking). Evidence vs inference: quotes and URLs are evidence; the P1 reading and differentiation point are ours. No X evidence — X not checked (HTTP 403 gap, unchanged).
+
+**Continuation (same run, later capture — loopi.tech competitive read, 2026-09-25):** loopi.tech homepage fetched read-only via the browser (accessed 2026-09-25 NZ; https://loopi.tech/). This is **vendor copy, not practitioner signal** (role tag: vendor marketing). No X evidence — X not checked (HTTP 403 gap, unchanged).
+
+**Vendor claims as shown (evidence of their positioning, not of their results):**
+
+> "Loopi is the AI Copilot that helps product teams and innovators turn insights into products in one intelligent loop." — loopi.tech homepage (vendor copy), accessed 2026-09-25 https://loopi.tech/
+
+> "Test it — Generate and launch lean experiments in minutes." / "Learn and decide — Get actionable reports with AI-synthesized insights." — loopi.tech homepage (vendor copy), same URL (their five-step loop: Idea → Discovery → MVP Design → Experiment → Insight)
+
+**Competitive read [Our Interpretation]:** positioning unchanged in substance from the recorded read — idea validation for PMs/founders/innovation teams, feedback synthesized by AI, decision output (their FAQ format still frames results as validation verdicts). The homepage shows "Free to start. No credit card required." and an FAQ "How much does it cost?" but no visible tier prices on the page itself; the previously recorded Free/$10/$40 tiers are therefore [Unverified today] — a pricing page exists in the nav ("Pricing") and was not yet read. "AI-synthesized insights" on their own copy supports the real-vs-simulated foil: their loop closes on synthesized reports, not on observed external outcomes. Verdict: **monitor**. Still serves PMs validating ideas, not agent builders; ICP overlap with our buyer question remains indirect. Name collision with "Loopsense" noted previously, unchanged.

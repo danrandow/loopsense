@@ -46,6 +46,11 @@ answer, and here it is as a valid result, not a missing file.**
   bet-relevant instruments (entity2-v2's PM instrumentation list is adopted in the run design).
   If signal is unreadable even in miniature, your path-B reading (instrumentation and loop-design
   capability as the commercial asset) is the fallback this evidence would support.
-- **Known gaps in this bypass:** listening sweeps were unavailable this session (web_search
-  provider disabled; no browser on the host) — recorded, no substitute channel used — so the
-  demand read rests on the record through 2026-09-23 and is several days stale at filing.
+- **Known gaps in this bypass:** listening sweeps ran via the browser on 2026-09-25 (HN, GitHub
+  issues, vendor pages — see entityR3-v2's follow-up pass): the demand read now has non-X
+  corroboration (GitHub failure-signature corpora; one partial-solution watch item). **X gap:
+  X (x.com) returns HTTP 403 from this headless cloud environment — X and X DMs were NOT checked,
+  searched or read; no unofficial proxy/mirror/scraper was used as if it were X; the @danrandow
+  DM check remains not performed.** X-side demand and engagement data therefore remains
+  unavailable, and the run's own per-post metric reads depend on exactly that channel (risk noted
+  in entity3-v2).

@@ -35,12 +35,15 @@ weighed accordingly.
 - Secondhand @KaranVaidya6 talk lines: never as his words. Used only as (secondhand) evidence
   of a problem being discussed publicly (P5).
 
-**Session limitation (2026-09-25 NZ):** the sweep channel was unavailable this session —
-`web_search` returned "disabled or no provider is available" and the browser tool could not start
-("No supported browser found" on this host). Per the standing listening-tooling rule the gap is
-recorded and no substitute research channel was used. The catalogue therefore rests on the
-verified record above, not on new sweeps. A follow-up sweep pass should test each problem cluster
-below for recency and add anything new.
+**Session limitation (2026-09-25 NZ) — updated after the follow-up sweep:** at iteration-2
+kickoff the sweep channel was unavailable (`web_search` disabled; no browser) and the catalogue
+was built from the recorded cycles only. The browser (read-only `openclaw` profile) became
+available later the same NZ date and a follow-up sweep ran; its evidence is appended below
+("Evidence added"). `web_search` remains disabled and was not used. **X gap: X (x.com) returns
+HTTP 403 from this headless cloud environment — X and X DMs were NOT checked, searched or read
+(no unofficial proxy, mirror or scraper used as if it were X); the @danrandow DM check remains
+not performed.** The catalogue's X-sourced captures remain the verified record through
+2026-09-23; the appended evidence is HN/GitHub/open-web only and does not narrow the X gap.
 
 ## The problems
 
@@ -316,3 +319,87 @@ signal only; analysts/press (@mfishbein, @Fargonavt) — amplification channel, 
 - **What the catalogue does NOT establish:** prevalence, willingness to pay, or that any group
   above is the buyer. Seven prior cycles found zero ICP matches because they hunted for a
   pre-shaped ICP; this catalogue inverts the search — these groups are the ones to sit with next.
+
+---
+
+## Evidence added — 2026-09-25 (browser follow-up sweep, same NZ date)
+
+Extension, not a rebuild. Captured via the browser: HN (public Algolia index), GitHub issues
+(public search API), vendor pages. All quotes carry URLs and source dates; capture date is
+2026-09-25 (NZ) throughout. **X (x.com) returns HTTP 403 from this headless cloud environment —
+X and X DMs were NOT checked, searched or read; the @danrandow DM check remains not performed;
+nothing below is X evidence.**
+
+### P1 additions (checking is the problem — now including the measurement layer)
+
+> "it specifically converts 'the agent failed to produce a real answer' into a recorded pass" —
+> shaurya416, GitHub issue microsoft/autogen#8276, 2026-09-23
+> https://github.com/microsoft/autogen/issues/8276
+
+[Our Interpretation] a benchmark scorer silently recording failure as pass: the verifier itself
+fails silently, so a green number downstream is not evidence. P1 in the measurement layer.
+
+> "at these levels of capability we've found that benchmark margins have become a less reliable
+> guide to real-world differences" — Anthropic, Claude Opus 5.5 release page (vendor copy),
+> accessed 2026-09-25 https://www.anthropic.com/claude-opus-5-5 (**[Verified] at source** — this
+> is the line km144 quoted on HN 2026-09-22; his quote in gtm-v0.md upgrades accordingly)
+
+> "In our own use, this has made Opus 5.5's work easier to follow and check—which is a safety
+> benefit as well as a practical one." — same page, same date (vendor copy)
+
+> "Self-verification loops feel easier to set up." — Mitch Fierro, Engineering, Column, in an
+> Anthropic-published early-tester testimonial, accessed 2026-09-25, same URL (role tag:
+> **vendor-page testimonial** — evidence of vocabulary in circulation, not independent sentiment)
+
+[Our Interpretation] the frontier vendor now markets checking/self-verification as a model
+feature. Differentiation pressure: our claim is about reading real outcomes, not self-checking.
+
+### P3 additions (silent / misattributed failure — GitHub corpora, all created since 2026-08-24)
+
+> "No error. The filter silently returns no results." — samintisar, langchain-ai/langgraph#9074,
+> 2026-09-24 https://github.com/langchain-ai/langgraph/issues/9074 (minimal repro + tested
+> one-line fix proposed; reporter also names #8786/#8759/#8829 as similar divergences — their
+> claim, not independently checked here)
+
+> "Stored: {'my_key': 'meow', 'node': 'node'} / Restored: {}" — kwsYegar,
+> langchain-ai/langgraph#9070, 2026-09-24 https://github.com/langchain-ai/langgraph/issues/9070
+> (silent empty restore; root-cause claim is the reporter's)
+
+> "a timeout, an authentication failure, a permissions error or an unreachable node all report
+> that the bucket does not exist" — ericdelorefice, crewAIInc/crewAI#7736, 2026-09-23
+> https://github.com/crewAIInc/crewAI/issues/7736
+
+> "That loop held the agent executor for more than a minute on a one-word user message." —
+> TehilaTheStudent, crewAIInc/crewAI#7724, 2026-09-23
+> https://github.com/crewAIInc/crewAI/issues/7724 (issue self-discloses AI-assisted writing)
+
+[Our Interpretation] same P3 signature as the X record — the system does not say what happened,
+or names the wrong cause (crewAI#7736 is error misattribution: the inverse of "which part
+failed"). Corpus scale in window: langgraph `checkpoint` 61 hits; CrewAI 41; AutoGen 5. The
+record no longer rests on X alone (langgraph#8764 re-sighted in this corpus — recorded
+2026-09-23, not repeated).
+
+### P5-family addition (real side effects / governance)
+
+> "peer content reaches host subprocesses with no approval and no model in the loop; the shipped
+> docstring additionally tells developers a filter exists when it does not." — AUTHENSOR,
+> microsoft/autogen#8239, 2026-09-15 https://github.com/microsoft/autogen/issues/8239 (reporter-
+> verified at a named commit on autogen-agentchat 0.7.5 / autogen-ext 0.7.5)
+
+### P6/P7 watch item (partial-solution candidate)
+
+> "OSS/MIT Harness that helps agentic tasks run for up to 4 days using without performance
+> degradation. […] Does a good job with knowledge work" — demeyer1, Hacker News, 2026-09-18
+> https://news.ycombinator.com/item?id=49749222 (self-promotion thread; project:
+> github.com/demeyer1/Autobot; mechanism "a canonical event ledger, heartbeat […], extends
+> foundation memory"; benchmark claims self-reported [Unverified])
+
+[Our Interpretation] the closest observed mechanism to a real-outcome return path outside our
+own design — but no outcome-return mechanism is confirmed in it. Watch, not engage; tracks P6/P7.
+
+### Recency test (the follow-up's second purpose)
+
+HN core vocabulary ("verification gap", "which agent is right", "agents disagree/contradicting",
+"agentic loop", "my agents", "agents keep") returned **0 hits** in the last-30-day window.
+[Our Interpretation] the named vocabulary is X-side; channel difference, not a market result —
+and with X unreachable it cannot currently be re-tested where it lives.
