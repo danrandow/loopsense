@@ -26,7 +26,7 @@ unreliable. In multi-agent setups the problem compounds — agents agree with ea
 polish each other's work without ever meeting a ground truth.
 
 This problem is not ours alone; it is being named publicly by practitioners and commentators
-(sources are recorded in [`knowledge/research/verification-gap.md`](knowledge/research/verification-gap.md)).
+(sources are recorded in [`knowledge/research/verification-gap.md`](loopsense/knowledge/research/verification-gap.md)).
 
 Writing a rubric to judge the work does not escape the trap: writing a good rubric for
 knowledge work takes more domain judgment than doing the work. We call that the
@@ -54,7 +54,7 @@ insists on:
 Tools that validate with simulated judges or synthetic audiences substitute one simulation for
 another; human-in-the-loop review makes the human the permanent verifier. LoopSense uses what
 actually happened. (Named examples and competitive analysis live in the team's research
-notes, e.g. [`agents/gtm/knowledge/`](agents/gtm/knowledge/).)
+notes, e.g. [`agents/gtm/knowledge/`](loopsense/agents/gtm/knowledge/).)
 
 ## The moving parts
 
@@ -78,29 +78,33 @@ actually use. It is a practice, not a schema field. Whether it improves output i
 This repository holds two things at once: **LoopSense the method** (the files you would fork)
 and **a running instance of it** (our own team using the method to build and test the method).
 
+The repository-facing files stay at the top level. The LoopSense source root is
+`loopsense/`; all source paths below are relative to that directory.
+
 ```
-base.yaml                 The canonical topology: actors, actions, entities, edges.
+loopsense/
+  base.yaml               The canonical topology: actors, actions, entities, edges.
                           Read-only for agents; the single source of truth for the map.
-iteration-N.yaml          One scenario per iteration: state, overrides, entity summaries.
+  iteration-N.yaml        One scenario per iteration: state, overrides, entity summaries.
                           The only map file agents edit (their own entries only).
-moonshot.yaml             The long-horizon target state — direction instead of guardrails.
-agents/
-  <role>/SKILL.md         The role: starting question, read order, outputs, write boundary.
-  <role>/knowledge/       The role's running knowledge (and private entities, Prv).
-  <role>/generates/       Full entity content, versioned per iteration: <entity>-v<N>.md.
-  practitioners/          Customer-side return flows (entityR4…), when practitioners engage.
-knowledge/
-  standing-rules.md       Team-wide rules. Read first, every session.
-  team-registry.md        Who generates and consumes what; entity file locations.
-  reading-the-map.md      How to read the map and scenario files.
-  dna.md                  Design philosophy behind the topology.
-  audit-policy.md         Commit, decision-record and audit discipline.
-  research/               Stable, sourced research findings (e.g. verification-gap.md).
-decisions/                Short decision records for material owner/PM choices.
-workflows/                Team processes (starting an iteration, retrospectives).
-history/, loopsense.log.json  Frozen legacy audit trail. Historical evidence only —
+  moonshot.yaml           The long-horizon target state — direction instead of guardrails.
+  agents/
+    <role>/SKILL.md       The role: starting question, read order, outputs, write boundary.
+    <role>/knowledge/     The role's running knowledge (and private entities, Prv).
+    <role>/generates/     Full entity content, versioned per iteration: <entity>-v<N>.md.
+    practitioners/        Customer-side return flows (entityR4…), when practitioners engage.
+  knowledge/
+    standing-rules.md     Team-wide rules. Read first, every session.
+    team-registry.md      Who generates and consumes what; entity file locations.
+    reading-the-map.md    How to read the map and scenario files.
+    dna.md                Design philosophy behind the topology.
+    audit-policy.md       Commit, decision-record and audit discipline.
+    research/             Stable, sourced research findings (e.g. verification-gap.md).
+  decisions/              Short decision records for material owner/PM choices.
+  workflows/              Team processes (starting an iteration, retrospectives).
+  history/, loopsense.log.json  Frozen legacy audit trail. Historical evidence only —
                           never current instructions, never edited.
-openclaw/                 Agent-adapter configuration for running the roles on an
+  openclaw/               Agent-adapter configuration for running the roles on an
                           agent platform. Not required to understand the method.
 PUBLIC_EXTRACTION.md      Provenance note for this standalone repository.
 ```
@@ -243,15 +247,15 @@ feels like paperwork, the loop isn't wired to real signal yet — that finding i
 |---|---|
 | Our own team has run on this map across multiple iterations; the files read and edit fine by hand | That outcome signals change what an agent does |
 | The map's return flows, bypasses and scenario files work as a coordination spec | That any change is an improvement |
-| The discipline is followable in principle (spec in [`agents/delivery/generates/`](agents/delivery/generates/)) | That consideration (reading your receiver's knowledge file) improves output |
+| The discipline is followable in principle (spec in [`agents/delivery/generates/`](loopsense/agents/delivery/generates/)) | That consideration (reading your receiver's knowledge file) improves output |
 | | That anyone outside this team can run it |
 | | That a small account gives usable signal at all |
 | | That the loop's effect is separable from timing, topic and platform drift |
 
 Current experiments and their results are in the open: see
-[`agents/delivery/generates/`](agents/delivery/generates/) (what was built and what it took),
-[`agents/gtm/knowledge/`](agents/gtm/knowledge/) (signal ledger and research), and
-[`decisions/`](decisions/) (what was decided and why).
+[`agents/delivery/generates/`](loopsense/agents/delivery/generates/) (what was built and what it took),
+[`agents/gtm/knowledge/`](loopsense/agents/gtm/knowledge/) (signal ledger and research), and
+[`decisions/`](loopsense/decisions/) (what was decided and why).
 
 ## FAQ
 
@@ -295,12 +299,12 @@ numbers either way.
 
 - **License:** [Apache License 2.0](LICENSE).
 - **Audit:** Git-native since 2026-09-24 — commits are the mechanical audit trail; material
-  owner/PM decisions get short records in [`decisions/`](decisions/). The older ledger
+  owner/PM decisions get short records in [`decisions/`](loopsense/decisions/). The older ledger
   (`loopsense.log.json`, `history/`) is frozen historical evidence.
 - **Publishing standard:** agent-authored public posts are drafted, human-reviewed before
   publication, and sourced-or-labelled under
-  [`knowledge/social-agent-publishing-standard.md`](knowledge/social-agent-publishing-standard.md)
-  and [`knowledge/standing-rules.md`](knowledge/standing-rules.md).
+  [`knowledge/social-agent-publishing-standard.md`](loopsense/knowledge/social-agent-publishing-standard.md)
+  and [`knowledge/standing-rules.md`](loopsense/knowledge/standing-rules.md).
 - **Claims discipline (applies to this README too):** substantive claims carry sources or are
   marked as interpretation or hypothesis. If something here reads as a claim and has no
   source, treat it as our hypothesis — and please open an issue.

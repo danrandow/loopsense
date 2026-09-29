@@ -4,7 +4,7 @@ This is an OpenClaw adapter. The canonical PM operating method remains `agents/p
 
 ## Start every session
 
-1. Resolve the repository root with `git rev-parse --show-toplevel`; interpret all paths from it.
+1. Resolve the source root as `$(git rev-parse --show-toplevel)/loopsense`; interpret all paths from it.
 2. Read `knowledge/standing-rules.md` completely.
 3. Read `agents/pm/SKILL.md` completely and follow its write boundary, read order, log discipline and handoff wording.
 4. Read `agents/pm/project-instructions.md` and the active iteration YAML.
