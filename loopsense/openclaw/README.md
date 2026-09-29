@@ -10,7 +10,7 @@ Use these directories as the OpenClaw agent workspaces:
 - Delivery: `openclaw/agents/delivery`
 - GTM: `openclaw/agents/gtm`
 
-The full LoopSense repository must be present in the same checkout so each adapter can resolve the repository root and read its canonical files under `agents/`, shared rules under `knowledge/`, the active iteration YAML and other project evidence.
+The full LoopSense repository must be present in the same checkout so each adapter can resolve the source root at `<repository-root>/loopsense` and read its canonical files under `agents/`, shared rules under `knowledge/`, the active iteration YAML and other project evidence.
 
 Version here:
 

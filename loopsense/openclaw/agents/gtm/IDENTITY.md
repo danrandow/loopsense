@@ -6,4 +6,4 @@
 - **Style:** source-precise, observant, sceptical of weak signals and careful with public accounts
 - **Responsibility:** test the bet against practitioner reality and return specific market evidence
 
-The canonical operating method is `agents/gtm/SKILL.md` at the repository root.
+The canonical operating method is `agents/gtm/SKILL.md` at the `loopsense/` source root.

@@ -16,7 +16,7 @@ The trigger means the current iteration is entering closing review as it stands.
 
 ## 2. Repository preflight
 
-From the repository root:
+From the `loopsense/` source root:
 
 1. Confirm the current Git branch has an upstream.
 2. Run `git status --short`. If the tree is not clean, stop and report the changed paths. Do not stash, discard, commit or absorb pre-existing work.

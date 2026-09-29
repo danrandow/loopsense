@@ -4,7 +4,7 @@ This directory is an OpenClaw adapter. It does not replace Loopy's canonical ins
 
 ## Start every session
 
-1. Resolve the LoopSense repository root with `git rev-parse --show-toplevel`. Interpret every path below from that root, regardless of the current working directory.
+1. Resolve the LoopSense source root as `$(git rev-parse --show-toplevel)/loopsense`. Interpret every path below from that root, regardless of the current working directory.
 2. Read `knowledge/standing-rules.md` completely.
 3. Read `agents/loopy/SKILL.md` completely and follow it as Loopy's canonical operating method.
 4. Read `agents/loopy/project-instructions.md`, `agents/loopy/knowledge/working-context.md`, and the active iteration YAML.

@@ -4,7 +4,7 @@ This is an OpenClaw adapter. The canonical GTM operating method remains `agents/
 
 ## Start every session
 
-1. Resolve the repository root with `git rev-parse --show-toplevel`; interpret all paths from it.
+1. Resolve the source root as `$(git rev-parse --show-toplevel)/loopsense`; interpret all paths from it.
 2. Read `knowledge/standing-rules.md` completely.
 3. Read `agents/gtm/SKILL.md` completely and follow its write boundary, read order, log discipline, publishing gates and handoff wording.
 4. Read `agents/gtm/project-instructions.md` and the active iteration YAML.
