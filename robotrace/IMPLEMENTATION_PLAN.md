@@ -66,7 +66,7 @@ The following decisions are already made:
 
 ### 3.1 LoopSense condition
 
-Canonical map: `experiments/robotrace/base.yaml`
+Canonical map: `robotrace/base.yaml`
 
 Forward spine:
 
@@ -93,15 +93,13 @@ a controller. The robot consumes only the complete package.
 
 ### 3.2 Conventional control condition
 
-Canonical map: `experiments/robotrace/control-base.yaml`
+Canonical map: `robotrace/control-base.yaml`
 
 Forward spine:
 
 ```text
 Robot Optimizer
   → Candidate Robot
-  → Evaluator
-  → Test Submission
   → Robot on Track
   → Race Outcome
 ```
@@ -114,28 +112,25 @@ Robot on Track → Race Data for Optimizer → Robot Optimizer
 Robot on Track → Race Data for Evaluator → Evaluator
 ```
 
-The optimizer owns both geometry and controller. The evaluator never edits them.
-It critiques complete candidates, decides when a valid candidate is ready to test,
-and recommends changes after the race.
+The optimizer owns both geometry and controller and produces one candidate per
+iteration. Every valid candidate goes straight to the track. The evaluator never
+edits the robot or gates its test; it analyzes its independently addressed race
+measurements and recommends changes for the next iteration.
 
 The shared blackboard is storage, not an actor. The orchestrator explicitly selects
 which records enter each prompt.
 
-### 3.3 Bounded pre-test control loop
+### 3.3 One candidate per world-feedback cycle
 
-The evaluator may return a candidate for revision before it reaches the track. To
-avoid unlimited deliberation:
+Both conditions put one valid candidate through the same race batch per iteration.
+Neither condition receives an additional design turn before observing the world.
+This makes improvement per world-feedback cycle directly comparable and avoids
+giving the control condition an extra optimization loop inside an iteration.
 
-- default maximum: two evaluator reviews per iteration;
-- the evaluator may approve the first proposal;
-- the optimizer may revise after the first critique;
-- after the second review, the latest valid candidate is tested;
-- invalid candidates enter the mechanical repair policy rather than consuming an
-  unbounded critique loop;
-- the total token budget, rather than equal call count, determines cost fairness.
-
-The review cap is configuration, fixed before the recorded run. It is not editable
-through the agents' working agreement.
+The evaluator may provide as much post-race analysis as fits its fixed token budget,
+but the optimizer cannot act on it until the next iteration. Invalid artifacts use
+the same mechanical repair policy as the LoopSense condition; repair calls correct
+format or constraint failures and may not introduce unscored optimization turns.
 
 ## 4. Iteration lifecycles
 
@@ -177,24 +172,23 @@ through the agents' working agreement.
 
 1. The optimizer receives its private state, working agreement, direct prior race
    data, prior evaluator feedback, and fixed constraints.
-2. It generates a complete Candidate Robot.
-3. The evaluator reviews the candidate and either approves it or returns critique.
-4. Proposal and critique may repeat within the configured review cap.
-5. The evaluator produces an unchanged Test Submission identifying the exact
-   candidate version selected.
-6. The same simulator batch used by the LoopSense condition runs.
-7. The harness generates the outcome and independently addressed race returns for
+2. It generates one complete Candidate Robot.
+3. Mechanical validation runs, with the same single bounded repair allowance as the
+   LoopSense condition.
+4. Every valid candidate immediately enters the same simulator batch used by the
+   LoopSense condition.
+5. The harness generates the outcome and independently addressed race returns for
    both agents.
-8. The evaluator consumes its race return and produces post-race feedback.
-9. The iteration closes.
-10. Both agents retrospect; any working-agreement revision applies next iteration.
+6. The evaluator consumes its race return and produces post-race feedback.
+7. The iteration closes. The optimizer cannot revise until the next iteration.
+8. Both agents retrospect; any working-agreement revision applies next iteration.
 
 ## 5. Repository layout
 
 Proposed layout inside the LoopSense repository:
 
 ```text
-experiments/robotrace/
+robotrace/
   IMPLEMENTATION_PLAN.md
   base.yaml
   control-base.yaml
@@ -490,10 +484,9 @@ runs/<experiment-id>/leaderboard.svg
 Both conditions' iteration notes link to the same leaderboard artifact. The Maps
 app remains the public spectator interface. No simulator server is required.
 
-The control map must show proposal versions, evaluator critiques, test submission,
-race returns, post-race advice, and retrospective changes. This makes its internal
-work as inspectable as the LoopSense pair rather than representing it only as a
-score.
+The control map must show the candidate robot, race returns, evaluator analysis,
+and retrospective changes. This makes its internal work as inspectable as the
+LoopSense pair rather than representing it only as a score.
 
 ## 13. Deterministic local orchestrator
 
@@ -564,7 +557,7 @@ Suggested first configuration:
 - two unscored smoke-test iterations per condition;
 - five recorded iterations per condition;
 - one mechanical repair call per malformed agent artifact;
-- two pre-test evaluator reviews in the control condition;
+- one tested candidate per condition per iteration;
 - fixed total token budget per condition;
 - final held-out evaluation after iteration five.
 
@@ -608,7 +601,7 @@ The retro cannot change:
 - score;
 - track split;
 - held-out access;
-- control review cap;
+- one-candidate-per-iteration rule;
 - simulator version during a recorded batch.
 
 ## 17. Build phases
@@ -696,7 +689,7 @@ Minimum automated tests:
 - measurement request allowlisting;
 - context manifest enforcement;
 - token budget hard stop;
-- control review-cap enforcement;
+- one tested candidate per condition per iteration;
 - retrospective cannot mutate fixed rules;
 - checkpoint resume does not duplicate model calls;
 - SVG generation for finish and failure cases;
@@ -746,4 +739,3 @@ The experiment system is ready when one command can:
 9. expose no arbitrary model-directed shell or filesystem capability;
 10. preserve enough evidence for another person to reproduce or challenge the
     result.
-
