@@ -1,0 +1,241 @@
+map:
+  schema: "v0.2"
+  id: "loopsense-robotrace"
+  title: "LoopSense Robot Race"
+  scenario: "Geometry-controller learning loop"
+  is_moo: true
+  notes: |
+    A deliberately small test of the LoopSense topology. Two AI agents build a
+    line-following robot in sequence. The Geometry Builder produces a geometry.
+    The Robot Integrator consumes that geometry and produces a complete runnable
+    robot package by adding a controller. The instantiated robot races in a
+    deterministic simulator and generates an outcome plus measurement-only return
+    flows for each upstream agent.
+
+    The topology begins with prescribed responsibilities, but the two agents may
+    revise their shared working agreement in the retrospective between iterations.
+    The two-agent boundary and single forward spine remain fixed during the initial
+    experiment. Actor 2 is the simulated robot, not an AI agent.
+  iteration_definition: |
+    An iteration starts when actor0 acts on the previous iteration's two inputs:
+    actor2's measurement return addressed to actor0 and actor1's integration
+    feedback from the preceding iteration. Actor0 generates entity0. Actor1
+    consumes entity0 and generates entity1. Actor2 consumes entity1, races across
+    the configured evaluation batch, and generates entity2 plus the two measurement
+    return entities. Actor1 then consumes its addressed return and generates
+    entityR1 for actor0. The iteration ends there: actor0 does not act on either
+    return until the next iteration. Only after the iteration ends do actor0 and
+    actor1 run a retrospective and, if they agree, revise the shared working
+    agreement for the next iteration.
+  dimension_axes: [condition, iteration]
+
+actors:
+  - id: actor0
+    label: Geometry Builder
+    notes: |
+      AI agent. Designs geometry using its own expertise, actor1's integration
+      feedback, and race measurements addressed directly to it. Its questions for
+      the world must be encoded in entity0 for actor1 to carry forward.
+
+  - id: actor1
+    label: Robot Integrator
+    notes: |
+      AI agent. The direct customer and user of entity0. Designs a controller for
+      the supplied geometry and incorporates both into one complete robot package.
+      Gives actor0 separate integration feedback while exercising its own judgement
+      over the race measurements addressed to it.
+
+  - id: actor2
+    label: Robot on Track
+    notes: |
+      Deterministic software actor instantiated from entity1. It is not an AI agent
+      and cannot interpret results. It pursues the race outcome, records evidence,
+      and supplies supported measurements in two addressed return-flow entities.
+
+actions:
+  - id: action0
+    actor: actor0
+    label: Design geometry
+    notes: |
+      Produces a valid bounded geometry and records its intent, hypotheses, and
+      requests for measurements that would help improve the next geometry.
+
+  - id: action1
+    actor: actor1
+    label: Integrate robot
+    notes: |
+      Uses the proposed geometry, builds a controller specifically for it, carries
+      supported upstream measurement requests forward, adds its own requests, and
+      emits a complete runnable robot package. After the race it resumes, consumes
+      its addressed measurements, and returns integration feedback to actor0. Every
+      technically valid package proceeds to the track.
+
+  - id: action2
+    actor: actor2
+    label: Race track
+    notes: |
+      Executes the robot package on the configured track and seed batch. Generates
+      the race outcome, telemetry, scores, and trajectory images. It supplies data,
+      not interpretation.
+
+entities:
+  - id: entity0
+    label: Geometry Proposal
+    system_boundary: internal
+    notes: |
+      Actor0's package: geometry.json, design intent, hypotheses, and requests for
+      supported downstream measurements. It is a component, not a runnable robot.
+
+  - id: entity1
+    label: Complete Robot Package
+    system_boundary: internal
+    notes: |
+      Actor1's product: the consumed geometry, controller, integration notes, and a
+      consolidated observation request containing supported questions from both
+      agents. Actor2 consumes only this package and does not reach upstream to
+      entity0.
+
+  - id: entity2
+    label: Race Outcome
+    system_boundary: internal
+    notes: |
+      The outcome actor2 pursues by racing: finish, failure, progress, time, and the
+      action's visual record. This entity has no used-by edge to actor0 or actor1.
+      Upstream learning occurs through the addressed return-flow entities.
+
+  - id: entityR1
+    label: Integration Feedback
+    direction: return
+    notes: |
+      Actor1's post-race judgement for actor0: how geometry affected controller
+      construction and integrated behaviour, what actor1 sees in its addressed race
+      measurements, and what it requests from the next geometry. This is distinct
+      from race evidence received independently by actor0.
+
+  - id: entityR2A
+    label: Race Data for Geometry
+    direction: return
+    notes: |
+      Measurement-only evidence generated by actor2 and addressed to actor0 in
+      response to requests carried through entity1. Initially it may contain the
+      same standard race dataset as entityR2B. Actor0 independently decides what
+      evidence matters to geometry work.
+
+  - id: entityR2B
+    label: Race Data for Integration
+    direction: return
+    notes: |
+      Measurement-only evidence generated by actor2 and addressed to actor1 in
+      response to entity1's observation request. Initially it may contain the same
+      standard race dataset as entityR2A. Actor1 independently decides what evidence
+      matters to controller and integration work.
+
+  - id: entityTeam0
+    label: Working Agreement
+    system_boundary: private
+    notes: |
+      Shared responsibilities, handoff expectations, feedback practice, and
+      measurement conventions. Both agents may agree changes only in the
+      retrospective after an iteration. Revisions apply from the next iteration.
+
+  - id: entityPub0
+    label: Track Conditions
+    system_boundary: public
+    notes: |
+      Versioned development and held-out tracks, seeds, noise settings, design
+      constraints, scoring rules, and budget. Fixed by the experiment harness.
+
+  - id: entityPrv0
+    label: Geometry Expertise
+    system_boundary: private
+    notes: Actor0's evolving geometry knowledge and judgement.
+
+  - id: entityPrv1
+    label: Integration Expertise
+    system_boundary: private
+    notes: Actor1's evolving controller and integration knowledge and judgement.
+
+edges:
+  - id: edge0G
+    type: generates
+    from: action0
+    to: entity0
+  - id: edge0U
+    type: used by
+    from: entity0
+    to: action1
+  - id: edge1G
+    type: generates
+    from: action1
+    to: entity1
+  - id: edge1U
+    type: used by
+    from: entity1
+    to: action2
+  - id: edge2G
+    type: generates
+    from: action2
+    to: entity2
+
+  - id: edgeR1G
+    type: generates
+    from: action1
+    to: entityR1
+    direction: return
+  - id: edgeR1U
+    type: used by
+    from: entityR1
+    to: action0
+    direction: return
+
+  - id: edgeR2AG
+    type: generates
+    from: action2
+    to: entityR2A
+    direction: return
+  - id: edgeR2AU
+    type: used by
+    from: entityR2A
+    to: action0
+    direction: return
+  - id: edgeR2BG
+    type: generates
+    from: action2
+    to: entityR2B
+    direction: return
+  - id: edgeR2BU
+    type: used by
+    from: entityR2B
+    to: action1
+    direction: return
+
+  - id: edgeTeam0U0
+    type: used by
+    from: entityTeam0
+    to: action0
+  - id: edgeTeam0U1
+    type: used by
+    from: entityTeam0
+    to: action1
+
+  - id: edgePub0U2
+    type: used by
+    from: entityPub0
+    to: action2
+
+  - id: edgePrv0U
+    type: used by
+    from: entityPrv0
+    to: action0
+  - id: edgePrv0G
+    type: generates
+    from: action0
+    to: entityPrv0
+  - id: edgePrv1U
+    type: used by
+    from: entityPrv1
+    to: action1
+  - id: edgePrv1G
+    type: generates
+    from: action1
+    to: entityPrv1
