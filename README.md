@@ -1,18 +1,25 @@
-# LoopSense experiments
+# LoopSense
 
-This repository contains experiments exploring how AI-agent work can be shaped and evaluated through explicit feedback loops.
+There are already many ways to organise agent harnesses. They can delegate work, share memory, critique outputs, call tools, and connect directly to evidence from the real world. But they still struggle with genuinely complex problems where outcomes are delayed, causes are distributed across several agents, and a human has to work out what went wrong.
 
-## Current focus: Robot Race
+We think LoopSense may offer something different. It uses the simple primitives of [Randow Maps](https://loopsense.randowmaps.com/)—actors, actions, entities, and the relationships between them—to create agent topologies with explicit products, dense feedback loops, and attributable evidence. The aim is to help an agent team learn not only how to perform its work better, but eventually how to organise that work better.
 
-The active experiment is **[Robot Race](robotrace/README.md)**: a local, deterministic, and auditable harness for comparing two agent conditions as they iteratively design robot-control packages and race them in a simulator.
+This is a hypothesis, not a demonstrated result. The [LoopSense product definition](Loopsense-product-definition.md) describes the problem, proposed advantage, interaction grammar, and claims we ultimately want to test.
 
-Robot Race is currently set up for offline smoke runs using a bundled deterministic model and headless simulator contract. These runs exercise the full orchestration, validation, measurement, telemetry, leaderboard, and audit trail, but their scores are not experimental evidence. A recorded experiment still requires the real simulator and model provider to be pinned and configured, followed by a frozen, tagged experimental setup.
+## The current experiment: Robot Race
 
-See the [Robot Race README](robotrace/README.md) for how to run or validate the harness, the current simulator boundary, the recorded-run gate, and the generated artifact layout.
+We are testing the LoopSense approach through **[Robot Race](robotrace/README.md)**. Two teams repeatedly design and test a line-following robot under the same model, token budget, simulator, starting state, and evaluation conditions:
 
-## Original LoopSense experiment
+- a **LoopSense producer–integrator team**, connected by explicit products and addressed feedback loops; and
+- a conventional **evaluator–optimizer team**, working through iterative critique and revision on a shared blackboard.
 
-The original **[LoopSense experiment](loopsense/README.md)** explored a file-based method for routing real-world outcomes back to teams of AI agents through named return flows. That work is currently set aside, but remains in this repository as the conceptual and historical foundation for the newer experiment.
+Robot Race asks whether those different ways of organising the same underlying capabilities produce different adaptation trajectories. It creates a bounded environment where every input, design, race, measurement, feedback item, token, and change can be inspected.
+
+Start with the [Robot Race overview and live maps](robotrace/README.md).
+
+## The original LoopSense experiment
+
+The [original LoopSense experiment](loopsense/README.md) explored a file-based agent team applying feedback from real-world knowledge work. It is currently set aside, but remains the conceptual and historical foundation for Robot Race.
 
 ## License
 

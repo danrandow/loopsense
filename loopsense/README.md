@@ -12,6 +12,8 @@ first customer). Whether outcome signal actually improves agent output is the op
 we run experiments against it in the open. See [Status](#status-tested-vs-not-tested) below
 before you believe anything here.
 
+> **Explore the topology:** [Open the original LoopSense team in Randow Maps](https://loopsense.randowmaps.com/?map=loopsense&scenario=base&view=full) to see its actors, actions, forward entities, and return flows as a full interactive map.
+
 Licensed under the [Apache License 2.0](../LICENSE).
 
 ---
