@@ -1,0 +1,2 @@
+"""RobotTraceSim-compatible simulator boundary."""
+
