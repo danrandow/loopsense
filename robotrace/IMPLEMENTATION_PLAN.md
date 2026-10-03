@@ -45,22 +45,25 @@ The following decisions are already made:
 5. The LoopSense condition begins with Geometry Builder and Robot Integrator roles.
 6. The roles may evolve their working agreement, but the two-agent boundary and
    single forward spine remain fixed during the initial experiment.
-7. A retrospective occurs after an iteration ends. Its changes apply only to the
-   next iteration.
-8. One race batch produces one canonical measurement capture and two independently
-   addressed return-flow entities.
+7. There is no separate retrospective call or budget. Agents may revise shared
+   coordination material during their ordinary work.
+8. In both conditions, one race batch produces one canonical measurement capture
+   and two independently addressed return-flow entities.
 9. Initially the two return entities contain the same standard measurements. Each
    recipient independently decides what to use.
-10. Race Outcome, entity2, is not readable by either AI agent. Their evidence enters
-    through return-flow entities.
+10. Race Outcome, entity2, is not an operational input to either AI agent. In both
+    conditions, evidence enters through the two addressed return entities.
 11. The conventional condition is a two-agent optimizer/evaluator pair using a
-    passive blackboard.
+    shared, unstructured blackboard. It may run multiple internal critique-revision
+    cycles before choosing one build to race.
 12. Orchestration is a narrow deterministic local program, not an autonomous agent.
 13. Start with the cheapest model capable of reliably producing valid artifacts.
 14. The same model and model settings apply to both conditions.
 15. Trials run locally. Generated maps, JSON, Markdown, SVG, and leaderboard
     artifacts synchronize to the existing Randow Maps repository and public app.
 16. There is no public simulation service or interactive simulator in version one.
+17. Every agent sees the condition's shared budget ledger after each model call.
+18. Each completed iteration becomes the state cloned into the next map scenario.
 
 ## 3. Topologies
 
@@ -98,10 +101,10 @@ Canonical map: `robotrace-control/base.yaml`
 Forward spine:
 
 ```text
-Evaluator
-  → Evaluation Brief
-  → Robot Optimizer
-  → Complete Robot Package
+Robot Optimizer
+  → Complete Robot Candidate
+  → Evaluator
+  → Approved Robot Build
   → Robot on Track
   → Race Outcome
 ```
@@ -109,38 +112,37 @@ Evaluator
 Return flows:
 
 ```text
-Robot on Track → Race Data for Evaluator → Evaluator
+Evaluator → Evaluator Feedback → Robot Optimizer
 Robot on Track → Race Data for Optimizer → Robot Optimizer
+Robot on Track → Race Data for Evaluator → Evaluator
 ```
 
-The Evaluator and Robot Optimizer receive independently addressed copies of the
-same preceding race measurements. The Evaluator acts first and packages its
-interpretation as a forward brief. The Optimizer then exercises its own judgement
-over both the empirical data and that opinion and produces the only complete robot
-that goes onto the track. The Evaluator never edits the robot or receives a second
-turn inside the iteration.
+The Optimizer and Evaluator may alternate through candidate and feedback versions as
+often as they choose while their shared budget remains. The Evaluator sees the actual
+candidate and rationale. It either requests another revision through Entity R1 or
+gates the selected candidate through unchanged as the Approved Robot Build.
 
-The shared blackboard is storage, not an actor. The orchestrator explicitly selects
-which records enter each prompt.
+The shared blackboard is storage, not an actor. Both control agents may read and
+write anything in it. Candidate and feedback entities identify meaningful products
+and uses within that workspace; they are not filesystem permission boundaries.
 
-### 3.3 One candidate per world-feedback cycle
+### 3.3 One race per world-feedback cycle
 
-Both conditions put one valid candidate through the same race batch per iteration.
-Neither condition receives an additional design turn before observing the world.
-This makes improvement per world-feedback cycle directly comparable and avoids
-giving the control condition an extra optimization loop inside an iteration.
+Both conditions put one selected build through the same race batch per iteration.
+The control may spend its budget on multiple internal evaluator-optimizer cycles;
+LoopSense spends the same overall budget through its prescribed production flow.
+Comparison therefore reports improvement per race and per token or cost.
 
-The evaluator may provide as much analysis as fits its fixed token budget. That
-analysis travels left-to-right as Entity 0 and can influence the Optimizer's single
-contribution before the race. Invalid artifacts use the same mechanical repair
-policy as the LoopSense condition; repair calls correct format or constraint
-failures and may not introduce unscored optimization turns.
+Invalid artifacts use the same mechanical repair policy in both conditions. Repair
+calls correct format or constraint failures and do not supply substantive design
+advice.
 
 ## 4. Iteration lifecycles
 
 ### 4.1 LoopSense iteration
 
-1. The orchestrator opens iteration `N` and loads its immutable configuration.
+1. The orchestrator clones the completed state of scenario `N-1` into scenario `N`
+   and updates the visible shared budget ledger.
 2. Agent 0 receives:
    - its private expertise state;
    - current working agreement;
@@ -167,29 +169,32 @@ failures and may not introduce unscored optimization turns.
    - aggregate result JSON.
 10. Agent 1 receives its addressed race return and generates post-race Integration
     Feedback for Agent 0.
-11. The iteration closes. Agent 0 does not act again inside it.
-12. Both agents independently write retrospective observations.
-13. A deterministic retro step asks them to agree any working-agreement revision.
-14. The revision is versioned and applies from iteration `N+1`.
+11. The iteration closes once the race returns and Integration Feedback are
+    populated. Agent 0 does not act on them until the next cloned scenario.
+12. Either agent may update the Working Agreement during its ordinary turn; there is
+    no separate retrospective call.
 
 ### 4.2 Control iteration
 
-1. The Evaluator receives its private state, working agreement, independently
-   addressed prior race data, and fixed constraints.
-2. It generates Entity 0: Evaluation Brief.
-3. The Optimizer receives its private state, the same prior race measurements, the
-   working agreement, Entity 0, and fixed constraints.
-4. It generates Entity 1: one Complete Robot Package, recording how it considered
-   the evaluation without being required to accept it.
-5. Mechanical validation runs, with the same single bounded repair allowance as the
-   LoopSense condition.
-6. Every valid package immediately enters the same simulator batch used by the
-   LoopSense condition.
-7. The harness generates the outcome and independently addressed race returns for
-   both agents.
-8. The iteration closes. Neither agent acts on the new returns until the next
-   iteration.
-9. Both agents retrospect; any working-agreement revision applies next iteration.
+1. The orchestrator clones the completed state of scenario `N-1` into scenario `N`
+   and updates the visible blackboard budget ledger.
+2. The Optimizer reads the shared blackboard, its private expertise, fixed
+   constraints, and remaining budget, then generates Entity 0: Complete Robot
+   Candidate.
+3. Mechanical validation checks the candidate. One bounded format-repair call is
+   allowed under the common policy.
+4. The Evaluator reads the same blackboard, the actual candidate and rationale, its
+   private expertise, fixed constraints, and remaining budget.
+5. The Evaluator either generates Entity R1: Evaluator Feedback or generates Entity
+   1: Approved Robot Build by passing the selected candidate through unchanged.
+6. If Entity R1 is produced and budget remains, return to step 2. All candidate and
+   feedback versions remain on the blackboard.
+7. If the Evaluator ships, or the budget policy forces the current valid candidate
+   to be selected, Entity 1 enters the same simulator batch used by LoopSense.
+8. The harness generates Entity 2, telemetry and SVGs, then writes the standard race
+   measurements into Race Data for Optimizer and Race Data for Evaluator.
+9. The populated return entities close the iteration and are present in the next
+   cloned scenario. There is no separate retrospective call.
 
 ## 5. Repository layout
 
@@ -290,24 +295,33 @@ or small state machine. Arbitrary Python generation is deferred. This prevents
 filesystem access, hidden track inspection, network calls, and accidental process
 damage while keeping controller design meaningful.
 
-### 6.3 Control Evaluation Brief
+### 6.3 Control candidate, feedback, and approved build
 
 ```text
 entity0/
+  geometry.json
+  controller.json
+  optimization-notes.md
+  measurement-request.json
+  manifest.json
+
+entityR1/
   evaluation.md
   recommendations.json
-  feedback-request.json
+  manifest.json
+
+entity1/
+  candidate/                 # exact selected entity0 version
+  approval.json
+  candidate-hash.txt
   manifest.json
 ```
 
-This is the control condition's Entity 0. It records the Evaluator's interpretation
-of the preceding race measurements, uncertainty, recommendations, and supported
-measurement requests. It contains no modified geometry or controller. The Optimizer
-receives both this brief and its own independently addressed copy of the source
-measurements.
-
-The control condition's Entity 1 uses the Complete Robot Package contract above,
-with `optimization-notes.md` in place of `integration-notes.md`.
+Entity 0 is the Optimizer's complete candidate. Entity R1 is the Evaluator's reasoned
+feedback when it requests another cycle. Entity 1 identifies the candidate the
+Evaluator ships. Validation must prove the approved geometry and controller are
+unchanged from that recorded candidate version. These logical products may all be
+stored within the shared blackboard directory.
 
 ### 6.4 Race Outcome
 
@@ -324,7 +338,10 @@ entity2/
 ```
 
 Entity 2 is retained for topology, audit, and human inspection. It is not supplied
-to either AI agent.
+to either AI agent. In every iteration scenario, the `entity2` record must contain a
+direct, human-clickable link to `iteration-summary.svg`. The link must resolve in the
+public Randow Maps app, not only on the machine that ran the experiment. The summary
+SVG may link onward to the individual trial trajectory SVGs.
 
 ### 6.5 Addressed race returns
 
@@ -342,12 +359,21 @@ return/
 Initially the measurement payloads for both recipients are identical. They are
 separate immutable entities so later changes in requested data are observable.
 
+The same return structure is used in both conditions. The difference is how the two
+AI roles organize the work between world tests, not where the simulator writes its
+evidence.
+
 The robot does not interpret the measurements. The harness mechanically calculates
 and packages them.
 
 ### 6.6 Working agreement
 
 The canonical topology and entity definitions do not live in the working agreement.
+LoopSense begins with a starter agreement that points the agents toward its explicit
+forward and return records. Both agents may read and write it during their ordinary
+turns; the harness supplies no append-only or consensus mechanism. The agents must
+learn to coordinate their use of the shared entity themselves.
+
 The agreement may cover:
 
 - responsibilities within the fixed topology;
@@ -359,7 +385,10 @@ The agreement may cover:
 - how disagreements are recorded;
 - what each agent promises to preserve from upstream work.
 
-Every revision records a diff and the retrospective evidence motivating it.
+Every scenario preserves the version present when that iteration closes. The next
+scenario begins as a clone of that state. The control receives no equivalent
+topology advice: its agents are simply given their shared blackboard, minimal initial
+criteria, fixed constraints, and visible budget.
 
 ## 7. RobotTraceSim adaptation
 
@@ -500,9 +529,14 @@ needs them.
 
 ## 12. Maps and public spectator record
 
-Each condition has its own base map and iteration maps. The iteration map notes link
-to the iteration summary, representative SVGs, relevant entities, feedback, and the
-single shared leaderboard.
+Each condition has its own base map and iteration scenarios. The scenario map notes
+link to relevant entities, feedback, and the single shared leaderboard. The race
+graphic itself is linked directly from Entity 2, so a spectator can open the Race
+Outcome and immediately inspect that iteration's `iteration-summary.svg`.
+
+The scenario writer must place the stable public-relative SVG URL in Entity 2's
+notes or supported link metadata. Publication validation fails if that URL is
+missing, points at a local filesystem path, or does not resolve through the Maps app.
 
 The leaderboard is experiment-level evidence, not another topology actor:
 
@@ -515,14 +549,21 @@ runs/<experiment-id>/leaderboard.svg
 Both conditions' iteration notes link to the same leaderboard artifact. The Maps
 app remains the public spectator interface. No simulator server is required.
 
-The control map must show the evaluation brief, complete robot package, race
-returns, and retrospective changes. This makes its internal work as inspectable as
-the LoopSense pair rather than representing it only as a score.
+The control map must show candidate versions, Evaluator Feedback, the approved build,
+its two race returns, the shared blackboard, and the race. This makes its internal
+work as inspectable as the LoopSense pair rather than representing it only as a score.
 
 ## 13. Deterministic local orchestrator
 
 The orchestrator is a finite state machine, not an autonomous agent. It receives no
 open-ended shell objective.
+
+Use one runner with two condition-specific workflow definitions, not two unrelated
+programs. The LoopSense workflow advances once through its prescribed spine. The
+control workflow alternates Optimizer and Evaluator until the Evaluator ships or the
+budget policy selects the latest valid candidate. Shared validation, model calling,
+budget accounting, simulation, scenario cloning, and artifact rendering remain one
+implementation.
 
 Permitted capabilities:
 
@@ -533,6 +574,8 @@ Permitted capabilities:
 - invoke a fixed simulator command with fixed arguments;
 - invoke a fixed SVG-generation command;
 - calculate hashes, metrics, budgets, and leaderboard files;
+- update the condition's visible budget ledger after every model call;
+- clone a completed scenario into the next iteration's starting state;
 - stop, resume, and report status.
 
 It should not have:
@@ -581,7 +624,9 @@ Freeze and record:
 - timeout and retry policy.
 
 Fairness is based on total budget and access to evidence, not identical call count.
-The runner must never silently upgrade one condition to another model.
+The runner must never silently upgrade one condition to another model. Both agents
+in a condition see the initial allocation, actual usage, and remaining shared budget
+before deciding what to do next.
 
 Suggested first configuration:
 
@@ -590,6 +635,8 @@ Suggested first configuration:
 - one mechanical repair call per malformed agent artifact;
 - one tested candidate per condition per iteration;
 - fixed total token budget per condition;
+- a common deterministic rule for selecting the latest valid build if the remaining
+  budget cannot fund another control cycle;
 - final held-out evaluation after iteration five.
 
 Decide whether to extend to ten recorded iterations before examining comparative
@@ -604,27 +651,23 @@ The runner records a manifest of every input supplied to every call. This proves
 that:
 
 - neither agent read Entity 2;
-- each received only its addressed return entity;
+- each LoopSense agent received the prescribed topology records in its starter
+  working agreement;
 - held-out tracks were not exposed;
 - the LoopSense Geometry Builder received Integrator Feedback;
-- the control Evaluator and Optimizer received equivalent world measurements;
-- the control Optimizer received the Evaluator's forward brief;
+- the control Evaluator received the actual candidate and rationale;
+- the control Optimizer received Evaluator Feedback before every revision;
+- the Approved Robot Build was identical to a recorded candidate version;
 - private expertise remained actor-specific;
 - both conditions received equivalent world measurements and constraints.
 
-## 16. Retrospectives
+## 16. Coordination within ordinary work
 
-After each iteration:
-
-1. Ask each agent separately what helped, hindered, or surprised it.
-2. Ask what it proposes changing in the working agreement and why.
-3. Exchange the proposals.
-4. Permit one bounded reconciliation call if proposals conflict.
-5. Record accepted, rejected, and deferred changes.
-6. Validate that accepted changes do not alter fixed experimental rules.
-7. Save the next version of the working agreement.
-
-The retro cannot change:
+There is no separate retrospective call, meta-agent, consensus mechanism, or retro
+budget. LoopSense agents may revise their Working Agreement during their normal
+turns. Control agents may organize their work however they choose on the shared
+blackboard. The following experiment rules remain fixed regardless of what either
+team writes:
 
 - number of agents;
 - forward or return edges;
@@ -633,7 +676,7 @@ The retro cannot change:
 - score;
 - track split;
 - held-out access;
-- one-candidate-per-iteration rule;
+- one-race-per-iteration rule;
 - simulator version during a recorded batch.
 
 ## 17. Build phases
@@ -641,7 +684,8 @@ The retro cannot change:
 ### Phase 1 — Freeze specifications
 
 - validate both base maps in the Maps renderer;
-- write the two initial working agreements;
+- write the LoopSense starter Working Agreement and the control's minimal initial
+  criteria;
 - freeze schemas and measurement catalogue;
 - freeze design bounds;
 - freeze score and track split;
@@ -672,15 +716,15 @@ equivalent trajectories across repeated local runs.
 - schema validation and repair policy;
 - budgets and audit log;
 - separate condition workflows;
-- retro workflow.
+- scenario cloning and completion workflow.
 
 Exit criterion: mock agents can complete five iterations without manual file
 movement, hidden-context leakage, or writes outside the run directory.
 
 ### Phase 4 — Integrate Maps artifacts
 
-- generate iteration YAML overrides;
-- link entities and SVGs;
+- generate iteration scenario YAML;
+- link every scenario's Entity 2 directly to its race-outcome summary SVG;
 - generate the shared leaderboard;
 - verify both maps render;
 - verify relative/public artifact URLs.
@@ -721,8 +765,8 @@ Minimum automated tests:
 - measurement request allowlisting;
 - context manifest enforcement;
 - token budget hard stop;
-- one tested candidate per condition per iteration;
-- retrospective cannot mutate fixed rules;
+- one tested build per condition per iteration;
+- shared coordination material cannot mutate fixed experiment rules;
 - checkpoint resume does not duplicate model calls;
 - SVG generation for finish and failure cases;
 - leaderboard derived only from signed/hashed result JSON;

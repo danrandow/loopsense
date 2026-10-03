@@ -5,120 +5,127 @@ map:
   scenario: "Moving parts"
   is_moo: true
   notes: |
-    The conventional comparison condition for the LoopSense Robot Race. Two AI
-    agents act once each before every test. The Evaluator reads the previous race
-    measurements and produces an evaluation brief. The Robot Optimizer reads the
-    same measurements plus that brief, then produces the only robot design that
-    goes onto the track. The Evaluator's opinion travels forward but cannot itself
-    alter the tested artifact.
+    The conventional comparison condition for the LoopSense Robot Race. The Robot
+    Optimizer produces a complete candidate. The Evaluator inspects the actual
+    candidate and either returns feedback for another optimization cycle or ships
+    the candidate unchanged to the track. They may loop as often as they choose
+    within the same total budget available to the LoopSense condition.
 
-    Both AI agents receive independently addressed copies of the same race
-    measurements. They may improve their working agreement during retrospectives,
-    but cannot change the fixed evaluator-to-optimizer topology, budgets, or
-    evaluation rules. Actor 2 is deterministic software, not an AI agent.
+    Both AI agents work through one shared, unstructured blackboard. Candidate
+    versions, evaluations, reasoning, coordination notes, and the visible budget
+    ledger may all be kept there. The named map entities identify
+    meaningful products and uses; they do not impose filesystem access boundaries.
+    Actor 2 is deterministic software, not an AI agent.
   iteration_definition: |
-    An iteration starts when actor0 consumes its independently addressed race data
-    from the preceding iteration and generates entity0, an evaluation brief. Actor1
-    consumes the same preceding race data plus entity0 and generates entity1, one
-    complete robot package. Actor2 immediately races every valid entity1 and
-    generates entity2 plus independently addressed measurement returns for both AI
-    agents. The iteration ends there. Only after it ends do actor0 and actor1 run a
-    retrospective and, if they agree, revise their working agreement for the next
-    iteration.
+    An iteration begins as a scenario cloned from the preceding iteration in its
+    completed state. Actor0 and actor1 may alternate through entity0 and entityR1 as
+    many times as they choose while budget remains. When actor1 decides to ship, it
+    generates entity1 by passing the selected entity0 build through unchanged.
+    Actor2 consumes entity1, races once, generates entity2, and mechanically writes
+    the same canonical measurements into entityR2A and entityR2B. The populated
+    return entities end the iteration and are present in the next cloned scenario.
   dimension_axes: [condition, iteration]
 
 actors:
   - id: actor0
-    label: Evaluator
-    notes: |
-      AI agent. Independently interprets the previous race measurements and produces
-      an evaluation brief for actor1. It does not own or edit geometry or controller
-      files. Its opinion is not fresh world evidence and is not separately tested.
-
-  - id: actor1
     label: Robot Optimizer
     notes: |
-      AI agent. Owns and modifies the complete robot design: geometry and
-      controller. It exercises its own judgement over the same race measurements
-      available to actor0 and decides how much of actor0's evaluation to use.
+      AI agent. Owns the complete robot design and may revise its geometry and
+      controller in response to entityR1. It shares its candidate, rationale, and
+      other chosen work through the common blackboard.
+
+  - id: actor1
+    label: Evaluator
+    notes: |
+      AI agent. Inspects the Optimizer's actual candidate, rationale, shared history,
+      race evidence, constraints, and remaining budget. It either generates feedback
+      for another cycle or gates the unchanged candidate through to the race.
 
   - id: actor2
     label: RobotraceSim Robot
     notes: |
       Deterministic software actor instantiated from entity1. It cannot interpret
-      results. It pursues the race outcome, records evidence, and supplies supported
-      measurements in two addressed return-flow entities.
+      results. It races the selected build and records measurements in two addressed
+      return-flow entities, matching the LoopSense condition.
 
 actions:
   - id: action0
     actor: actor0
-    label: Evaluate evidence
+    label: Optimize robot
     notes: |
-      Uses the preceding race data, its expertise, and the current working agreement
-      to evaluate the robot and recommend what actor1 should preserve or change.
+      Produces or revises one complete geometry-controller candidate. The action may
+      recur after Evaluator Feedback while team budget remains.
 
   - id: action1
     actor: actor1
-    label: Optimize robot
+    label: Evaluate and gate
     notes: |
-      Uses the same preceding race data plus entity0 to produce one complete
-      geometry-controller package. Every technically valid package proceeds to the
-      track before actor1 can act again.
+      Evaluates the current candidate. It either returns entityR1 to request another
+      optimization cycle or generates entity1 to ship the candidate unchanged.
 
   - id: action2
     actor: actor2
     label: Race on track
     notes: |
-      Executes the robot package on the same configured track and seed batch used by
-      the LoopSense condition. Generates outcomes, telemetry, scores, and trajectory
-      images. It supplies data, not interpretation.
+      Executes the approved build on the configured track and seed batch. Generates
+      the race outcome, telemetry, scores, trajectory images, and addressed race
+      returns.
 
 entities:
   - id: entity0
-    label: Evaluation Brief
+    label: Complete Robot Candidate
     system_boundary: internal
     notes: |
-      Actor0's interpretation of the preceding race measurements: diagnosis,
-      recommendations, uncertainties, and requested supported measurements. It is
-      advice, not a robot component and not empirical evidence from a new test.
+      Actor0's current geometry, controller, rationale, hypotheses, and measurement
+      requests. Versions may be files or records within the shared blackboard.
 
   - id: entity1
-    label: Complete Robot Package
+    label: Approved Robot Build
     system_boundary: internal
     notes: |
-      Actor1's one tested product per iteration: geometry, controller, rationale,
-      and consolidated observation request. It records how entity0 was considered
-      without requiring actor1 to accept its recommendations.
+      The candidate actor1 chooses to ship, passed through unchanged with its exact
+      candidate identifier and approval decision. Actor2 consumes this build.
 
   - id: entity2
     label: Race Outcome
     system_boundary: internal
     notes: |
-      The outcome actor2 pursues by racing. It has no used-by edge to either AI
-      agent; upstream learning occurs through addressed return-flow entities.
+      The outcome actor2 pursues by racing. It is retained for audit and human
+      inspection; operational measurements travel through the addressed returns.
 
-  - id: entityR2A
-    label: Race Data for Evaluator
+  - id: entityR1
+    label: Evaluator Feedback
     direction: return
     notes: |
-      Measurement-only evidence generated by actor2 and independently addressed to
-      actor0. Initially it contains the same standard race dataset as entityR2B.
+      Actor1's critique of the current candidate, including requested changes,
+      uncertainties, and reasons not to ship yet. Actor0 may use it to produce the
+      next candidate version. Repeated versions remain visible on the blackboard.
 
-  - id: entityR2B
+  - id: entityR2A
     label: Race Data for Optimizer
     direction: return
     notes: |
-      Measurement-only evidence generated by actor2 and independently addressed to
-      actor1. Initially it contains the same standard race dataset as entityR2A.
+      Measurement-only evidence generated by actor2 and addressed to actor0. It is
+      produced from the same canonical measurement capture as entityR2B.
+
+  - id: entityR2B
+    label: Race Data for Evaluator
+    direction: return
+    notes: |
+      Measurement-only evidence generated by actor2 and addressed to actor1. It is
+      produced from the same canonical measurement capture as entityR2A.
 
   - id: entityTeam0
-    label: Working Agreement
+    label: Shared Blackboard
     system_boundary: private
     notes: |
-      Shared evaluation conventions, handoff expectations, feedback practice, and
-      measurement requests. Both agents may agree changes only in the retrospective
-      after an iteration. Revisions cannot change role order, artifact ownership,
-      budgets, or evaluation rules.
+      A common, unstructured file or set of files readable and writable by both AI
+      agents. It may contain any shared artifacts, history, and coordination notes.
+      The deterministic orchestrator updates the visible shared budget ledger after
+      every model call. The initial guide supplies only minimal
+      goals: build a valid constrained robot, seek better expected race performance,
+      decide whether another revision is worth the remaining budget, and eventually
+      select one build to race.
 
   - id: entityPub0
     label: Track Conditions
@@ -128,14 +135,14 @@ entities:
       model configuration, and total budget used by the LoopSense condition.
 
   - id: entityPrv0
-    label: Evaluator Expertise
-    system_boundary: private
-    notes: Actor0's evolving evaluation knowledge and judgement.
-
-  - id: entityPrv1
     label: Optimizer Expertise
     system_boundary: private
-    notes: Actor1's evolving robot-design knowledge and judgement.
+    notes: Actor0's evolving robot-design knowledge and judgement.
+
+  - id: entityPrv1
+    label: Evaluator Expertise
+    system_boundary: private
+    notes: Actor1's evolving evaluation knowledge and judgement.
 
 edges:
   - id: edge0G
@@ -158,6 +165,17 @@ edges:
     type: generates
     from: action2
     to: entity2
+
+  - id: edgeR1G
+    type: generates
+    from: action1
+    to: entityR1
+    direction: return
+  - id: edgeR1U
+    type: used by
+    from: entityR1
+    to: action0
+    direction: return
 
   - id: edgeR2AG
     type: generates
@@ -184,11 +202,18 @@ edges:
     type: used by
     from: entityTeam0
     to: action0
+  - id: edgeTeam0G0
+    type: generates
+    from: action0
+    to: entityTeam0
   - id: edgeTeam0U1
     type: used by
     from: entityTeam0
     to: action1
-
+  - id: edgeTeam0G1
+    type: generates
+    from: action1
+    to: entityTeam0
   - id: edgePub0U2
     type: used by
     from: entityPub0
