@@ -2,6 +2,8 @@
 
 **Can the shape of an agent team change how quickly it learns?** Robot Race puts two differently organised, two-agent teams into the same measurable world and lets them repeatedly design, race, and improve a line-following robot.
 
+Robot Race builds on [RobotraceSim](https://github.com/Koyoman/robotrace_Sim), created by Arthur Jose Sary and distributed under the MIT License. This repository vendors commit `2c99a9b63db8f9e0ef56c930cf1b360f2a1efc1c` with its original copyright and licence intact. The LoopSense experiment harness and headless adapter are separate additions.
+
 This page serves three audiences, in order:
 
 1. **Spectators** who want to understand the idea, watch the teams, and inspect results.
@@ -97,9 +99,9 @@ Use this section to see whether the experiment is ready, set up the next race, o
 
 ### Current status
 
-The checked-in system is a safe, deterministic **pilot harness**, not yet a completed recorded experiment. It can use either the bundled mock model or a real model through OpenRouter. RobotTraceSim is pinned at commit `2c99a9b63db8f9e0ef56c930cf1b360f2a1efc1c`, its MIT license is preserved, and its portable C helper builds on macOS. The race still uses the safe headless contract simulator while the pinned upstream desktop physics loop is extracted behind that contract.
+The checked-in system is a safe, deterministic **pilot harness**, not yet a completed recorded experiment. It can use either the bundled mock model or a real model through OpenRouter. RobotraceSim is pinned at commit `2c99a9b63db8f9e0ef56c930cf1b360f2a1efc1c`, its MIT license is preserved, and its portable C helper builds on macOS. The race still uses the safe headless contract simulator while the pinned upstream desktop physics loop is extracted behind that contract.
 
-Smoke and pilot scores are not final experimental evidence. Before the first recorded run, the project must finish and verify the RobotTraceSim physics adapter, freeze all preregistered settings, complete and reset disposable pilot runs, and tag the exact configuration.
+Smoke and pilot scores are not final experimental evidence. Before the first recorded run, the project must finish and verify the RobotraceSim physics adapter, freeze all preregistered settings, complete and reset disposable pilot runs, and tag the exact configuration.
 
 ### Run the offline smoke experiment
 
@@ -289,7 +291,7 @@ Useful places to begin:
 
 Run the validation and test commands in the operator section before changing the experiment. A substantive change to topology, evidence, budgets, scoring, tracks, or agent permissions creates a new experimental design or run configuration and must not silently alter an active race.
 
-### What “pinned RobotTraceSim” means
+### What “pinned RobotraceSim” means
 
 The exact upstream source is vendored under `simulator/upstream/robotrace_Sim/`, with provenance in `simulator/upstream/UPSTREAM.json`. Rebuild its native C helper with:
 
@@ -297,4 +299,4 @@ The exact upstream source is vendored under `simulator/upstream/robotrace_Sim/`,
 python3 simulator/native/build.py
 ```
 
-No operator action is needed to pin it again. Pinning guarantees source identity; it does not by itself turn the upstream PySide6 desktop application into a safe headless evaluator. Until that extraction is complete, the interface labels new model-driven runs as pilots and the README does not present their scores as the preregistered RobotTraceSim result.
+No operator action is needed to pin it again. Pinning guarantees source identity; it does not by itself turn the upstream PySide6 desktop application into a safe headless evaluator. Until that extraction is complete, the interface labels new model-driven runs as pilots and the README does not present their scores as the preregistered RobotraceSim result.

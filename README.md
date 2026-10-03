@@ -17,6 +17,11 @@ Robot Race asks whether those different ways of organising the same underlying c
 
 Start with the [Robot Race overview and live maps](robotrace/README.md).
 
+Robot Race builds on [RobotraceSim](https://github.com/Koyoman/robotrace_Sim),
+created by Arthur Jose Sary and distributed under the MIT License. The original
+copyright and licence are preserved with the vendored source; LoopSense's
+experiment harness and headless adapter are separate additions.
+
 ## The original LoopSense experiment
 
 The [original LoopSense experiment](loopsense/README.md) explored a file-based agent team applying feedback from real-world knowledge work. It is currently set aside, but remains the conceptual and historical foundation for Robot Race.
