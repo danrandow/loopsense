@@ -8,7 +8,7 @@ from pathlib import Path
 
 from orchestrator.artifacts import leaderboard, scenario_yaml
 from orchestrator.io import digest, safe_child
-from orchestrator.runner import Budget, ExperimentRunner, ROOT, validate_config
+from orchestrator.runner import Budget, ExperimentRunner, ROOT, initialise_race, validate_config
 from orchestrator.validators import ValidationError, validate_measurement_request, validate_observation, validate_package
 from simulator.adapter import run_trial
 
@@ -82,6 +82,16 @@ class ExperimentTests(unittest.TestCase):
         budget = Budget(3, 3)
         with self.assertRaises(RuntimeError):
             budget.charge(ModelResponse({}, "id", 2, 2))
+
+    def test_race_definition_is_created_once(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = initialise_race("race-7", root)
+            self.assertEqual(json.loads(path.read_text())["experiment_id"], "race-7")
+            with self.assertRaises(FileExistsError):
+                initialise_race("race-7", root)
+            with self.assertRaises(ValueError):
+                initialise_race("../escape", root)
 
     def test_publication_rejects_local_urls(self) -> None:
         with self.assertRaises(ValueError):

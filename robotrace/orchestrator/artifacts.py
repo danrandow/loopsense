@@ -56,8 +56,8 @@ def leaderboard(run_root: Path, results: list[dict[str, Any]]) -> None:
     atomic_write(run_root / "leaderboard.svg", f'<svg xmlns="http://www.w3.org/2000/svg" width="800" height="{120+40*len(rows)}"><rect width="100%" height="100%" fill="#f7f4ec"/><text x="20" y="32" font-family="sans-serif" font-size="22">Robot Race leaderboard</text>{bars}</svg>')
 
 
-def scenario_yaml(base_map: str, condition: str, iteration: int, public_summary_url: str, leaderboard_url: str, result: dict[str, Any]) -> str:
+def scenario_yaml(base_map: str, condition: str, iteration: int, public_summary_url: str, leaderboard_url: str, result: dict[str, Any], setup_notes: str = "") -> str:
     if public_summary_url.startswith(("/", "file:")) or not public_summary_url.startswith("https://"):
         raise ValueError("summary URL must be a public HTTPS URL")
-    return f'''map:\n  extends: "{base_map}"\n  scenario: "iteration-{iteration}"\n  dimensions:\n    condition: "{condition}"\n    iteration: {iteration}\nentities:\n  entity2:\n    status: complete\n    notes: |\n      Score: {result["score"]:.4f}\n      [Open iteration race summary]({public_summary_url})\n      [Open shared leaderboard]({leaderboard_url})\n'''
-
+    indented_setup = "\n".join(f"    {line}" for line in setup_notes.splitlines())
+    return f'''map:\n  extends: "{base_map}"\n  scenario: "iteration-{iteration}"\n  dimensions:\n    condition: "{condition}"\n    iteration: {iteration}\n  notes: |\n    Race-specific initial conditions:\n{indented_setup}\nentities:\n  entity2:\n    status: complete\n    notes: |\n      Score: {result["score"]:.4f}\n      [Open iteration race summary]({public_summary_url})\n      [Open shared leaderboard]({leaderboard_url})\n'''

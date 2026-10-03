@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+import os
+import re
 from typing import Any, Protocol
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from .io import digest
 
@@ -58,8 +63,66 @@ class DeterministicMockClient:
         return ModelResponse(output, f"mock-{digest({'actor': actor, 'context': context})[:16]}", max(1, len(serialized_context) // 4), max(1, len(serialized_output) // 4))
 
 
-def make_client(config: dict[str, Any]) -> ModelClient:
-    if config["model"]["provider"] != "mock":
-        raise RuntimeError("Only the offline mock provider is configured. Add an explicit provider adapter before a recorded run.")
-    return DeterministicMockClient()
+ACTOR_CONTRACTS = {
+    "geometry_builder": '{"geometry": {"sensor_positions": [{"x": number, "y": number}], "sensor_size": number, "wheel_track": number, "wheel_radius": number, "body_width": number, "body_length": number, "mass": number}, "intent": string, "feedback_request": {"measurements": [supported names], "questions": [string]}}',
+    "robot_integrator": '{"geometry": exact supplied geometry, "controller": {"base_speed": number, "kp": number, "ki": number, "kd": number, "sensor_weights": [one number per sensor], "line_loss": "stop|search_left|search_right|last_direction"}, "observation_request": {"measurements": [supported names], "questions": [string]}, "notes": string}',
+    "optimizer": '{"geometry": geometry object, "controller": controller object, "observation_request": {"measurements": [supported names], "questions": [string]}, "notes": string}',
+    "evaluator": '{"decision": "ship|revise", "selected_candidate": exact candidate_id when shipping or null when revising, "rationale": string, "feedback": [specific requested changes]}',
+    "integration_feedback": '{"summary": string, "requests": [string]}',
+}
 
+
+def _parse_json_object(content: str) -> dict[str, Any]:
+    cleaned = content.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", cleaned, flags=re.IGNORECASE)
+    value = json.loads(cleaned)
+    if not isinstance(value, dict):
+        raise RuntimeError("model response must be one JSON object")
+    return value
+
+
+class OpenRouterClient:
+    def __init__(self, config: dict[str, Any]):
+        self.config = config["model"]
+        self.api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        if not self.api_key:
+            raise RuntimeError("OPENROUTER_API_KEY is not set")
+
+    def call(self, actor: str, context: dict[str, Any]) -> ModelResponse:
+        contract = ACTOR_CONTRACTS[actor]
+        system = "You are one actor in a controlled robot-design experiment. Use only the supplied context. Return JSON only, with no markdown or commentary. Never invent file paths or commands."
+        user = f"Actor: {actor}\nRequired output contract: {contract}\nContext:\n{json.dumps(context, sort_keys=True)}"
+        body = {
+            "model": self.config["id"],
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            "temperature": self.config.get("temperature", 0),
+            "max_tokens": self.config.get("max_output_tokens", 2000),
+            "response_format": {"type": "json_object"},
+        }
+        request = Request(
+            self.config.get("base_url", "https://openrouter.ai/api/v1").rstrip("/") + "/chat/completions",
+            data=json.dumps(body).encode(),
+            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json", "HTTP-Referer": self.config.get("site_url", "https://randowmaps.com"), "X-OpenRouter-Title": "LoopSense Robot Race"},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=self.config.get("timeout_seconds", 120)) as response:
+                payload = json.loads(response.read())
+        except HTTPError as error:
+            detail = error.read().decode(errors="replace")[:1000]
+            raise RuntimeError(f"OpenRouter returned HTTP {error.code}: {detail}") from error
+        except URLError as error:
+            raise RuntimeError(f"OpenRouter request failed: {error.reason}") from error
+        usage = payload.get("usage", {})
+        content = payload["choices"][0]["message"]["content"]
+        return ModelResponse(_parse_json_object(content), payload.get("id", "openrouter-unknown"), int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0)))
+
+
+def make_client(config: dict[str, Any]) -> ModelClient:
+    provider = config["model"]["provider"]
+    if provider == "mock":
+        return DeterministicMockClient()
+    if provider == "openrouter":
+        return OpenRouterClient(config)
+    raise RuntimeError(f"unsupported model provider: {provider}")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -83,7 +84,7 @@ class ExperimentRunner:
 
     def loopsense_build(self, iteration_dir: Path, iteration: int, budget: Budget) -> dict[str, Any]:
         prior = self.previous_returns("loopsense", iteration)
-        agreement = (ROOT / "conditions/loopsense/working-agreement-v0.md").read_text()
+        agreement = self.config.get("initial_conditions", {}).get("loopsense_working_agreement") or (ROOT / "conditions/loopsense/working-agreement-v0.md").read_text()
         geometry_call = iteration_dir / "calls/geometry-builder"
         geometry = self.call("loopsense", iteration, "geometry_builder", {"iteration": iteration, "working_agreement": agreement, "private_expertise": (ROOT / "conditions/loopsense/private/geometry.md").read_text(), **prior}, budget, geometry_call)
         validate_geometry(geometry["geometry"], self.config["design_bounds"])
@@ -103,18 +104,30 @@ class ExperimentRunner:
     def control_build(self, iteration_dir: Path, iteration: int, budget: Budget) -> dict[str, Any]:
         blackboard = iteration_dir / "blackboard"
         prior = self.previous_returns("control", iteration)
-        candidate = self.call("control", iteration, "optimizer", {"iteration": iteration, "blackboard": prior, "private_expertise": (ROOT / "conditions/control/private/optimizer.md").read_text()}, budget, iteration_dir / "calls/optimizer-0")
-        package = self.package_entity(blackboard / "candidate-0", candidate, control=True)
-        validate_package(package, self.config["design_bounds"])
-        candidate_id = digest(package)
-        evaluation = self.call("control", iteration, "evaluator", {"iteration": iteration, "candidate": package, "candidate_id": candidate_id, "rationale": candidate["notes"], "blackboard": prior, "private_expertise": (ROOT / "conditions/control/private/evaluator.md").read_text()}, budget, iteration_dir / "calls/evaluator-0")
-        if evaluation["decision"] != "ship" or evaluation["selected_candidate"] != candidate_id:
-            raise RuntimeError("mock control evaluator must ship the exact candidate")
+        prior["initial_criteria"] = self.config.get("initial_conditions", {}).get("control_criteria") or (ROOT / "conditions/control/working-agreement-v0.md").read_text()
+        feedback: dict[str, Any] | None = None
+        maximum = int(self.config["budget"].get("max_control_cycles", 2))
+        for cycle in range(maximum):
+            candidate = self.call("control", iteration, "optimizer", {"iteration": iteration, "blackboard": prior, "evaluator_feedback": feedback, "private_expertise": (ROOT / "conditions/control/private/optimizer.md").read_text()}, budget, iteration_dir / f"calls/optimizer-{cycle}")
+            candidate_dir = blackboard / f"candidate-{cycle}"
+            package = self.package_entity(candidate_dir, candidate, control=True)
+            validate_package(package, self.config["design_bounds"])
+            candidate_id = digest(package)
+            evaluation = self.call("control", iteration, "evaluator", {"iteration": iteration, "candidate": package, "candidate_id": candidate_id, "rationale": candidate["notes"], "blackboard": prior, "private_expertise": (ROOT / "conditions/control/private/evaluator.md").read_text()}, budget, iteration_dir / f"calls/evaluator-{cycle}")
+            write_json(blackboard / f"evaluation-{cycle}.json", evaluation)
+            if evaluation.get("decision") == "ship":
+                if evaluation.get("selected_candidate") != candidate_id:
+                    raise RuntimeError("evaluator did not select the exact current candidate")
+                break
+            feedback = {"rationale": evaluation.get("rationale", ""), "feedback": evaluation.get("feedback", [])}
+            write_json(iteration_dir / "entityR1" / f"feedback-{cycle}.json", feedback)
+        else:
+            evaluation = {"decision": "ship", "selected_candidate": candidate_id, "rationale": "Budget policy selected the latest valid candidate.", "feedback": []}
         approved = iteration_dir / "entity1"
-        shutil.copytree(blackboard / "candidate-0", approved / "candidate")
+        shutil.copytree(candidate_dir, approved / "candidate")
         write_json(approved / "approval.json", evaluation)
         atomic_write(approved / "candidate-hash.txt", candidate_id + "\n")
-        write_manifest(approved, "entity1", ["candidate", "approval.json", "candidate-hash.txt"], ["blackboard/candidate-0"])
+        write_manifest(approved, "entity1", ["candidate", "approval.json", "candidate-hash.txt"], [str(candidate_dir.relative_to(iteration_dir))])
         if digest(package) != candidate_id:
             raise RuntimeError("approved candidate changed")
         return package
@@ -171,6 +184,11 @@ class ExperimentRunner:
 
     def run(self) -> Path:
         write_json(self.run_root / "manifest.json", {"experiment_id": self.config["experiment_id"], "config": self.config, "config_hash": digest(self.config), "plan_hash": digest((ROOT / "IMPLEMENTATION_PLAN.md").read_bytes()), "status": "running"})
+        maps_root = self.run_root / "maps"
+        (maps_root / "loopsense").mkdir(parents=True, exist_ok=True)
+        (maps_root / "control").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / "base.yaml", maps_root / "loopsense/base.yaml")
+        shutil.copy2(ROOT.parent / "robotrace-control/base.yaml", maps_root / "control/base.yaml")
         budgets = {condition: Budget(self.config["budget"]["total_tokens_per_condition"], self.config["budget"]["max_tokens_per_iteration"]) for condition in self.config["conditions"]}
         for iteration in range(self.config["iterations"]):
             for condition in self.config["conditions"]:
@@ -185,8 +203,11 @@ class ExperimentRunner:
                 package = self.loopsense_build(iteration_dir, iteration, budget) if condition == "loopsense" else self.control_build(iteration_dir, iteration, budget)
                 result = self.evaluate(condition, iteration, iteration_dir, package, budget)
                 public_base = self.config["publication"]["base_url"].rstrip("/") + f"/{self.config['experiment_id']}"
-                scenario = scenario_yaml("robotrace/base.yaml" if condition == "loopsense" else "robotrace-control/base.yaml", condition, iteration, f"{public_base}/{condition}/iteration-{iteration}/entity2/iteration-summary.svg", f"{public_base}/leaderboard.svg", result)
+                initial_key = "loopsense_working_agreement" if condition == "loopsense" else "control_criteria"
+                setup_notes = self.config.get("initial_conditions", {}).get(initial_key, "See the frozen race manifest.")
+                scenario = scenario_yaml("base.yaml", condition, iteration, f"{public_base}/{condition}/iteration-{iteration}/entity2/iteration-summary.svg", f"{public_base}/leaderboard.svg", result, setup_notes)
                 atomic_write(iteration_dir / "scenario.yaml", scenario)
+                atomic_write(maps_root / ("loopsense" if condition == "loopsense" else "control") / f"iteration-{iteration}.yaml", scenario)
                 write_json(checkpoint, {"complete": True, "result_hash": result["artifact_hash"], "budget": budget.record()})
                 self.audit(condition, iteration, "iteration_complete", {"artifact_hash": result["artifact_hash"], "token_usage": budget.iteration_used, "validation": "valid", "simulator_version": self.config["simulator"]["version"]})
                 self.results.append(result)
@@ -209,13 +230,31 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("iterations must be positive")
 
 
+def initialise_race(race_id: str, definitions_root: Path = ROOT / "race-definitions") -> Path:
+    if not re.fullmatch(r"race-\d+", race_id):
+        raise ValueError("race ID must look like race-0")
+    target = definitions_root / race_id / "config.json"
+    if target.exists():
+        raise FileExistsError(f"race definition already exists: {target}")
+    config = read_json(ROOT / "config/experiment.yaml")
+    config["experiment_id"] = race_id
+    config["mode"] = "pilot"
+    write_json(target, config)
+    return target
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the LoopSense robot-race experiment")
     parser.add_argument("--config", type=Path, default=ROOT / "config/experiment.yaml")
     parser.add_argument("--output", type=Path, default=ROOT / "runs")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--validate-only", action="store_true")
+    parser.add_argument("--init-race", metavar="RACE_ID", help="create an editable race definition, for example race-0")
     args = parser.parse_args(argv)
+    if args.init_race:
+        path = initialise_race(args.init_race)
+        print(path)
+        return 0
     config = read_json(args.config)
     validate_config(config)
     if args.validate_only:
@@ -228,4 +267,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
