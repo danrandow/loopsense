@@ -93,13 +93,15 @@ a controller. The robot consumes only the complete package.
 
 ### 3.2 Conventional control condition
 
-Canonical map: `robotrace/control-base.yaml`
+Canonical map: `robotrace-control/base.yaml`
 
 Forward spine:
 
 ```text
-Robot Optimizer
-  → Candidate Robot
+Evaluator
+  → Evaluation Brief
+  → Robot Optimizer
+  → Complete Robot Package
   → Robot on Track
   → Race Outcome
 ```
@@ -107,15 +109,16 @@ Robot Optimizer
 Return flows:
 
 ```text
-Evaluator → Evaluator Feedback → Robot Optimizer
-Robot on Track → Race Data for Optimizer → Robot Optimizer
 Robot on Track → Race Data for Evaluator → Evaluator
+Robot on Track → Race Data for Optimizer → Robot Optimizer
 ```
 
-The optimizer owns both geometry and controller and produces one candidate per
-iteration. Every valid candidate goes straight to the track. The evaluator never
-edits the robot or gates its test; it analyzes its independently addressed race
-measurements and recommends changes for the next iteration.
+The Evaluator and Robot Optimizer receive independently addressed copies of the
+same preceding race measurements. The Evaluator acts first and packages its
+interpretation as a forward brief. The Optimizer then exercises its own judgement
+over both the empirical data and that opinion and produces the only complete robot
+that goes onto the track. The Evaluator never edits the robot or receives a second
+turn inside the iteration.
 
 The shared blackboard is storage, not an actor. The orchestrator explicitly selects
 which records enter each prompt.
@@ -127,10 +130,11 @@ Neither condition receives an additional design turn before observing the world.
 This makes improvement per world-feedback cycle directly comparable and avoids
 giving the control condition an extra optimization loop inside an iteration.
 
-The evaluator may provide as much post-race analysis as fits its fixed token budget,
-but the optimizer cannot act on it until the next iteration. Invalid artifacts use
-the same mechanical repair policy as the LoopSense condition; repair calls correct
-format or constraint failures and may not introduce unscored optimization turns.
+The evaluator may provide as much analysis as fits its fixed token budget. That
+analysis travels left-to-right as Entity 0 and can influence the Optimizer's single
+contribution before the race. Invalid artifacts use the same mechanical repair
+policy as the LoopSense condition; repair calls correct format or constraint
+failures and may not introduce unscored optimization turns.
 
 ## 4. Iteration lifecycles
 
@@ -154,8 +158,8 @@ format or constraint failures and may not introduce unscored optimization turns.
    - permitted experiment constraints.
 6. Agent 1 generates Entity 1: Complete Robot Package.
 7. Mechanical validation checks Entity 1. One bounded repair call is allowed.
-8. The evaluator runs the configured development-track and seed batch.
-9. The evaluator writes:
+8. The simulator runs the configured development-track and seed batch.
+9. The harness writes:
    - Entity 2: Race Outcome;
    - Race Data for Geometry;
    - Race Data for Integration;
@@ -170,18 +174,22 @@ format or constraint failures and may not introduce unscored optimization turns.
 
 ### 4.2 Control iteration
 
-1. The optimizer receives its private state, working agreement, direct prior race
-   data, prior evaluator feedback, and fixed constraints.
-2. It generates one complete Candidate Robot.
-3. Mechanical validation runs, with the same single bounded repair allowance as the
+1. The Evaluator receives its private state, working agreement, independently
+   addressed prior race data, and fixed constraints.
+2. It generates Entity 0: Evaluation Brief.
+3. The Optimizer receives its private state, the same prior race measurements, the
+   working agreement, Entity 0, and fixed constraints.
+4. It generates Entity 1: one Complete Robot Package, recording how it considered
+   the evaluation without being required to accept it.
+5. Mechanical validation runs, with the same single bounded repair allowance as the
    LoopSense condition.
-4. Every valid candidate immediately enters the same simulator batch used by the
+6. Every valid package immediately enters the same simulator batch used by the
    LoopSense condition.
-5. The harness generates the outcome and independently addressed race returns for
+7. The harness generates the outcome and independently addressed race returns for
    both agents.
-6. The evaluator consumes its race return and produces post-race feedback.
-7. The iteration closes. The optimizer cannot revise until the next iteration.
-8. Both agents retrospect; any working-agreement revision applies next iteration.
+8. The iteration closes. Neither agent acts on the new returns until the next
+   iteration.
+9. Both agents retrospect; any working-agreement revision applies next iteration.
 
 ## 5. Repository layout
 
@@ -191,7 +199,6 @@ Proposed layout inside the LoopSense repository:
 robotrace/
   IMPLEMENTATION_PLAN.md
   base.yaml
-  control-base.yaml
   README.md
   config/
     experiment.yaml
@@ -232,6 +239,11 @@ robotrace/
       control/
         iteration-0/
         iteration-1/
+
+robotrace-control/
+  base.yaml
+  iteration-0.yaml
+  iteration-1.yaml
 ```
 
 Generated run artifacts should not overwrite canonical maps or configuration.
@@ -278,7 +290,26 @@ or small state machine. Arbitrary Python generation is deferred. This prevents
 filesystem access, hidden track inspection, network calls, and accidental process
 damage while keeping controller design meaningful.
 
-### 6.3 Race Outcome
+### 6.3 Control Evaluation Brief
+
+```text
+entity0/
+  evaluation.md
+  recommendations.json
+  feedback-request.json
+  manifest.json
+```
+
+This is the control condition's Entity 0. It records the Evaluator's interpretation
+of the preceding race measurements, uncertainty, recommendations, and supported
+measurement requests. It contains no modified geometry or controller. The Optimizer
+receives both this brief and its own independently addressed copy of the source
+measurements.
+
+The control condition's Entity 1 uses the Complete Robot Package contract above,
+with `optimization-notes.md` in place of `integration-notes.md`.
+
+### 6.4 Race Outcome
 
 ```text
 entity2/
@@ -295,7 +326,7 @@ entity2/
 Entity 2 is retained for topology, audit, and human inspection. It is not supplied
 to either AI agent.
 
-### 6.4 Addressed race returns
+### 6.5 Addressed race returns
 
 Each return contains:
 
@@ -314,7 +345,7 @@ separate immutable entities so later changes in requested data are observable.
 The robot does not interpret the measurements. The harness mechanically calculates
 and packages them.
 
-### 6.5 Working agreement
+### 6.6 Working agreement
 
 The canonical topology and entity definitions do not live in the working agreement.
 The agreement may cover:
@@ -484,9 +515,9 @@ runs/<experiment-id>/leaderboard.svg
 Both conditions' iteration notes link to the same leaderboard artifact. The Maps
 app remains the public spectator interface. No simulator server is required.
 
-The control map must show the candidate robot, race returns, evaluator analysis,
-and retrospective changes. This makes its internal work as inspectable as the
-LoopSense pair rather than representing it only as a score.
+The control map must show the evaluation brief, complete robot package, race
+returns, and retrospective changes. This makes its internal work as inspectable as
+the LoopSense pair rather than representing it only as a score.
 
 ## 13. Deterministic local orchestrator
 
@@ -576,7 +607,8 @@ that:
 - each received only its addressed return entity;
 - held-out tracks were not exposed;
 - the LoopSense Geometry Builder received Integrator Feedback;
-- the control Optimizer received evaluator advice;
+- the control Evaluator and Optimizer received equivalent world measurements;
+- the control Optimizer received the Evaluator's forward brief;
 - private expertise remained actor-specific;
 - both conditions received equivalent world measurements and constraints.
 
