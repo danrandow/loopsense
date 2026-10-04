@@ -66,9 +66,17 @@ class DeterministicMockClient:
 ACTOR_CONTRACTS = {
     "geometry_builder": '{"geometry": {"sensor_positions": [{"x": number, "y": number}], "sensor_size": number, "wheel_track": number, "wheel_radius": number, "body_width": number, "body_length": number, "mass": number}, "intent": string, "feedback_request": {"measurements": [supported names], "questions": [string]}}',
     "robot_integrator": '{"geometry": exact supplied geometry, "controller": {"base_speed": number, "kp": number, "ki": number, "kd": number, "sensor_weights": [one number per sensor], "line_loss": "stop|search_left|search_right|last_direction"}, "observation_request": {"measurements": [supported names], "questions": [string]}, "notes": string}',
-    "optimizer": '{"geometry": geometry object, "controller": controller object, "observation_request": {"measurements": [supported names], "questions": [string]}, "notes": string}',
+    "optimizer": '{"geometry": {"sensor_positions": [{"x": number, "y": number}], "sensor_size": number, "wheel_track": number, "wheel_radius": number, "body_width": number, "body_length": number, "mass": number}, "controller": {"base_speed": number, "kp": number, "ki": number, "kd": number, "sensor_weights": [one number per sensor], "line_loss": "stop|search_left|search_right|last_direction"}, "observation_request": {"measurements": [supported names], "questions": [string]}, "notes": string}',
     "evaluator": '{"decision": "ship|revise", "selected_candidate": exact candidate_id when shipping or null when revising, "rationale": string, "feedback": [specific requested changes]}',
     "integration_feedback": '{"summary": string, "requests": [string]}',
+}
+
+ACTOR_INSTRUCTIONS = {
+    "geometry_builder": "Design valid bounded robot geometry and request only supported measurements. Explain the geometry intent.",
+    "robot_integrator": "Preserve the supplied geometry exactly, add a valid controller, request only supported measurements, and explain the integration choices.",
+    "optimizer": "Produce one complete valid robot candidate within every supplied geometry and controller constraint.",
+    "evaluator": "Evaluate the exact supplied candidate. Either request specific revisions or ship that candidate without changing it.",
+    "integration_feedback": "Translate the supplied race measurements into concise, geometry-specific integration feedback.",
 }
 
 
@@ -85,14 +93,14 @@ def _parse_json_object(content: str) -> dict[str, Any]:
 class OpenRouterClient:
     def __init__(self, config: dict[str, Any]):
         self.config = config["model"]
-        self.api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        self.api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
         if not self.api_key:
             raise RuntimeError("OPENROUTER_API_KEY is not set")
 
     def call(self, actor: str, context: dict[str, Any]) -> ModelResponse:
         contract = ACTOR_CONTRACTS[actor]
         system = "You are one actor in a controlled robot-design experiment. Use only the supplied context. Return JSON only, with no markdown or commentary. Never invent file paths or commands."
-        user = f"Actor: {actor}\nRequired output contract: {contract}\nContext:\n{json.dumps(context, sort_keys=True)}"
+        user = f"Actor: {actor}\nJob: {ACTOR_INSTRUCTIONS[actor]}\nRequired output contract: {contract}\nAll supplied constraints are mandatory.\nContext:\n{json.dumps(context, sort_keys=True)}"
         body = {
             "model": self.config["id"],
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
@@ -117,6 +125,26 @@ class OpenRouterClient:
         usage = payload.get("usage", {})
         content = payload["choices"][0]["message"]["content"]
         return ModelResponse(_parse_json_object(content), payload.get("id", "openrouter-unknown"), int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0)))
+
+
+def validate_openrouter_api_key(api_key: str, base_url: str = "https://openrouter.ai/api/v1", timeout_seconds: int = 30) -> None:
+    key = api_key.strip()
+    if not key:
+        raise RuntimeError("Enter an OpenRouter API key")
+    request = Request(
+        base_url.rstrip("/") + "/key",
+        headers={"Authorization": f"Bearer {key}"},
+        method="GET",
+    )
+    try:
+        with urlopen(request, timeout=timeout_seconds) as response:
+            payload = json.loads(response.read())
+    except HTTPError as error:
+        raise RuntimeError(f"OpenRouter API key check failed (HTTP {error.code}); paste a current plaintext API key") from error
+    except URLError as error:
+        raise RuntimeError(f"OpenRouter API key check could not connect: {error.reason}") from error
+    if not isinstance(payload.get("data"), dict):
+        raise RuntimeError("OpenRouter API key check returned an unexpected response")
 
 
 def make_client(config: dict[str, Any]) -> ModelClient:

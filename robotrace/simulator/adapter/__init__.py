@@ -1,4 +1,3 @@
-from .headless import run_trial
+from .headless import ADAPTER_VERSION, run_trial, to_robottrace_spec
 
-__all__ = ["run_trial"]
-
+__all__ = ["ADAPTER_VERSION", "run_trial", "to_robottrace_spec"]

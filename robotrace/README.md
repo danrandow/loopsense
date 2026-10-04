@@ -99,9 +99,9 @@ Use this section to see whether the experiment is ready, set up the next race, o
 
 ### Current status
 
-The checked-in system is a safe, deterministic **pilot harness**, not yet a completed recorded experiment. It can use either the bundled mock model or a real model through OpenRouter. RobotraceSim is pinned at commit `2c99a9b63db8f9e0ef56c930cf1b360f2a1efc1c`, its MIT license is preserved, and its portable C helper builds on macOS. The race still uses the safe headless contract simulator while the pinned upstream desktop physics loop is extracted behind that contract.
+The checked-in system is a safe, deterministic **pilot harness**, not yet a completed recorded experiment. It can use either the bundled mock model or a real model through OpenRouter. RobotraceSim is pinned at commit `2c99a9b63db8f9e0ef56c930cf1b360f2a1efc1c`, its MIT license is preserved, and the headless adapter uses its portable native sensor and motor/drivetrain physics without importing the PySide6 desktop UI. Canonical packages are translated into RobotTraceSim's robot representation, every trial owns a seeded random generator, and controllers receive sensor readings and timestep only.
 
-Smoke and pilot scores are not final experimental evidence. Before the first recorded run, the project must finish and verify the RobotraceSim physics adapter, freeze all preregistered settings, complete and reset disposable pilot runs, and tag the exact configuration.
+Smoke and pilot scores are not final experimental evidence. Before the first recorded run, freeze all preregistered settings, complete and reset disposable pilot runs, and tag the exact configuration.
 
 ### Run the offline smoke experiment
 
@@ -299,4 +299,4 @@ The exact upstream source is vendored under `simulator/upstream/robotrace_Sim/`,
 python3 simulator/native/build.py
 ```
 
-No operator action is needed to pin it again. Pinning guarantees source identity; it does not by itself turn the upstream PySide6 desktop application into a safe headless evaluator. Until that extraction is complete, the interface labels new model-driven runs as pilots and the README does not present their scores as the preregistered RobotraceSim result.
+No operator action is needed to pin it again. The adapter deliberately extracts the pinned native sensor-coverage and motor/drivetrain functions instead of importing the PySide6 desktop application. Rebuilding the native library from the pinned source must produce the same deterministic test results before a recorded run.

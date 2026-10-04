@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from .io import read_json, safe_child, write_json
+from .model_client import validate_openrouter_api_key
 from .runner import ExperimentRunner, ROOT, validate_config
 
 RUNS = ROOT / "runs"
@@ -40,7 +41,15 @@ def races_table() -> str:
         if not manifest_path.exists():
             continue
         manifest = read_json(manifest_path)
-        rows.append(f'<tr><td>{html.escape(path.name)}</td><td>{html.escape(manifest.get("status", "unknown"))}</td><td><a href="/runs/{path.name}/leaderboard.svg">leaderboard</a> · <a href="/runs/{path.name}/leaderboard.md">table</a> · <a href="/runs/{path.name}/manifest.json">manifest</a></td></tr>')
+        status = manifest.get("status", "unknown")
+        if status == "failed":
+            status += f' — {manifest.get("failed_actor", "run")} at iteration {manifest.get("failed_iteration", "?")}'
+        evidence = [f'<a href="/runs/{path.name}/manifest.json">manifest</a>']
+        if (path / "leaderboard.svg").exists():
+            evidence.insert(0, f'<a href="/runs/{path.name}/leaderboard.svg">leaderboard</a>')
+        if (path / "leaderboard.md").exists():
+            evidence.insert(1, f'<a href="/runs/{path.name}/leaderboard.md">table</a>')
+        rows.append(f'<tr><td>{html.escape(path.name)}</td><td>{html.escape(status)}</td><td>{" · ".join(evidence)}</td></tr>')
     return '<p class="muted">No recorded races yet.</p>' if not rows else '<table><tr><th>Race</th><th>Status</th><th>Evidence</th></tr>' + "".join(rows) + '</table>'
 
 
@@ -111,9 +120,10 @@ class Handler(BaseHTTPRequestHandler):
             config["initial_conditions"] = {"loopsense_working_agreement": form["loopsense_agreement"], "control_criteria": form["control_criteria"]}
             validate_config(config)
             if form["provider"] == "openrouter":
-                key = form.get("api_key") or os.environ.get("OPENROUTER_API_KEY", "")
+                key = (form.get("api_key") or os.environ.get("OPENROUTER_API_KEY", "")).strip()
                 if not key:
                     raise ValueError("Enter an OpenRouter API key or start the server with OPENROUTER_API_KEY set")
+                validate_openrouter_api_key(key, config["model"]["base_url"], config["model"]["timeout_seconds"])
                 os.environ["OPENROUTER_API_KEY"] = key
             definition = DEFINITIONS / race_id
             definition.mkdir(parents=True)

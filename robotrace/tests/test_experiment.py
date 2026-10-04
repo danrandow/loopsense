@@ -8,9 +8,10 @@ from pathlib import Path
 
 from orchestrator.artifacts import leaderboard, scenario_yaml
 from orchestrator.io import digest, safe_child
+from orchestrator.model_client import ModelResponse
 from orchestrator.runner import Budget, ExperimentRunner, ROOT, initialise_race, validate_config
-from orchestrator.validators import ValidationError, validate_measurement_request, validate_observation, validate_package
-from simulator.adapter import run_trial
+from orchestrator.validators import MEASUREMENTS, ValidationError, validate_geometry, validate_measurement_request, validate_observation, validate_package
+from simulator.adapter import ADAPTER_VERSION, run_trial, to_robottrace_spec
 
 
 class ExperimentTests(unittest.TestCase):
@@ -48,6 +49,25 @@ class ExperimentTests(unittest.TestCase):
         other = run_trial(self.package, self.track, 29, self.config)
         self.assertEqual(first, repeated)
         self.assertNotEqual(first["telemetry"], other["telemetry"])
+        self.assertEqual(first["adapter_version"], ADAPTER_VERSION)
+        self.assertEqual(first["run_id"], repeated["run_id"])
+
+    def test_canonical_package_translates_to_robottrace_without_duplication(self) -> None:
+        spec = to_robottrace_spec(self.package)
+        self.assertEqual(spec["geometric_mechanical"]["track_mm"], 120.0)
+        self.assertEqual(spec["geometric_mechanical"]["wheel_radius_mm"], 35.0)
+        self.assertEqual(spec["sensors"][0]["yMM"], -60.0)
+        self.assertEqual(spec["sensors"][0]["xMM"], 50.0)
+        self.assertEqual(spec["controller"]["policy"], self.package["controller"])
+        spec["controller"]["policy"]["kp"] = 999
+        self.assertEqual(self.package["controller"]["kp"], 4.2)
+
+    def test_maximum_step_count_forces_timeout(self) -> None:
+        config = deepcopy(self.config)
+        config["simulator"]["max_steps"] = 5
+        result = run_trial(self.package, self.track, 17, config)
+        self.assertEqual(result["termination_reason"], "timeout")
+        self.assertEqual(len(result["telemetry"]), 5)
 
     def test_invalid_design_classification(self) -> None:
         invalid = deepcopy(self.package)
@@ -61,11 +81,9 @@ class ExperimentTests(unittest.TestCase):
             sensor["x"] = 0
         off_track["controller"].update({"base_speed": 2, "kp": 0, "kd": 0})
         self.assertEqual(run_trial(off_track, self.track, 17, self.config)["termination_reason"], "off_track")
-        timeout = deepcopy(self.package)
-        for sensor, x in zip(timeout["geometry"]["sensor_positions"], (-0.02, -0.01, 0, 0.01, 0.02)):
-            sensor["x"] = x
-        timeout["controller"].update({"base_speed": 1.7, "kp": 0, "kd": 0})
-        timeout_result = run_trial(timeout, self.track, 17, self.config)
+        timeout_config = deepcopy(self.config)
+        timeout_config["simulator"]["max_steps"] = 5
+        timeout_result = run_trial(self.package, self.track, 17, timeout_config)
         self.assertEqual(timeout_result["termination_reason"], "timeout")
         broken = deepcopy(self.package)
         broken["controller"]["sensor_weights"] = [0, 0, 0, 0, 0]
@@ -78,10 +96,111 @@ class ExperimentTests(unittest.TestCase):
                 safe_child(root, "..", "escape")
 
     def test_budget_hard_stop(self) -> None:
-        from orchestrator.model_client import ModelResponse
         budget = Budget(3, 3)
         with self.assertRaises(RuntimeError):
             budget.charge(ModelResponse({}, "id", 2, 2))
+
+    def test_constraints_are_supplied_and_one_repair_is_bounded_and_charged(self) -> None:
+        invalid = {
+            "geometry": {**self.package["geometry"], "sensor_positions": [{"x": 9, "y": 0.05}] * 5},
+            "intent": "invalid first attempt",
+            "feedback_request": {"measurements": ["completion"], "questions": []},
+        }
+        valid = {
+            "geometry": deepcopy(self.package["geometry"]),
+            "intent": "valid repaired attempt",
+            "feedback_request": {"measurements": ["completion"], "questions": []},
+        }
+
+        class ScriptedClient:
+            def __init__(self) -> None:
+                self.outputs = [invalid, valid]
+                self.contexts: list[dict] = []
+
+            def call(self, actor: str, context: dict) -> ModelResponse:
+                self.contexts.append(context)
+                return ModelResponse(self.outputs.pop(0), f"request-{len(self.contexts)}", 10, 10)
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = deepcopy(self.config)
+            config["experiment_id"] = "repair-test"
+            config_path = Path(directory) / "config.json"
+            config_path.write_text(json.dumps(config))
+            runner = ExperimentRunner(config_path, Path(directory) / "runs")
+            client = ScriptedClient()
+            runner.client = client
+            budget = Budget(1000, 1000)
+
+            def validator(output: dict) -> None:
+                validate_geometry(output["geometry"], config["design_bounds"])
+                validate_measurement_request(output["feedback_request"])
+
+            result = runner.validated_call("loopsense", 0, "geometry_builder", {"iteration": 0}, budget, runner.run_root / "call", validator)
+            self.assertEqual(result, valid)
+            self.assertEqual(budget.used, 40)
+            self.assertEqual(client.contexts[0]["constraints"]["design_bounds"], config["design_bounds"])
+            self.assertEqual(client.contexts[0]["constraints"]["supported_measurements"], sorted(MEASUREMENTS))
+            self.assertEqual(client.contexts[1]["invalid_artifact"], invalid)
+            self.assertIn("sensor 0 x", client.contexts[1]["validation_errors"][0])
+
+    def test_terminal_invalid_artifact_marks_run_failed(self) -> None:
+        invalid = {
+            "geometry": {**self.package["geometry"], "body_length": 9},
+            "intent": "still invalid",
+            "feedback_request": {"measurements": ["completion"], "questions": []},
+        }
+
+        class InvalidClient:
+            calls = 0
+
+            def call(self, actor: str, context: dict) -> ModelResponse:
+                self.calls += 1
+                return ModelResponse(invalid, f"invalid-{self.calls}", 10, 10)
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = deepcopy(self.config)
+            config.update({"experiment_id": "failed-test", "iterations": 1})
+            config_path = Path(directory) / "config.json"
+            config_path.write_text(json.dumps(config))
+            runner = ExperimentRunner(config_path, Path(directory) / "runs")
+            client = InvalidClient()
+            runner.client = client
+            with self.assertRaises(ValidationError):
+                runner.run()
+            manifest = json.loads((runner.run_root / "manifest.json").read_text())
+            self.assertEqual(manifest["status"], "failed")
+            self.assertEqual(manifest["failed_actor"], "geometry_builder")
+            self.assertEqual(client.calls, 2)
+            self.assertIn("run_failed", (runner.run_root / "audit.jsonl").read_text())
+
+    def test_complete_output_reports_geometry_and_controller_errors_together(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = deepcopy(self.config)
+            config["experiment_id"] = "aggregate-errors"
+            config_path = Path(directory) / "config.json"
+            config_path.write_text(json.dumps(config))
+            runner = ExperimentRunner(config_path, Path(directory) / "runs")
+            malformed = {
+                "geometry": {"sensor_count": 5, "sensor_positions": [[0, 0]]},
+                "controller": {"sensor_weight": 1},
+                "observation_request": {"measurements": ["completion"], "questions": []},
+                "notes": "malformed",
+            }
+            with self.assertRaises(ValidationError) as raised:
+                runner.validate_complete_output(malformed)
+            self.assertIn("geometry:", str(raised.exception))
+            self.assertIn("controller:", str(raised.exception))
+            self.assertIn("sensor_weights", str(raised.exception))
+
+    def test_config_rejects_unknown_measurement_catalogue_and_impossible_iteration_budget(self) -> None:
+        invalid = deepcopy(self.config)
+        invalid["simulator"]["measurement_catalogue_version"] = "unknown"
+        with self.assertRaises(ValueError):
+            validate_config(invalid)
+        invalid = deepcopy(self.config)
+        invalid["budget"].update({"total_tokens_per_condition": 100, "max_tokens_per_iteration": 101})
+        with self.assertRaises(ValueError):
+            validate_config(invalid)
 
     def test_race_definition_is_created_once(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -113,6 +232,10 @@ class ExperimentTests(unittest.TestCase):
             config_path.write_text(json.dumps(config))
             output = Path(directory) / "runs"
             run_root = ExperimentRunner(config_path, output).run()
+            final_result = json.loads((run_root / "loopsense/iteration-0/entity2/result.json").read_text())
+            self.assertEqual({trial["track"] for trial in final_result["held_out"]["trials"]}, {"hairpin"})
+            for manifest in run_root.glob("**/context-manifest.json"):
+                self.assertNotIn("held_out_tracks", json.loads(manifest.read_text())["keys"])
             calls_before = len(list(run_root.glob("**/response.json")))
             lines_before = len((run_root / "audit.jsonl").read_text().splitlines())
             ExperimentRunner(config_path, output, resume=True).run()
