@@ -1,0 +1,1 @@
+Balanced sensor layout with moderate sensor weights to improve line detection and noise robustness. Controller gains tuned for stable and responsive control. Line loss strategy set to search_left to recover from line loss efficiently.

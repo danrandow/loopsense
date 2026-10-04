@@ -20,6 +20,7 @@ Every numbered race gets its own pair of maps and one shared leaderboard. The tw
 |---|---|---|---|
 | Race 0 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=base&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=base&view=full)** | Not available yet |
 | Race 1 | Not published yet | Not published yet | Not available yet |
+| Race 4 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=iteration-4&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=iteration-4&view=full)** | **[Open the leaderboard](https://randowmaps.com/robotrace/runs/race-4/leaderboard.svg)** |
 
 Add one row here whenever a race is published, linking its LoopSense map, control map, and shared leaderboard. Within either map, move through its numbered iteration scenarios to watch that team change over the course of the race.
 

@@ -1,0 +1,1 @@
+Added two extra sensors near center to improve line detection and control stability. Tuned PID gains for moderate aggressiveness and noise robustness. Chose 'search_left' for line loss recovery to bias consistent search direction.
