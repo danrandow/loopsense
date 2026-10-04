@@ -6,7 +6,7 @@
 
 ## Artifact and ownership
 
-Each trial writes `entity2/trials/<track-id>-<seed>/track-view.svg`. The scenario that owns the trial must link directly to it. The iteration summary links to its constituent track views. An analysis is linked only from the scenario where that analysis was produced; earlier scenarios must never link forward to it.
+Each trial writes `entity2/trials/<track-id>-<seed>/track-view.svg`. The scenario that owns the trial must link directly to it. The iteration summary links to its constituent track views. An analysis is linked from the owning scenario's `map.notes`, never from Entity 2; earlier scenarios must never link forward to it.
 
 The SVG must be standalone SVG 1.1 with no scripts, external styles, fonts, network assets, or `foreignObject`. It must render when served directly as `image/svg+xml`.
 
@@ -88,9 +88,9 @@ Entity 2 notes on each scenario must directly expose all artifacts relevant to t
 - each trial track view, grouped as anchor, development, or held-out;
 - result JSON and addressed measurement returns;
 - experiment leaderboard; and
-- analysis created in that scenario, if any.
+- race-outcome artifacts created in that scenario.
 
-The iteration summary shows or links the anchor trial, best trial, and worst failure. A final scenario additionally exposes held-out views and its race analysis.
+The iteration summary shows or links the anchor trial, best trial, and worst failure. A final scenario additionally exposes held-out views through Entity 2. Its race analysis is linked separately from `map.notes` because it interprets the whole scenario rather than only the race outcome.
 
 ## Acceptance tests
 
