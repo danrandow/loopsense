@@ -216,6 +216,19 @@ class ExperimentTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             scenario_yaml("base.yaml", "loopsense", 0, "/tmp/a.svg", "https://example/a.svg", {"score": 1})
 
+    def test_scenario_uses_maps_override_schema(self) -> None:
+        scenario = scenario_yaml(
+            "base.yaml", "loopsense", 2,
+            "https://randowmaps.com/robotrace/runs/race-7/loopsense/iteration-2/entity2/iteration-summary.svg",
+            "https://randowmaps.com/robotrace/runs/race-7/leaderboard.svg",
+            {"score": 12.5}, "agreement",
+        )
+        self.assertIn("id: iteration-7.2", scenario)
+        self.assertIn('inherits: "base.yaml"', scenario)
+        self.assertIn('scenario: "Race 7 iteration 2"', scenario)
+        self.assertIn("overrides:\n  entities:\n    - id: entity2", scenario)
+        self.assertNotIn("extends:", scenario)
+
     def test_leaderboard_rejects_tampered_result(self) -> None:
         result = {"condition": "loopsense", "iteration": 0, "score": 1.0, "trials": [], "aggregate": {}}
         result["artifact_hash"] = digest(result)

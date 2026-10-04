@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -59,5 +60,13 @@ def leaderboard(run_root: Path, results: list[dict[str, Any]]) -> None:
 def scenario_yaml(base_map: str, condition: str, iteration: int, public_summary_url: str, leaderboard_url: str, result: dict[str, Any], setup_notes: str = "") -> str:
     if public_summary_url.startswith(("/", "file:")) or not public_summary_url.startswith("https://"):
         raise ValueError("summary URL must be a public HTTPS URL")
+    run_match = re.search(r"/runs/([^/]+)/", public_summary_url)
+    if run_match is None:
+        raise ValueError("summary URL must contain a run identifier")
+    run_id = run_match.group(1)
+    race_match = re.fullmatch(r"race-(\d+)", run_id)
+    suffix = race_match.group(1) if race_match else run_id
+    scenario_name = f"Race {suffix} iteration {iteration}" if race_match else f"{run_id} iteration {iteration}"
+    dimension = f"race: {suffix}" if race_match else f'experiment: "{run_id}"'
     indented_setup = "\n".join(f"    {line}" for line in setup_notes.splitlines())
-    return f'''map:\n  extends: "{base_map}"\n  scenario: "iteration-{iteration}"\n  dimensions:\n    condition: "{condition}"\n    iteration: {iteration}\n  notes: |\n    Race-specific initial conditions:\n{indented_setup}\nentities:\n  entity2:\n    status: complete\n    notes: |\n      Score: {result["score"]:.4f}\n      [Open iteration race summary]({public_summary_url})\n      [Open shared leaderboard]({leaderboard_url})\n'''
+    return f'''map:\n  id: iteration-{suffix}.{iteration}\n  inherits: "{base_map}"\n  scenario: "{scenario_name}"\n  dimensions:\n    {dimension}\n    iteration: {iteration}\n  notes: |\n    Race-specific initial conditions:\n{indented_setup}\noverrides:\n  entities:\n    - id: entity2\n      label: 'Score: {result["score"]:.4f}'\n      status: complete\n      notes: '\n          [Open iteration race summary]({public_summary_url})\n          [Open shared leaderboard]({leaderboard_url})'\n'''
