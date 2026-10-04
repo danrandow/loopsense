@@ -227,6 +227,7 @@ class ExperimentTests(unittest.TestCase):
         self.assertIn('inherits: "base.yaml"', scenario)
         self.assertIn('scenario: "Race 7 iteration 2"', scenario)
         self.assertIn("overrides:\n  entities:\n    - id: entity2", scenario)
+        self.assertIn("RACE_7_ANALYSIS.md", scenario)
         self.assertNotIn("extends:", scenario)
 
     def test_leaderboard_rejects_tampered_result(self) -> None:
