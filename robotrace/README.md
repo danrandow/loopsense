@@ -21,8 +21,9 @@ Every numbered race gets its own pair of maps and one shared leaderboard. The tw
 | Race 0 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=base&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=base&view=full)** | Not available yet |
 | Race 1 | Not published yet | Not published yet | Not available yet |
 | Race 4 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=iteration-4&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=iteration-4&view=full)** | **[Open the leaderboard](https://raw.githubusercontent.com/danrandow/loopsense/main/robotrace/runs/race-4/leaderboard.svg)** · **[Read analysis](https://github.com/danrandow/loopsense/blob/main/robotrace/RACE_4_ANALYSIS.md)** |
+| Race 5 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=iteration-5&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=iteration-5&view=full)** | **[Open the leaderboard](https://raw.githubusercontent.com/danrandow/loopsense/main/robotrace/runs/race-5/leaderboard.svg)** |
 
-Add one row here whenever a race is published, linking its LoopSense map, control map, and shared leaderboard. Within either map, move through its numbered iteration scenarios to watch that team change over the course of the race.
+Add one row here whenever a race is published, linking its LoopSense map, control map, and shared leaderboard. Until the maps are forked by race, each map's scenario selector lists the shared sequence as `Race 0`, `Race 1`, and so on.
 
 ### How to read the maps
 
@@ -160,7 +161,7 @@ python3 -m orchestrator.runner \
   --output runs
 ```
 
-The runner freezes the full config in `runs/race-0/manifest.json`, creates a fresh pair of race maps under `runs/race-0/maps/`, and runs the numbered scenarios for both teams. To run the next comparison, initialise `race-1`, edit its config, and run it the same way. Existing race definitions and outputs are never overwritten.
+The runner freezes the full config in `runs/race-0/manifest.json`, creates a fresh pair of race maps under `runs/race-0/maps/`, and runs the numbered iterations for both teams. When the race completes, it also publishes each team's final state as `iteration-0.yaml` in the corresponding checked-in map directory, labelled `Race 0` in the scenario selector. To run the next comparison, initialise `race-1`, edit its config, and run it the same way. Existing race definitions, outputs, and published race scenarios are never overwritten.
 
 ### Optional local setup interface
 
