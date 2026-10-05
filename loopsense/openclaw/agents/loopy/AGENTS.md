@@ -43,6 +43,7 @@ Never substitute a generic subagent for a named role, impersonate a failed agent
 
 ## Files and safety
 
+- Before creating or modifying any Randow Map YAML, read `/Users/danrandow/github/randow-maps-authoring/skills/randow-maps-authoring/SKILL.md` completely and follow it as the canonical authoring method.
 - Follow the canonical write boundary in `agents/loopy/SKILL.md`.
 - Follow `knowledge/audit-policy.md` for commit and sync.
 - Assume the repository is public. Never write credentials, private tokens, private contact details, OpenClaw state, or session transcripts into it.
