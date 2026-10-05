@@ -9,13 +9,49 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .artifacts import leaderboard, scenario_yaml, summary_svg, trajectory_svg, write_manifest
+from .artifacts import leaderboard, scenario_yaml, summary_svg, track_view_svg, write_manifest
 from .io import atomic_write, digest, read_json, safe_child, write_json
 from .model_client import ModelClient, ModelResponse, make_client
 from .validators import MEASUREMENTS, ValidationError, validate_controller, validate_geometry, validate_measurement_request, validate_package
 from simulator.adapter import ADAPTER_VERSION, run_trial
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def publish_race_scenarios(
+    run_root: Path,
+    experiment_id: str,
+    iterations: int,
+    publication_roots: dict[str, Path] | None = None,
+) -> dict[str, Path]:
+    """Publish one immutable final-state scenario per condition and race."""
+    match = re.fullmatch(r"race-(\d+)", experiment_id)
+    if not match:
+        return {}
+    roots = publication_roots or {
+        "loopsense": ROOT,
+        "control": ROOT.parent / "robotrace-control",
+    }
+    source_iteration = iterations - 1
+    published: dict[str, Path] = {}
+    for condition, target_root in roots.items():
+        source = run_root / "maps" / condition / f"iteration-{source_iteration}.yaml"
+        if not source.exists():
+            raise FileNotFoundError(f"final scenario missing: {source}")
+        target = target_root / f"iteration-{match.group(1)}.yaml"
+        if not target.exists():
+            scenario, replacements = re.subn(
+                r'^  scenario:.*$',
+                f'  scenario: "Race {match.group(1)}"',
+                source.read_text(encoding="utf-8"),
+                count=1,
+                flags=re.MULTILINE,
+            )
+            if replacements != 1:
+                raise ValueError(f"scenario name missing from final scenario: {source}")
+            atomic_write(target, scenario)
+        published[condition] = target
+    return published
 
 
 @dataclass
@@ -272,9 +308,17 @@ class ExperimentRunner:
                     trial = run_trial(package, tracks[track_id], seed, self.config)
                     telemetry = trial.pop("telemetry", [])
                     write_json(telemetry_path, telemetry)
-                    trajectory_svg({**trial, "telemetry": telemetry}, trial_dir / "trajectory.svg")
                     write_json(result_path, trial)
+                    track_view_svg(
+                        {**trial, "telemetry": telemetry}, package, tracks[track_id], trial_dir / "track-view.svg",
+                        experiment=self.config["experiment_id"], condition=condition, iteration=iteration,
+                    )
                     self.audit(condition, iteration, "trial_complete", {"trial_id": trial_id, "artifact_hash": digest(trial), "simulator_version": ADAPTER_VERSION})
+                if not (trial_dir / "track-view.svg").exists():
+                    track_view_svg(
+                        {**trial, "telemetry": telemetry}, package, tracks[track_id], trial_dir / "track-view.svg",
+                        experiment=self.config["experiment_id"], condition=condition, iteration=iteration,
+                    )
                 trials.append({**trial, "trial_id": trial_id, "telemetry": telemetry})
         valid = [trial for trial in trials if "metrics" in trial]
         aggregate = {key: round(sum(t["metrics"][key] for t in valid) / len(valid), 6) for key in valid[0]["metrics"]} if valid else {}
@@ -295,9 +339,17 @@ class ExperimentRunner:
                         trial = run_trial(package, tracks[track_id], seed, self.config)
                         telemetry = trial.pop("telemetry", [])
                         write_json(telemetry_path, telemetry)
-                        trajectory_svg({**trial, "telemetry": telemetry}, trial_dir / "trajectory.svg")
                         write_json(result_path, trial)
+                        track_view_svg(
+                            {**trial, "telemetry": telemetry}, package, tracks[track_id], trial_dir / "track-view.svg",
+                            experiment=self.config["experiment_id"], condition=condition, iteration=iteration,
+                        )
                         self.audit(condition, iteration, "held_out_trial_complete", {"trial_id": trial_id, "artifact_hash": digest(trial), "simulator_version": ADAPTER_VERSION})
+                    if not (trial_dir / "track-view.svg").exists():
+                        track_view_svg(
+                            {**trial, "telemetry": telemetry}, package, tracks[track_id], trial_dir / "track-view.svg",
+                            experiment=self.config["experiment_id"], condition=condition, iteration=iteration,
+                        )
                     held_out_trials.append({**trial, "trial_id": trial_id, "telemetry": telemetry})
             held_out_valid = [trial for trial in held_out_trials if "metrics" in trial]
             held_out_aggregate = {key: round(sum(t["metrics"][key] for t in held_out_valid) / len(held_out_valid), 6) for key in held_out_valid[0]["metrics"]} if held_out_valid else {}
@@ -380,19 +432,34 @@ class ExperimentRunner:
                 self.audit(condition, iteration, "iteration_started", {"simulator_version": self.config["simulator"]["version"]})
                 package = self.loopsense_build(iteration_dir, iteration, budget) if condition == "loopsense" else self.control_build(iteration_dir, iteration, budget)
                 result = self.evaluate(condition, iteration, iteration_dir, package, budget)
-                public_base = self.config["publication"]["base_url"].rstrip("/") + f"/{self.config['experiment_id']}"
+                artifact_base = f"runs/{self.config['experiment_id']}"
                 initial_key = "loopsense_working_agreement" if condition == "loopsense" else "control_criteria"
                 setup_notes = self.config.get("initial_conditions", {}).get(initial_key, "See the frozen race manifest.")
-                scenario = scenario_yaml("base.yaml", condition, iteration, f"{public_base}/{condition}/iteration-{iteration}/entity2/iteration-summary.svg", f"{public_base}/leaderboard.svg", result, setup_notes)
+                view_urls: list[tuple[str, str]] = []
+                anchor = self.config["evaluation"]["anchor_track"]
+                for trial in result["trials"]:
+                    group = "anchor" if trial["track"] == anchor else "development"
+                    url = f"{artifact_base}/{condition}/iteration-{iteration}/entity2/trials/{trial['trial_id']}/track-view.svg"
+                    view_urls.append((f"{group}: {trial['trial_id']} track view", url))
+                for trial in result.get("held_out", {}).get("trials", []):
+                    url = f"{artifact_base}/{condition}/iteration-{iteration}/entity2/held-out/trials/{trial['trial_id']}/track-view.svg"
+                    view_urls.append((f"held-out: {trial['trial_id']} track view", url))
+                scenario = scenario_yaml("base.yaml", condition, iteration, f"{artifact_base}/{condition}/iteration-{iteration}/entity2/iteration-summary.svg", f"{artifact_base}/leaderboard.svg", result, setup_notes, view_urls)
                 atomic_write(iteration_dir / "scenario.yaml", scenario)
                 atomic_write(maps_root / ("loopsense" if condition == "loopsense" else "control") / f"iteration-{iteration}.yaml", scenario)
                 write_json(checkpoint, {"complete": True, "result_hash": result["artifact_hash"], "budget": budget.record()})
                 self.audit(condition, iteration, "iteration_complete", {"artifact_hash": result["artifact_hash"], "token_usage": budget.iteration_used, "validation": "valid", "simulator_version": self.config["simulator"]["version"]})
                 self.results.append(result)
         leaderboard(self.run_root, self.results)
+        published_scenarios = publish_race_scenarios(
+            self.run_root,
+            self.config["experiment_id"],
+            self.config["iterations"],
+        )
         manifest = read_json(self.run_root / "manifest.json")
         manifest["status"] = "complete"
         manifest["result_hashes"] = [result["artifact_hash"] for result in self.results]
+        manifest["published_scenarios"] = {condition: str(path) for condition, path in published_scenarios.items()}
         write_json(self.run_root / "manifest.json", manifest)
         return self.run_root
 

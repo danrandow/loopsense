@@ -221,7 +221,20 @@ def run_trial(package: dict[str, Any], track: dict[str, Any], seed: int, config:
         library.step_motor_drivetrain_C(*converted, *(ctypes.byref(value) for value in outputs))
         x_m, y_m, heading, velocity, omega, current_left, current_right = (value.value for value in outputs)
         progress, error = _nearest_progress(x_m * 1000.0, y_m * 1000.0, points)
-        telemetry.append({"step": step, "progress": round(progress, 6), "error": round(error, 6), "speed": round(velocity, 6)})
+        telemetry.append({
+            "step": step,
+            "progress": round(progress, 6),
+            "error": round(error, 6),
+            "speed": round(velocity, 6),
+            # These are the recorded RobotTraceSim reference pose.  They are
+            # deliberately persisted rather than reconstructed by artifact
+            # renderers, which keeps diagnostic views faithful to the race.
+            "x": round(x_m, 9),
+            "y": round(y_m, 9),
+            "heading": round(heading, 9),
+            "sensors": [round(value, 9) for value in sensors],
+            "line_lost": lost,
+        })
         if progress >= 0.995:
             termination = "finished"
             break

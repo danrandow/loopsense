@@ -3,13 +3,14 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from copy import deepcopy
 from pathlib import Path
 
-from orchestrator.artifacts import leaderboard, scenario_yaml
+from orchestrator.artifacts import leaderboard, scenario_yaml, track_view_svg
 from orchestrator.io import digest, safe_child
 from orchestrator.model_client import ModelResponse
-from orchestrator.runner import Budget, ExperimentRunner, ROOT, initialise_race, validate_config
+from orchestrator.runner import Budget, ExperimentRunner, ROOT, initialise_race, publish_race_scenarios, validate_config
 from orchestrator.validators import MEASUREMENTS, ValidationError, validate_geometry, validate_measurement_request, validate_observation, validate_package
 from simulator.adapter import ADAPTER_VERSION, run_trial, to_robottrace_spec
 
@@ -68,6 +69,57 @@ class ExperimentTests(unittest.TestCase):
         result = run_trial(self.package, self.track, 17, config)
         self.assertEqual(result["termination_reason"], "timeout")
         self.assertEqual(len(result["telemetry"]), 5)
+
+    def test_track_view_is_deterministic_safe_and_complete(self) -> None:
+        trial = run_trial(self.package, self.track, 17, self.config)
+        with tempfile.TemporaryDirectory() as directory:
+            first = Path(directory) / "first.svg"
+            second = Path(directory) / "second.svg"
+            args = dict(experiment="race-test", condition="loopsense", iteration=2)
+            track_view_svg(trial, self.package, self.track, first, **args)
+            track_view_svg(trial, self.package, self.track, second, **args)
+            self.assertEqual(first.read_bytes(), second.read_bytes())
+            source = first.read_text()
+            self.assertNotIn("<script", source.lower())
+            self.assertNotIn("foreignObject", source)
+            self.assertNotIn("http://", source.replace("http://www.w3.org/2000/svg", ""))
+            root = ET.fromstring(source)
+            namespace = {"svg": "http://www.w3.org/2000/svg"}
+            ids = [child.attrib.get("id") for child in root if child.tag.endswith("g")]
+            self.assertEqual(ids, [
+                "background", "track-envelope", "track-centreline", "start-finish",
+                "trajectory", "robot-snapshots", "events", "legend", "trial-metadata",
+            ])
+            metadata_node = root.find("svg:metadata", namespace)
+            self.assertIsNotNone(metadata_node)
+            metadata = json.loads(metadata_node.text)
+            self.assertEqual(metadata["package_hash"], digest(self.package))
+            self.assertEqual(metadata["track_hash"], digest(self.track))
+            self.assertEqual(metadata["telemetry_hash"], digest(trial["telemetry"]))
+            self.assertEqual(metadata["termination_reason"], trial["termination_reason"])
+            self.assertEqual(set(metadata["snapshot_steps"]), {"start", "25%", "50%", "75%", "finish"})
+            self.assertIn('class="body"', source)
+            self.assertIn('class="wheel left"', source)
+            self.assertIn('class="sensor"', source)
+            self.assertIn('data-error-band="green"', source)
+            self.assertIn('data-event="finish-crossing"', source)
+
+    def test_track_view_has_timeout_and_off_track_markers(self) -> None:
+        timeout_config = deepcopy(self.config)
+        timeout_config["simulator"]["max_steps"] = 5
+        timeout = run_trial(self.package, self.track, 17, timeout_config)
+        off_track_package = deepcopy(self.package)
+        for sensor in off_track_package["geometry"]["sensor_positions"]:
+            sensor["x"] = 0
+        off_track_package["controller"].update({"base_speed": 2, "kp": 0, "kd": 0})
+        off_track = run_trial(off_track_package, self.track, 17, self.config)
+        with tempfile.TemporaryDirectory() as directory:
+            timeout_path = Path(directory) / "timeout.svg"
+            off_track_path = Path(directory) / "off-track.svg"
+            track_view_svg(timeout, self.package, self.track, timeout_path, experiment="test", condition="control", iteration=0)
+            track_view_svg(off_track, off_track_package, self.track, off_track_path, experiment="test", condition="control", iteration=0)
+            self.assertIn('data-event="timeout"', timeout_path.read_text())
+            self.assertIn('data-event="off-track"', off_track_path.read_text())
 
     def test_invalid_design_classification(self) -> None:
         invalid = deepcopy(self.package)
@@ -212,15 +264,23 @@ class ExperimentTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 initialise_race("../escape", root)
 
-    def test_publication_rejects_local_urls(self) -> None:
-        with self.assertRaises(ValueError):
-            scenario_yaml("base.yaml", "loopsense", 0, "/tmp/a.svg", "https://example/a.svg", {"score": 1})
+    def test_scenario_uses_local_artifact_links_as_a_markdown_list(self) -> None:
+        scenario = scenario_yaml(
+            "base.yaml", "loopsense", 0,
+            "runs/race-7/loopsense/iteration-0/entity2/iteration-summary.svg",
+            "runs/race-7/leaderboard.svg", {"score": 1}, "",
+            [("anchor: oval-17 track view", "runs/race-7/loopsense/iteration-0/entity2/trials/oval-17/track-view.svg")],
+        )
+        self.assertIn("notes: |", scenario)
+        self.assertIn("- [Open iteration race summary](runs/race-7/", scenario)
+        self.assertIn("- [anchor: oval-17 track view](runs/race-7/", scenario)
+        self.assertNotIn("github.com", scenario)
 
     def test_scenario_uses_maps_override_schema(self) -> None:
         scenario = scenario_yaml(
             "base.yaml", "loopsense", 2,
-            "https://randowmaps.com/robotrace/runs/race-7/loopsense/iteration-2/entity2/iteration-summary.svg",
-            "https://randowmaps.com/robotrace/runs/race-7/leaderboard.svg",
+            "runs/race-7/loopsense/iteration-2/entity2/iteration-summary.svg",
+            "runs/race-7/leaderboard.svg",
             {"score": 12.5}, "agreement",
         )
         self.assertIn("id: iteration-7.2", scenario)
@@ -229,6 +289,28 @@ class ExperimentTests(unittest.TestCase):
         self.assertIn("overrides:\n  entities:\n    - id: entity2", scenario)
         self.assertNotIn("ANALYSIS.md", scenario)
         self.assertNotIn("extends:", scenario)
+
+    def test_completed_race_publishes_one_final_scenario_per_team(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run_root = root / "runs/race-5"
+            roots = {"loopsense": root / "robotrace", "control": root / "robotrace-control"}
+            for condition in roots:
+                source = run_root / "maps" / condition / "iteration-1.yaml"
+                source.parent.mkdir(parents=True)
+                source.write_text(f'map:\n  scenario: "Race 5 iteration 1"\n  notes: {condition} final\n')
+            published = publish_race_scenarios(run_root, "race-5", 2, roots)
+            self.assertIn('scenario: "Race 5"', (roots["loopsense"] / "iteration-5.yaml").read_text())
+            self.assertIn('scenario: "Race 5"', (roots["control"] / "iteration-5.yaml").read_text())
+            self.assertEqual(published, {condition: root / f"{'robotrace' if condition == 'loopsense' else 'robotrace-control'}/iteration-5.yaml" for condition in roots})
+            self.assertEqual(publish_race_scenarios(run_root, "race-5", 2, roots), published)
+            (run_root / "maps/loopsense/iteration-1.yaml").write_text("scenario: changed\n")
+            self.assertEqual(publish_race_scenarios(run_root, "race-5", 2, roots), published)
+            self.assertIn('scenario: "Race 5"', (roots["loopsense"] / "iteration-5.yaml").read_text())
+
+    def test_non_numbered_run_does_not_publish_scenarios(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertEqual(publish_race_scenarios(Path(directory), "robotrace-smoke", 1), {})
 
     def test_leaderboard_rejects_tampered_result(self) -> None:
         result = {"condition": "loopsense", "iteration": 0, "score": 1.0, "trials": [], "aggregate": {}}
