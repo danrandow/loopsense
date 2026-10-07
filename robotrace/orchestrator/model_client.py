@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import json
 import os
 import re
+from pathlib import Path
 from typing import Any, Protocol
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -48,14 +49,14 @@ class DeterministicMockClient:
         }
         request = {"measurements": ["completion", "progress", "completion_time", "rms_error", "line_loss_events", "noise_robustness"], "questions": ["Which failure mode limits the next design?"]}
         if actor == "geometry_builder":
-            output = {"geometry": geometry, "intent": "Increase usable lateral line sensing while preserving a compact body.", "feedback_request": request}
+            output = {"geometry": geometry, "intent": "Increase usable lateral line sensing while preserving a compact body.", "feedback_request": request, "learning": f"Iteration {iteration}: preserve symmetric sensing and inspect error evidence."}
         elif actor in {"robot_integrator", "optimizer"}:
             supplied_geometry = context.get("geometry", geometry)
-            output = {"geometry": supplied_geometry, "controller": controller, "observation_request": request, "notes": "Conservative PID with derivative damping."}
+            output = {"geometry": supplied_geometry, "controller": controller, "observation_request": request, "notes": "Conservative PID with derivative damping.", "learning": f"Iteration {iteration}: conservative PID with derivative damping remains the baseline."}
         elif actor == "evaluator":
-            output = {"decision": "ship", "selected_candidate": context["candidate_id"], "rationale": "Candidate is valid and budget is better spent on world evidence."}
+            output = {"decision": "ship", "selected_candidate": context["candidate_id"], "rationale": "Candidate is valid and budget is better spent on world evidence.", "feedback": [], "learning": f"Iteration {iteration}: prefer world evidence once a candidate is valid."}
         elif actor == "integration_feedback":
-            output = {"summary": "The geometry integrated cleanly; preserve symmetry and use race error to tune spread.", "requests": ["Preserve sensor ordering."]}
+            output = {"summary": "The geometry integrated cleanly; preserve symmetry and use race error to tune spread.", "requests": ["Preserve sensor ordering."], "learning": f"Iteration {iteration}: preserve sensor ordering and tune from addressed race data."}
         else:
             raise ValueError(f"unknown actor: {actor}")
         serialized_context = str(context)
@@ -64,20 +65,25 @@ class DeterministicMockClient:
 
 
 ACTOR_CONTRACTS = {
-    "geometry_builder": '{"geometry": {"sensor_positions": [{"x": number, "y": number}], "sensor_size": number, "wheel_track": number, "wheel_radius": number, "body_width": number, "body_length": number, "mass": number}, "intent": string, "feedback_request": {"measurements": [supported names], "questions": [string]}}',
-    "robot_integrator": '{"geometry": exact supplied geometry, "controller": {"base_speed": number, "kp": number, "ki": number, "kd": number, "sensor_weights": [one number per sensor], "line_loss": "stop|search_left|search_right|last_direction"}, "observation_request": {"measurements": [supported names], "questions": [string]}, "notes": string}',
-    "optimizer": '{"geometry": {"sensor_positions": [{"x": number, "y": number}], "sensor_size": number, "wheel_track": number, "wheel_radius": number, "body_width": number, "body_length": number, "mass": number}, "controller": {"base_speed": number, "kp": number, "ki": number, "kd": number, "sensor_weights": [one number per sensor], "line_loss": "stop|search_left|search_right|last_direction"}, "observation_request": {"measurements": [supported names], "questions": [string]}, "notes": string}',
-    "evaluator": '{"decision": "ship|revise", "selected_candidate": exact candidate_id when shipping or null when revising, "rationale": string, "feedback": [specific requested changes]}',
-    "integration_feedback": '{"summary": string, "requests": [string]}',
+    "geometry_builder": '{"geometry": {"sensor_positions": [{"x": number, "y": number}], "sensor_size": number, "wheel_track": number, "wheel_radius": number, "body_width": number, "body_length": number, "mass": number}, "intent": string, "feedback_request": {"measurements": [supported names], "questions": [string]}, "learning": string}',
+    "robot_integrator": '{"geometry": exact supplied geometry, "controller": {"base_speed": number, "kp": number, "ki": number, "kd": number, "sensor_weights": [one number per sensor], "line_loss": "stop|search_left|search_right|last_direction"}, "observation_request": {"measurements": [supported names], "questions": [string]}, "notes": string, "learning": string}',
+    "optimizer": '{"geometry": {"sensor_positions": [{"x": number, "y": number}], "sensor_size": number, "wheel_track": number, "wheel_radius": number, "body_width": number, "body_length": number, "mass": number}, "controller": {"base_speed": number, "kp": number, "ki": number, "kd": number, "sensor_weights": [one number per sensor], "line_loss": "stop|search_left|search_right|last_direction"}, "observation_request": {"measurements": [supported names], "questions": [string]}, "notes": string, "learning": string}',
+    "evaluator": '{"decision": "ship|revise", "selected_candidate": exact candidate_id when shipping or null when revising, "rationale": string, "feedback": [specific requested changes], "learning": string}',
+    "integration_feedback": '{"summary": string, "requests": [string], "learning": string}',
 }
 
-ACTOR_INSTRUCTIONS = {
-    "geometry_builder": "Design valid bounded robot geometry and request only supported measurements. Explain the geometry intent.",
-    "robot_integrator": "Preserve the supplied geometry exactly, add a valid controller, request only supported measurements, and explain the integration choices.",
-    "optimizer": "Produce one complete valid robot candidate within every supplied geometry and controller constraint.",
-    "evaluator": "Evaluate the exact supplied candidate. Either request specific revisions or ship that candidate without changing it.",
-    "integration_feedback": "Translate the supplied race measurements into concise, geometry-specific integration feedback.",
+ROLE_INSTRUCTION_PATHS = {
+    "geometry_builder": "conditions/loopsense/actors/geometry-builder/instructions.md",
+    "robot_integrator": "conditions/loopsense/actors/robot-integrator/instructions.md",
+    "integration_feedback": "conditions/loopsense/actors/robot-integrator/instructions.md",
+    "optimizer": "conditions/control/actors/robot-optimizer/instructions.md",
+    "evaluator": "conditions/control/actors/evaluator/instructions.md",
 }
+
+
+def role_instructions(actor: str) -> str:
+    root = Path(__file__).resolve().parents[1]
+    return (root / ROLE_INSTRUCTION_PATHS[actor]).read_text(encoding="utf-8")
 
 
 def _parse_json_object(content: str) -> dict[str, Any]:
@@ -100,7 +106,7 @@ class OpenRouterClient:
     def call(self, actor: str, context: dict[str, Any]) -> ModelResponse:
         contract = ACTOR_CONTRACTS[actor]
         system = "You are one actor in a controlled robot-design experiment. Use only the supplied context. Return JSON only, with no markdown or commentary. Never invent file paths or commands."
-        user = f"Actor: {actor}\nJob: {ACTOR_INSTRUCTIONS[actor]}\nRequired output contract: {contract}\nAll supplied constraints are mandatory.\nContext:\n{json.dumps(context, sort_keys=True)}"
+        user = f"Actor call: {actor}\nRole instructions:\n{role_instructions(actor)}\nRequired output contract: {contract}\nAll supplied constraints are mandatory.\nContext:\n{json.dumps(context, sort_keys=True)}"
         body = {
             "model": self.config["id"],
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],

@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from copy import deepcopy
 from pathlib import Path
 
-from orchestrator.artifacts import leaderboard, scenario_yaml, track_view_svg
+from orchestrator.artifacts import leaderboard, race_report, scenario_yaml, track_view_svg
 from orchestrator.io import digest, safe_child
 from orchestrator.model_client import ModelResponse
 from orchestrator.runner import Budget, ExperimentRunner, ROOT, initialise_race, publish_race_scenarios, validate_config
@@ -104,6 +104,33 @@ class ExperimentTests(unittest.TestCase):
             self.assertIn('data-error-band="green"', source)
             self.assertIn('data-event="finish-crossing"', source)
 
+    def test_completed_iteration_backfills_missing_track_views(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = deepcopy(self.config)
+            config["experiment_id"] = "repair-test"
+            config_path = root / "config.json"
+            config_path.write_text(json.dumps(config))
+            runner = ExperimentRunner(config_path, root / "runs")
+            iteration_dir = runner.run_root / "loopsense/iteration-0"
+            package_dir = iteration_dir / "entity1"
+            package_dir.mkdir(parents=True)
+            (package_dir / "geometry.json").write_text(json.dumps(self.package["geometry"]))
+            (package_dir / "controller.json").write_text(json.dumps(self.package["controller"]))
+            (package_dir / "observation-request.json").write_text(json.dumps(self.package["observation_request"]))
+            trial = run_trial(self.package, self.track, 17, config)
+            telemetry = trial.pop("telemetry")
+            trial_dir = iteration_dir / "entity2/trials/oval-17"
+            trial_dir.mkdir(parents=True)
+            (trial_dir / "result.json").write_text(json.dumps(trial))
+            (trial_dir / "telemetry.json").write_text(json.dumps(telemetry))
+
+            runner.ensure_track_views("loopsense", 0, iteration_dir)
+
+            view = trial_dir / "track-view.svg"
+            self.assertTrue(view.exists())
+            self.assertIn("robotrace-track-view-v1", view.read_text())
+
     def test_track_view_has_timeout_and_off_track_markers(self) -> None:
         timeout_config = deepcopy(self.config)
         timeout_config["simulator"]["max_steps"] = 5
@@ -157,11 +184,13 @@ class ExperimentTests(unittest.TestCase):
             "geometry": {**self.package["geometry"], "sensor_positions": [{"x": 9, "y": 0.05}] * 5},
             "intent": "invalid first attempt",
             "feedback_request": {"measurements": ["completion"], "questions": []},
+            "learning": "invalid attempt",
         }
         valid = {
             "geometry": deepcopy(self.package["geometry"]),
             "intent": "valid repaired attempt",
             "feedback_request": {"measurements": ["completion"], "questions": []},
+            "learning": "valid repaired learning",
         }
 
         class ScriptedClient:
@@ -200,6 +229,7 @@ class ExperimentTests(unittest.TestCase):
             "geometry": {**self.package["geometry"], "body_length": 9},
             "intent": "still invalid",
             "feedback_request": {"measurements": ["completion"], "questions": []},
+            "learning": "still invalid",
         }
 
         class InvalidClient:
@@ -275,6 +305,38 @@ class ExperimentTests(unittest.TestCase):
         self.assertIn("- [Open iteration race summary](runs/race-7/", scenario)
         self.assertIn("- [anchor: oval-17 track view](runs/race-7/", scenario)
         self.assertNotIn("github.com", scenario)
+
+    def test_scenario_links_race_report_after_initial_conditions(self) -> None:
+        scenario = scenario_yaml(
+            "base.yaml", "loopsense", 0,
+            "runs/race-7/loopsense/iteration-0/entity2/iteration-summary.svg",
+            "runs/race-7/leaderboard.svg", {"score": 1}, "frozen setup",
+            race_report_url="runs/race-7/race-report.md",
+        )
+        setup = scenario.index("frozen setup")
+        report = scenario.index("[Read the race report](runs/race-7/race-report.md)")
+        overrides = scenario.index("overrides:")
+        self.assertLess(setup, report)
+        self.assertLess(report, overrides)
+
+    def test_race_report_covers_both_teams_and_repository_changes(self) -> None:
+        results = [
+            {"condition": "loopsense", "iteration": 0, "score": 10},
+            {"condition": "control", "iteration": 0, "score": 12},
+            {"condition": "loopsense", "iteration": 1, "score": 15, "held_out": {"score": 14}},
+            {"condition": "control", "iteration": 1, "score": 13, "held_out": {"score": 11}},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            race_report(path, "race-7", results, {"conditions": ["loopsense", "control"]}, [{
+                "subject": "Improve harness", "short_hash": "abc1234",
+                "url": "https://github.com/example/repo/commit/abc1234",
+            }], "race-6")
+            report = (path / "race-report.md").read_text()
+            self.assertIn("loopsense finished ahead of control by 2.000 points", report)
+            self.assertIn("| loopsense | 10.000 | 15.000 | 15.000 | 14.000 |", report)
+            self.assertIn("Repository changes since race-6 completed", report)
+            self.assertIn("[Improve harness](https://github.com/example/repo/commit/abc1234)", report)
 
     def test_scenario_uses_maps_override_schema(self) -> None:
         scenario = scenario_yaml(

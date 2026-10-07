@@ -4,18 +4,67 @@ import argparse
 import json
 import re
 import shutil
+import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .artifacts import leaderboard, scenario_yaml, summary_svg, track_view_svg, write_manifest
+from .artifacts import leaderboard, race_report, scenario_yaml, summary_svg, track_view_svg, write_manifest
 from .io import atomic_write, digest, read_json, safe_child, write_json
-from .model_client import ModelClient, ModelResponse, make_client
+from .model_client import ModelClient, ModelResponse, ROLE_INSTRUCTION_PATHS, make_client, role_instructions
 from .validators import MEASUREMENTS, ValidationError, validate_controller, validate_geometry, validate_measurement_request, validate_package
 from simulator.adapter import ADAPTER_VERSION, run_trial
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def repository_changes_since_previous_race(experiment_id: str, runs_root: Path) -> tuple[str | None, list[dict[str, str]]]:
+    """Return linked non-race commits since the previous completed numbered race."""
+    match = re.fullmatch(r"race-(\d+)", experiment_id)
+    if not match:
+        return None, []
+    race_number = int(match.group(1))
+    previous_race = None
+    for number in range(race_number - 1, -1, -1):
+        manifest_path = runs_root / f"race-{number}" / "manifest.json"
+        if manifest_path.exists() and read_json(manifest_path).get("status") == "complete":
+            previous_race = f"race-{number}"
+            break
+    if previous_race is None:
+        return None, []
+    previous_number = previous_race.removeprefix("race-")
+    try:
+        baseline = subprocess.run(
+            ["git", "log", "--diff-filter=A", "-1", "--format=%H", "--", f"robotrace/iteration-{previous_number}.yaml", f"robotrace-control/iteration-{previous_number}.yaml"],
+            cwd=ROOT.parent, check=True, capture_output=True, text=True,
+        ).stdout.strip()
+        remote = subprocess.run(
+            ["git", "remote", "get-url", "origin"], cwd=ROOT.parent,
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+        if not baseline:
+            return previous_race, []
+        repository_url = re.sub(r"^git@github\.com:", "https://github.com/", remote).removesuffix(".git")
+        log = subprocess.run(
+            ["git", "log", "--format=%H%x09%h%x09%s", f"{baseline}..HEAD"],
+            cwd=ROOT.parent, check=True, capture_output=True, text=True,
+        ).stdout.splitlines()
+        changes = []
+        race_only = re.compile(rf"^(?:robotrace/runs/{re.escape(experiment_id)}/|robotrace/race-definitions/{re.escape(experiment_id)}/|robotrace/iteration-{race_number}\.yaml$|robotrace-control/iteration-{race_number}\.yaml$)")
+        for line in log:
+            commit_hash, short_hash, subject = line.split("\t", 2)
+            files = subprocess.run(
+                ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", commit_hash],
+                cwd=ROOT.parent, check=True, capture_output=True, text=True,
+            ).stdout.splitlines()
+            publishes_current_race = any(path in {f"robotrace/iteration-{race_number}.yaml", f"robotrace-control/iteration-{race_number}.yaml"} for path in files)
+            if publishes_current_race or (files and all(race_only.match(path) for path in files)):
+                continue
+            changes.append({"subject": subject, "short_hash": short_hash, "url": f"{repository_url}/commit/{commit_hash}"})
+        return previous_race, changes
+    except (OSError, subprocess.CalledProcessError):
+        return previous_race, []
 
 
 def publish_race_scenarios(
@@ -89,6 +138,42 @@ class ExperimentRunner:
         self.current_condition = "run"
         self.current_iteration = -1
         self.current_actor = "initialisation"
+
+    @staticmethod
+    def learning_actor(actor: str) -> str:
+        return "robot_integrator" if actor == "integration_feedback" else actor
+
+    def learning_path(self, condition: str, actor: str) -> Path:
+        return self.run_root / condition / "learning" / f"{self.learning_actor(actor)}.md"
+
+    def learning_for(self, condition: str, actor: str) -> str:
+        path = self.learning_path(condition, actor)
+        return path.read_text(encoding="utf-8") if path.exists() else "No race-specific learning recorded yet."
+
+    def ensure_track_views(self, condition: str, iteration: int, iteration_dir: Path, *, overwrite: bool = False) -> None:
+        """Backfill canonical trial views for completed iterations without rerunning trials."""
+        package_dir = iteration_dir / "entity1"
+        if condition == "control":
+            package_dir /= "candidate"
+        package = {
+            "geometry": read_json(package_dir / "geometry.json"),
+            "controller": read_json(package_dir / "controller.json"),
+            "observation_request": read_json(package_dir / ("measurement-request.json" if condition == "control" else "observation-request.json")),
+        }
+        tracks = {path.stem: read_json(path) for path in (ROOT / "tracks").glob("*/*.json")}
+        for trials_dir in (iteration_dir / "entity2/trials", iteration_dir / "entity2/held-out/trials"):
+            if not trials_dir.exists():
+                continue
+            for trial_dir in sorted(path for path in trials_dir.iterdir() if path.is_dir()):
+                view_path = trial_dir / "track-view.svg"
+                if view_path.exists() and not overwrite:
+                    continue
+                trial = read_json(trial_dir / "result.json")
+                telemetry = read_json(trial_dir / "telemetry.json")
+                track_view_svg(
+                    {**trial, "telemetry": telemetry}, package, tracks[trial["track"]], view_path,
+                    experiment=self.config["experiment_id"], condition=condition, iteration=iteration,
+                )
 
     def audit(self, condition: str, iteration: int, state: str, details: dict[str, Any]) -> None:
         event = {"timestamp": datetime.now(timezone.utc).isoformat(), "condition": condition, "iteration": iteration, "state": state, **details}
@@ -164,7 +249,7 @@ class ExperimentRunner:
             raise ValidationError("; ".join(errors))
 
     def validated_call(self, condition: str, iteration: int, actor: str, context: dict[str, Any], budget: Budget, call_dir: Path, validator: Any) -> dict[str, Any]:
-        full_context = {**context, "constraints": self.constraints_for(actor)}
+        full_context = {**context, "learning": self.learning_for(condition, actor), "constraints": self.constraints_for(actor)}
         repairs = int(self.config["budget"].get("repair_calls_per_artifact", 0))
         invalid: dict[str, Any] | None = None
         error_text = ""
@@ -183,6 +268,8 @@ class ExperimentRunner:
             output = self.call(condition, iteration, actor, attempt_context, budget, attempt_dir)
             try:
                 validator(output)
+                if not isinstance(output.get("learning"), str) or not output["learning"].strip():
+                    raise ValidationError("learning must be a non-empty string")
             except (ValidationError, KeyError, TypeError, ValueError) as error:
                 invalid = output
                 error_text = str(error)
@@ -191,6 +278,7 @@ class ExperimentRunner:
                     raise ValidationError(f"{actor} remained invalid after {repairs} repair call(s): {error_text}") from error
                 continue
             self.audit(condition, iteration, f"model:{actor}:valid", {"attempt": attempt, "artifact_hash": digest(output), "validation": "valid"})
+            atomic_write(self.learning_path(condition, actor), output["learning"].strip() + "\n")
             return output
         raise AssertionError("unreachable validation loop")
 
@@ -206,7 +294,8 @@ class ExperimentRunner:
         return {"geometry": output["geometry"], "controller": output["controller"], "observation_request": output["observation_request"]}
 
     def loopsense_build(self, iteration_dir: Path, iteration: int, budget: Budget) -> dict[str, Any]:
-        prior = self.previous_returns("loopsense", iteration)
+        builder_returns = self.previous_returns("loopsense", iteration, "geometry_builder")
+        integrator_returns = self.previous_returns("loopsense", iteration, "robot_integrator")
         agreement = self.config.get("initial_conditions", {}).get("loopsense_working_agreement") or (ROOT / "conditions/loopsense/working-agreement-v0.md").read_text()
         geometry_call = iteration_dir / "calls/geometry-builder"
         def validate_geometry_output(output: dict[str, Any]) -> None:
@@ -223,31 +312,32 @@ class ExperimentRunner:
                 errors.append("intent must be a string")
             if errors:
                 raise ValidationError("; ".join(errors))
-        geometry = self.validated_call("loopsense", iteration, "geometry_builder", {"iteration": iteration, "working_agreement": agreement, "private_expertise": (ROOT / "conditions/loopsense/private/geometry.md").read_text(), **prior}, budget, geometry_call, validate_geometry_output)
+        geometry = self.validated_call("loopsense", iteration, "geometry_builder", {"iteration": iteration, "working_agreement": agreement, "private_expertise": (ROOT / "conditions/loopsense/private/geometry.md").read_text(), "race_data_for_geometry": builder_returns["race_data"], "integration_feedback": builder_returns["integration_feedback"]}, budget, geometry_call, validate_geometry_output)
         entity0 = iteration_dir / "entity0"
         write_json(entity0 / "geometry.json", geometry["geometry"])
         atomic_write(entity0 / "intent.md", geometry["intent"] + "\n")
         write_json(entity0 / "feedback-request.json", geometry["feedback_request"])
-        write_manifest(entity0, "entity0", ["geometry.json", "intent.md", "feedback-request.json"], sorted(prior))
+        write_manifest(entity0, "entity0", ["geometry.json", "intent.md", "feedback-request.json"], ["entityR1", "entityR2A", "entityTeam0", "entityPrv0"])
         def validate_integrated(output: dict[str, Any]) -> None:
             if output["geometry"] != geometry["geometry"]:
                 raise ValidationError("integrator mutated upstream geometry")
             self.validate_complete_output(output)
-        integrated = self.validated_call("loopsense", iteration, "robot_integrator", {"iteration": iteration, "geometry": geometry["geometry"], "geometry_intent": geometry["intent"], "working_agreement": agreement, "private_expertise": (ROOT / "conditions/loopsense/private/integration.md").read_text(), "race_data_for_integration": prior.get("race_data_for_integration")}, budget, iteration_dir / "calls/robot-integrator", validate_integrated)
+        integrated = self.validated_call("loopsense", iteration, "robot_integrator", {"iteration": iteration, "geometry": geometry["geometry"], "geometry_intent": geometry["intent"], "working_agreement": agreement, "private_expertise": (ROOT / "conditions/loopsense/private/integration.md").read_text(), "race_data_for_integration": integrator_returns["race_data"]}, budget, iteration_dir / "calls/robot-integrator", validate_integrated)
         package = self.package_entity(iteration_dir / "entity1", integrated)
         validate_package(package, self.config["design_bounds"])
         return package
 
     def control_build(self, iteration_dir: Path, iteration: int, budget: Budget) -> dict[str, Any]:
-        blackboard = iteration_dir / "blackboard"
-        prior = self.previous_returns("control", iteration)
-        prior["initial_criteria"] = self.config.get("initial_conditions", {}).get("control_criteria") or (ROOT / "conditions/control/working-agreement-v0.md").read_text()
+        blackboard = self.run_root / "control" / "blackboard" / f"iteration-{iteration}"
+        optimizer_returns = self.previous_returns("control", iteration, "optimizer")
+        evaluator_returns = self.previous_returns("control", iteration, "evaluator")
+        initial_criteria = self.config.get("initial_conditions", {}).get("control_criteria") or (ROOT / "conditions/control/working-agreement-v0.md").read_text()
         feedback: dict[str, Any] | None = None
         maximum = int(self.config["budget"].get("max_control_cycles", 2))
         for cycle in range(maximum):
             def validate_candidate(output: dict[str, Any]) -> None:
                 self.validate_complete_output(output)
-            candidate = self.validated_call("control", iteration, "optimizer", {"iteration": iteration, "blackboard": prior, "evaluator_feedback": feedback, "private_expertise": (ROOT / "conditions/control/private/optimizer.md").read_text()}, budget, iteration_dir / f"calls/optimizer-{cycle}", validate_candidate)
+            candidate = self.validated_call("control", iteration, "optimizer", {"iteration": iteration, "initial_criteria": initial_criteria, "blackboard_history": self.control_blackboard_history(), "race_data_for_optimizer": optimizer_returns["race_data"], "evaluator_feedback": feedback, "private_expertise": (ROOT / "conditions/control/private/optimizer.md").read_text()}, budget, iteration_dir / f"calls/optimizer-{cycle}", validate_candidate)
             candidate_dir = blackboard / f"candidate-{cycle}"
             package = self.package_entity(candidate_dir, candidate, control=True)
             validate_package(package, self.config["design_bounds"])
@@ -261,8 +351,9 @@ class ExperimentRunner:
                     raise ValidationError("shipping must select the exact current candidate")
                 if output["decision"] == "revise" and not isinstance(output.get("feedback"), list):
                     raise ValidationError("revision feedback must be a list")
-            evaluation = self.validated_call("control", iteration, "evaluator", {"iteration": iteration, "candidate": package, "candidate_id": candidate_id, "rationale": candidate["notes"], "blackboard": prior, "private_expertise": (ROOT / "conditions/control/private/evaluator.md").read_text()}, budget, iteration_dir / f"calls/evaluator-{cycle}", validate_evaluation)
-            write_json(blackboard / f"evaluation-{cycle}.json", evaluation)
+            evaluation = self.validated_call("control", iteration, "evaluator", {"iteration": iteration, "initial_criteria": initial_criteria, "blackboard_history": self.control_blackboard_history(), "candidate": package, "candidate_id": candidate_id, "rationale": candidate["notes"], "race_data_for_evaluator": evaluator_returns["race_data"], "private_expertise": (ROOT / "conditions/control/private/evaluator.md").read_text()}, budget, iteration_dir / f"calls/evaluator-{cycle}", validate_evaluation)
+            public_evaluation = {key: value for key, value in evaluation.items() if key != "learning"}
+            write_json(blackboard / f"evaluation-{cycle}.json", public_evaluation)
             if evaluation.get("decision") == "ship":
                 if evaluation.get("selected_candidate") != candidate_id:
                     raise RuntimeError("evaluator did not select the exact current candidate")
@@ -273,21 +364,40 @@ class ExperimentRunner:
             evaluation = {"decision": "ship", "selected_candidate": candidate_id, "rationale": "Budget policy selected the latest valid candidate.", "feedback": []}
         approved = iteration_dir / "entity1"
         shutil.copytree(candidate_dir, approved / "candidate")
-        write_json(approved / "approval.json", evaluation)
+        write_json(approved / "approval.json", {key: value for key, value in evaluation.items() if key != "learning"})
         atomic_write(approved / "candidate-hash.txt", candidate_id + "\n")
-        write_manifest(approved, "entity1", ["candidate", "approval.json", "candidate-hash.txt"], [str(candidate_dir.relative_to(iteration_dir))])
+        write_manifest(approved, "entity1", ["candidate", "approval.json", "candidate-hash.txt"], [f"../blackboard/iteration-{iteration}/candidate-{cycle}"])
         if digest(package) != candidate_id:
             raise RuntimeError("approved candidate changed")
         return package
 
-    def previous_returns(self, condition: str, iteration: int) -> dict[str, Any]:
+    def control_blackboard_history(self) -> list[dict[str, Any]]:
+        root = self.run_root / "control" / "blackboard"
+        history: list[dict[str, Any]] = []
+        for path in sorted(root.glob("iteration-*/*")):
+            if path.is_dir() and path.name.startswith("candidate-"):
+                record: dict[str, Any] = {"path": str(path.relative_to(root)), "kind": "candidate"}
+                for name in ("geometry.json", "controller.json", "measurement-request.json"):
+                    if (path / name).exists():
+                        record[name.removesuffix(".json")] = read_json(path / name)
+                notes = path / "optimization-notes.md"
+                if notes.exists():
+                    record["notes"] = notes.read_text(encoding="utf-8")
+                history.append(record)
+            elif path.is_file() and path.name.startswith("evaluation-") and path.suffix == ".json":
+                history.append({"path": str(path.relative_to(root)), "kind": "evaluation", "evaluation": read_json(path)})
+        return history
+
+    def previous_returns(self, condition: str, iteration: int, recipient: str) -> dict[str, Any]:
         if iteration == 0:
-            return {"race_data_for_geometry": None, "integration_feedback": None, "race_data_for_integration": None}
+            return {"race_data": None, **({"integration_feedback": None} if recipient == "geometry_builder" else {})}
         previous = self.run_root / condition / f"iteration-{iteration - 1}"
-        result: dict[str, Any] = {}
-        for key, directory in (("race_data_for_geometry", "return-geometry"), ("race_data_for_integration", "return-integration"), ("integration_feedback", "entityR1")):
-            path = previous / directory / ("measurements.json" if key.startswith("race_data") else "feedback.json")
-            result[key] = read_json(path) if path.exists() else None
+        return_id = "entityR2A" if recipient in {"geometry_builder", "optimizer"} else "entityR2B"
+        measurement_path = previous / return_id / "measurements.json"
+        result: dict[str, Any] = {"race_data": read_json(measurement_path) if measurement_path.exists() else None}
+        if recipient == "geometry_builder":
+            feedback_path = previous / "entityR1/feedback.json"
+            result["integration_feedback"] = read_json(feedback_path) if feedback_path.exists() else None
         return result
 
     def evaluate(self, condition: str, iteration: int, iteration_dir: Path, package: dict[str, Any], budget: Budget) -> dict[str, Any]:
@@ -366,21 +476,22 @@ class ExperimentRunner:
         write_manifest(iteration_dir / "entity2", "entity2", ["result.json", "summary.md", "iteration-summary.svg", "trials"], ["entity1"])
         measurements = aggregate | {"score": score}
         source_trials = [trial["trial_id"] for trial in trials]
-        for recipient in ("geometry", "integration"):
-            target = iteration_dir / f"return-{recipient}"
+        for return_id in ("entityR2A", "entityR2B"):
+            target = iteration_dir / return_id
             write_json(target / "measurements.json", measurements)
             atomic_write(target / "measurement-catalogue-version", self.config["simulator"]["measurement_catalogue_version"] + "\n")
             atomic_write(target / "source-run-id", self.config["experiment_id"] + "\n")
             write_json(target / "source-trial-ids", source_trials)
             requested = package["observation_request"]["measurements"]
             write_json(target / "request-coverage.json", {"requested": requested, "supplied": [item for item in requested if item in measurements]})
+            write_manifest(target, return_id, ["measurements.json", "measurement-catalogue-version", "source-run-id", "source-trial-ids", "request-coverage.json"], ["entity2"])
         if condition == "loopsense":
             def validate_feedback(output: dict[str, Any]) -> None:
                 if not isinstance(output.get("summary"), str) or not isinstance(output.get("requests"), list):
                     raise ValidationError("integration feedback requires a string summary and a list of requests")
             feedback = self.validated_call(condition, iteration, "integration_feedback", {"iteration": iteration, "race_data_for_integration": measurements, "geometry": package["geometry"]}, budget, iteration_dir / "calls/integration-feedback", validate_feedback)
-            write_json(iteration_dir / "entityR1/feedback.json", feedback)
-            write_manifest(iteration_dir / "entityR1", "entityR1", ["feedback.json"], ["return-integration"])
+            write_json(iteration_dir / "entityR1/feedback.json", {"summary": feedback["summary"], "requests": feedback["requests"]})
+            write_manifest(iteration_dir / "entityR1", "entityR1", ["feedback.json"], ["entityR2B"])
         return result
 
     def run(self) -> Path:
@@ -404,13 +515,16 @@ class ExperimentRunner:
 
     def _run(self) -> Path:
         existing_manifest = self.run_root / "manifest.json"
+        instruction_hashes = {actor: digest(role_instructions(actor)) for actor in sorted(ROLE_INSTRUCTION_PATHS)}
         if self.resume and existing_manifest.exists():
             frozen = read_json(existing_manifest)
             if frozen.get("config_hash") != digest(self.config):
                 raise RuntimeError("resume configuration differs from the frozen run configuration")
             if frozen.get("plan_hash") != digest((ROOT / "IMPLEMENTATION_PLAN.md").read_bytes()):
                 raise RuntimeError("resume implementation plan differs from the frozen run plan")
-        write_json(self.run_root / "manifest.json", {"experiment_id": self.config["experiment_id"], "config": self.config, "config_hash": digest(self.config), "plan_hash": digest((ROOT / "IMPLEMENTATION_PLAN.md").read_bytes()), "status": "running"})
+            if frozen.get("role_instruction_hashes") != instruction_hashes:
+                raise RuntimeError("resume role instructions differ from the frozen run instructions")
+        write_json(self.run_root / "manifest.json", {"experiment_id": self.config["experiment_id"], "config": self.config, "config_hash": digest(self.config), "plan_hash": digest((ROOT / "IMPLEMENTATION_PLAN.md").read_bytes()), "role_instruction_hashes": instruction_hashes, "status": "running"})
         maps_root = self.run_root / "maps"
         (maps_root / "loopsense").mkdir(parents=True, exist_ok=True)
         (maps_root / "control").mkdir(parents=True, exist_ok=True)
@@ -425,6 +539,7 @@ class ExperimentRunner:
                 iteration_dir = self.run_root / condition / f"iteration-{iteration}"
                 checkpoint = iteration_dir / "checkpoint.json"
                 if checkpoint.exists() and read_json(checkpoint).get("complete"):
+                    self.ensure_track_views(condition, iteration, iteration_dir)
                     saved_budget = read_json(checkpoint)["budget"]
                     budget.used = max(budget.used, int(saved_budget["used"]))
                     self.results.append(read_json(iteration_dir / "entity2/result.json"))
@@ -433,6 +548,8 @@ class ExperimentRunner:
                 package = self.loopsense_build(iteration_dir, iteration, budget) if condition == "loopsense" else self.control_build(iteration_dir, iteration, budget)
                 result = self.evaluate(condition, iteration, iteration_dir, package, budget)
                 artifact_base = f"runs/{self.config['experiment_id']}"
+                report_base = self.config["publication"]["base_url"].removesuffix("/runs")
+                report_url = f"{report_base}/{self.config['experiment_id'].upper().replace('-', '_')}_REPORT.md"
                 initial_key = "loopsense_working_agreement" if condition == "loopsense" else "control_criteria"
                 setup_notes = self.config.get("initial_conditions", {}).get(initial_key, "See the frozen race manifest.")
                 view_urls: list[tuple[str, str]] = []
@@ -444,13 +561,18 @@ class ExperimentRunner:
                 for trial in result.get("held_out", {}).get("trials", []):
                     url = f"{artifact_base}/{condition}/iteration-{iteration}/entity2/held-out/trials/{trial['trial_id']}/track-view.svg"
                     view_urls.append((f"held-out: {trial['trial_id']} track view", url))
-                scenario = scenario_yaml("base.yaml", condition, iteration, f"{artifact_base}/{condition}/iteration-{iteration}/entity2/iteration-summary.svg", f"{artifact_base}/leaderboard.svg", result, setup_notes, view_urls)
+                scenario = scenario_yaml("base.yaml", condition, iteration, f"{artifact_base}/{condition}/iteration-{iteration}/entity2/iteration-summary.svg", f"{artifact_base}/leaderboard.svg", result, setup_notes, view_urls, report_url)
                 atomic_write(iteration_dir / "scenario.yaml", scenario)
                 atomic_write(maps_root / ("loopsense" if condition == "loopsense" else "control") / f"iteration-{iteration}.yaml", scenario)
                 write_json(checkpoint, {"complete": True, "result_hash": result["artifact_hash"], "budget": budget.record()})
                 self.audit(condition, iteration, "iteration_complete", {"artifact_hash": result["artifact_hash"], "token_usage": budget.iteration_used, "validation": "valid", "simulator_version": self.config["simulator"]["version"]})
                 self.results.append(result)
         leaderboard(self.run_root, self.results)
+        previous_race, repo_changes = repository_changes_since_previous_race(self.config["experiment_id"], self.run_root.parent)
+        race_report(self.run_root, self.config["experiment_id"], self.results, self.config, repo_changes, previous_race)
+        match = re.fullmatch(r"race-(\d+)", self.config["experiment_id"])
+        if match:
+            race_report(ROOT, self.config["experiment_id"], self.results, self.config, repo_changes, previous_race, f"runs/{self.config['experiment_id']}/", f"RACE_{match.group(1)}_REPORT.md")
         published_scenarios = publish_race_scenarios(
             self.run_root,
             self.config["experiment_id"],

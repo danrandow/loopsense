@@ -42,8 +42,8 @@ feedback carry manifests listing their files and allowed inputs.
 | `entity1` — Complete Robot Package | Robot Integrator | `entity1/` | RobotraceSim Robot |
 | `entity2` — Race Outcome | RobotraceSim Robot | `entity2/` | Audit and spectators only |
 | `entityR1` — Integration Feedback | Robot Integrator after the race | `entityR1/feedback.json` | Geometry Builder in the next iteration |
-| `entityR2A` — Race Data for Geometry | RobotraceSim Robot | `return-geometry/` | Geometry Builder in the next iteration |
-| `entityR2B` — Race Data for Integration | RobotraceSim Robot | `return-integration/` | Robot Integrator in the next iteration |
+| `entityR2A` — Race Data for Geometry | RobotraceSim Robot | `entityR2A/` | Geometry Builder in the next iteration |
+| `entityR2B` — Race Data for Integration | RobotraceSim Robot | `entityR2B/` | Robot Integrator in the next iteration |
 | `entityTeam0` — Working Agreement | Initial race configuration; topology permits both agents to revise it | Frozen in `manifest.json`; checked-in default at `conditions/loopsense/working-agreement-v0.md` | Both AI roles |
 | `entityPrv0` — Geometry Expertise | Geometry Builder in the topology | Checked-in seed at `conditions/loopsense/private/geometry.md` | Geometry Builder only |
 | `entityPrv1` — Integration Expertise | Robot Integrator in the topology | Checked-in seed at `conditions/loopsense/private/integration.md` | Robot Integrator only |
@@ -58,10 +58,8 @@ iteration `i+1`; there is no separate retrospective turn.
 
 ## Current harness note
 
-The topology allows both agents to update `entityTeam0` and depicts their
-private expertise as evolving. In the current harness, the Working Agreement
-and private expertise are fixed prompt inputs rather than per-iteration writable
-artifacts. Also, the Geometry Builder currently receives the complete previous
-return bundle, including the integration-addressed race return, rather than only
-the topology-prescribed inputs. Treat these as implementation gaps, not as
-different routing rules.
+The Working Agreement and private expertise remain fixed seed inputs for the
+race. Each role maintains a separate private, race-scoped learning file under
+`loopsense/learning/`, replaced after every valid turn and carried across
+iterations. Addressed returns are routed only to their named recipients. The
+topology's option for agents to revise the Working Agreement is not implemented.

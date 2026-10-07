@@ -21,7 +21,7 @@ Every numbered race gets its own pair of maps and one shared leaderboard. The tw
 | Race 0 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=base&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=base&view=full)** | Not available yet |
 | Race 1 | Not published yet | Not published yet | Not available yet |
 | Race 4 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=iteration-4&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=iteration-4&view=full)** | **[Open the leaderboard](https://raw.githubusercontent.com/danrandow/loopsense/main/robotrace/runs/race-4/leaderboard.svg)** · **[Read analysis](https://github.com/danrandow/loopsense/blob/main/robotrace/RACE_4_ANALYSIS.md)** |
-| Race 5 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=iteration-5&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=iteration-5&view=full)** | **[Open the leaderboard](https://raw.githubusercontent.com/danrandow/loopsense/main/robotrace/runs/race-5/leaderboard.svg)** |
+| Race 5 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=iteration-5&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=iteration-5&view=full)** | **[Open the leaderboard](https://raw.githubusercontent.com/danrandow/loopsense/main/robotrace/runs/race-5/leaderboard.svg)** · **[Read report](RACE_5_REPORT.md)** |
 
 Add one row here whenever a race is published, linking its LoopSense map, control map, and shared leaderboard. Until the maps are forked by race, each map's scenario selector lists the shared sequence as `Race 0`, `Race 1`, and so on.
 
@@ -184,7 +184,7 @@ The setup page lets you choose:
 - the LoopSense team's starter Working Agreement; and
 - the optimizer/evaluator team's initial evaluation criteria.
 
-Press **Start race** once. The same model, model settings, total budget, tracks, seeds, simulator, and scoring are applied to both teams. The page links to the leaderboard and manifest when the race completes. Completed races also remain listed on the setup page.
+Press **Start race** once. The same model, model settings, total budget, tracks, seeds, simulator, and scoring are applied to both teams. At completion the harness writes a race report covering both teams and a linked summary of non-race repository commits since the previous completed race. The page links to that report, the leaderboard, and the manifest. Completed races also remain listed on the setup page.
 
 Stop the interface with `Control-C` in the terminal.
 
@@ -238,6 +238,7 @@ runs/race-0/
   leaderboard.json
   leaderboard.md
   leaderboard.svg
+  race-report.md
 
 runs/race-1/
   maps/loopsense/ ...
@@ -254,6 +255,7 @@ Each completed iteration supplies the starting evidence for the next iteration i
 While the local interface is running, its **Previous races** table links to every race leaderboard. On disk, open:
 
 - `runs/race-N/leaderboard.svg` for the visual leaderboard;
+- `runs/race-N/race-report.md` for the two-team race report and changes since the previous completed race;
 - `runs/race-N/leaderboard.md` for the table;
 - `runs/race-N/manifest.json` for the frozen configuration and result hashes;
 - `runs/race-N/maps/` for both map/scenario sets; and

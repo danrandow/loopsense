@@ -38,13 +38,13 @@ carry manifests listing their files and allowed inputs.
 
 | Entity | Written by | Runtime path | Read by |
 |---|---|---|---|
-| `entity0` — Complete Robot Candidate | Robot Optimizer | `blackboard/candidate-{cycle}/` | Evaluator |
+| `entity0` — Complete Robot Candidate | Robot Optimizer | Race-scoped `blackboard/iteration-i/candidate-{cycle}/` | Evaluator |
 | `entity1` — Approved Robot Build | Evaluator gates the selected candidate unchanged | `entity1/` | RobotraceSim Robot |
 | `entity2` — Race Outcome | RobotraceSim Robot | `entity2/` | Audit and spectators only |
 | `entityR1` — Evaluator Feedback | Evaluator when it requests revision | `entityR1/feedback-{cycle}.json` | Robot Optimizer in the next cycle |
 | `entityR2A` — Race Data for Optimizer | RobotraceSim Robot | `return-geometry/` | Robot Optimizer in the next iteration |
 | `entityR2B` — Race Data for Evaluator | RobotraceSim Robot | `return-integration/` | Evaluator in the next iteration |
-| `entityTeam0` — Shared Blackboard | Both AI roles | `blackboard/`; initial criteria are frozen in `manifest.json` | Both AI roles |
+| `entityTeam0` — Shared Blackboard | Both AI roles | Race-scoped `control/blackboard/`; initial criteria are frozen in `manifest.json` | Both AI roles |
 | `entityPrv0` — Optimizer Expertise | Robot Optimizer in the topology | Checked-in seed at `conditions/control/private/optimizer.md` | Robot Optimizer only |
 | `entityPrv1` — Evaluator Expertise | Evaluator in the topology | Checked-in seed at `conditions/control/private/evaluator.md` | Evaluator only |
 | `entityPub0` — Track Conditions | Experiment operator | Frozen in `manifest.json`; source configuration under `config/` and `tracks/` | RobotraceSim Robot; constraints are also included in permitted model context |
@@ -62,12 +62,9 @@ operational inputs in iteration `i+1`.
 
 ## Current harness note
 
-Candidate and evaluation versions are persisted on the iteration blackboard.
-Private expertise is still a fixed prompt input rather than a per-iteration
-writable artifact. The current prompt assembly also supplies both previous
-race-return records to both roles through one prior-state object, rather than
-enforcing the map's separately addressed consumption routes. The generic runtime
-directory names `return-geometry/` and `return-integration/` correspond to
-control-map entities `entityR2A` and `entityR2B` respectively, despite their
-LoopSense-oriented folder names. Treat these as implementation gaps, not as
-different routing rules.
+Candidate and evaluation versions persist on a shared blackboard for the duration
+of one race and are reset when a new race gets its own run root. Each role also
+maintains private race-scoped learning under `control/learning/`. Private expertise
+remains a fixed seed input, while the learning file is replaced after every valid
+turn. Addressed returns are stored as `entityR2A/` and `entityR2B/` and routed only
+to their named recipients.

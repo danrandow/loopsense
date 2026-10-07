@@ -45,6 +45,8 @@ def races_table() -> str:
         if status == "failed":
             status += f' — {manifest.get("failed_actor", "run")} at iteration {manifest.get("failed_iteration", "?")}'
         evidence = [f'<a href="/runs/{path.name}/manifest.json">manifest</a>']
+        if (path / "race-report.md").exists():
+            evidence.insert(0, f'<a href="/runs/{path.name}/race-report.md">race report</a>')
         if (path / "leaderboard.svg").exists():
             evidence.insert(0, f'<a href="/runs/{path.name}/leaderboard.svg">leaderboard</a>')
         if (path / "leaderboard.md").exists():
@@ -130,7 +132,7 @@ class Handler(BaseHTTPRequestHandler):
             config_path = definition / "config.json"
             write_json(config_path, config)
             run_root = ExperimentRunner(config_path, RUNS).run()
-            body = layout(f'<h1>{html.escape(race_id)} complete</h1><div class="panel"><p>Both teams completed {config["iterations"]} iterations.</p><p><a href="/runs/{race_id}/leaderboard.svg">Open leaderboard</a> · <a href="/runs/{race_id}/manifest.json">Open manifest</a> · <a href="/">Set up another race</a></p><p>Artifacts: <code>{html.escape(str(run_root))}</code></p></div>')
+            body = layout(f'<h1>{html.escape(race_id)} complete</h1><div class="panel"><p>Both teams completed {config["iterations"]} iterations.</p><p><a href="/runs/{race_id}/race-report.md">Open race report</a> · <a href="/runs/{race_id}/leaderboard.svg">Open leaderboard</a> · <a href="/runs/{race_id}/manifest.json">Open manifest</a> · <a href="/">Set up another race</a></p><p>Artifacts: <code>{html.escape(str(run_root))}</code></p></div>')
             self.send_bytes(body)
         except Exception as error:
             self.send_bytes(setup_page(str(error)), status=HTTPStatus.BAD_REQUEST)

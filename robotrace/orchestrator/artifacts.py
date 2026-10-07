@@ -206,7 +206,40 @@ def leaderboard(run_root: Path, results: list[dict[str, Any]]) -> None:
     atomic_write(run_root / "leaderboard.svg", f'<svg xmlns="http://www.w3.org/2000/svg" width="800" height="{120+40*len(rows)}"><rect width="100%" height="100%" fill="#f7f4ec"/><text x="20" y="32" font-family="sans-serif" font-size="22">Robot Race leaderboard</text>{bars}</svg>')
 
 
-def scenario_yaml(base_map: str, condition: str, iteration: int, summary_url: str, leaderboard_url: str, result: dict[str, Any], setup_notes: str = "", track_view_urls: list[tuple[str, str]] | None = None) -> str:
+def race_report(run_root: Path, experiment_id: str, results: list[dict[str, Any]], config: dict[str, Any], repo_changes: list[dict[str, str]], previous_race: str | None, artifact_prefix: str = "", filename: str = "race-report.md") -> None:
+    """Write a concise, deterministic report for one completed two-team race."""
+    by_condition = {
+        condition: sorted((result for result in results if result["condition"] == condition), key=lambda result: result["iteration"])
+        for condition in config["conditions"]
+    }
+    rows = []
+    final_scores: dict[str, float] = {}
+    for condition, condition_results in by_condition.items():
+        final = condition_results[-1]
+        final_scores[condition] = float(final["score"])
+        held_out = final.get("held_out", {})
+        held_out_score = held_out.get("score", held_out.get("aggregate", {}).get("score"))
+        held_out_text = "—" if held_out_score is None else f"{float(held_out_score):.3f}"
+        rows.append(f"| {condition} | {float(condition_results[0]['score']):.3f} | {max(float(result['score']) for result in condition_results):.3f} | {float(final['score']):.3f} | {held_out_text} |\n")
+    leader = max(final_scores, key=final_scores.get)
+    other = next(condition for condition in final_scores if condition != leader)
+    margin = final_scores[leader] - final_scores[other]
+    change_heading = f"Repository changes since {previous_race} completed" if previous_race else "Repository changes before this race"
+    changes = "".join(f"- [{change['subject']}]({change['url']}) (`{change['short_hash']}`)\n" for change in repo_changes)
+    changes = changes or "- No non-race repository commits were found in this interval.\n"
+    report = (
+        f"# {experiment_id.replace('-', ' ').title()} report\n\n"
+        f"{leader} finished ahead of {other} by {margin:.3f} points. This report describes this race only; it does not by itself establish that either orchestration is generally superior.\n\n"
+        "## Results\n\n| Team | Initial score | Best score | Final score | Final held-out score |\n|---|---:|---:|---:|---:|\n"
+        + "".join(rows)
+        + f"\n[Open the full leaderboard]({artifact_prefix}leaderboard.md) · [Open the frozen manifest]({artifact_prefix}manifest.json)\n\n"
+        + f"## {change_heading}\n\nThis excludes commits whose changed files are only this race's generated or published artifacts.\n\n"
+        + changes
+    )
+    atomic_write(run_root / filename, report)
+
+
+def scenario_yaml(base_map: str, condition: str, iteration: int, summary_url: str, leaderboard_url: str, result: dict[str, Any], setup_notes: str = "", track_view_urls: list[tuple[str, str]] | None = None, race_report_url: str | None = None) -> str:
     run_match = re.search(r"(?:^|/)runs/([^/]+)/", summary_url)
     if run_match is None:
         raise ValueError("summary URL must contain a run identifier")
@@ -216,5 +249,7 @@ def scenario_yaml(base_map: str, condition: str, iteration: int, summary_url: st
     scenario_name = f"Race {suffix} iteration {iteration}" if race_match else f"{run_id} iteration {iteration}"
     dimension = f"race: {suffix}" if race_match else f'experiment: "{run_id}"'
     indented_setup = "\n".join(f"    {line}" for line in setup_notes.splitlines())
+    if race_report_url:
+        indented_setup += f"\n    [Read the race report]({race_report_url})"
     view_lines = "".join(f"\n        - [{_svg_text(label)}]({url})" for label, url in (track_view_urls or []))
     return f'''map:\n  id: iteration-{suffix}.{iteration}\n  inherits: "{base_map}"\n  scenario: "{scenario_name}"\n  dimensions:\n    {dimension}\n    iteration: {iteration}\n  notes: |\n    Race-specific initial conditions:\n{indented_setup}\noverrides:\n  entities:\n    - id: entity2\n      label: 'Score: {result["score"]:.4f}'\n      status: complete\n      notes: |\n        - [Open iteration race summary]({summary_url})\n        - [Open shared leaderboard]({leaderboard_url}){view_lines}\n'''
