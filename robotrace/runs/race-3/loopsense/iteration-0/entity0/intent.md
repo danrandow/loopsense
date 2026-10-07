@@ -1,0 +1,1 @@
+The design uses a symmetric three-sensor array with wider outer sensors to enhance curve detection and maintain stability. The body dimensions and wheel parameters are chosen conservatively within bounds to ensure robust handling and balance. The sensor placement near the front center aids in precise line tracking.

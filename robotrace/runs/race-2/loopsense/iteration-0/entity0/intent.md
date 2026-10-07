@@ -1,0 +1,1 @@
+The design uses a symmetric sensor array with three sensors: two wider outer sensors positioned near the front corners for effective curve detection and one centered sensor for precise line tracking. The body dimensions and mass are chosen conservatively within bounds to ensure stability and maneuverability. The wheel track and radius support balanced turning and speed control.
