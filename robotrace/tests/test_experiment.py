@@ -10,7 +10,7 @@ from pathlib import Path
 from orchestrator.artifacts import leaderboard, race_report, scenario_yaml, track_view_svg
 from orchestrator.io import digest, safe_child
 from orchestrator.model_client import ModelResponse
-from orchestrator.runner import Budget, ExperimentRunner, ROOT, initialise_race, publish_race_scenarios, validate_config
+from orchestrator.runner import Budget, ExperimentRunner, ROOT, initialise_race, publish_control_artifacts, publish_race_scenarios, validate_config
 from orchestrator.validators import MEASUREMENTS, ValidationError, validate_geometry, validate_measurement_request, validate_observation, validate_package
 from simulator.adapter import ADAPTER_VERSION, run_trial, to_robottrace_spec
 
@@ -369,6 +369,28 @@ class ExperimentTests(unittest.TestCase):
             (run_root / "maps/loopsense/iteration-1.yaml").write_text("scenario: changed\n")
             self.assertEqual(publish_race_scenarios(run_root, "race-5", 2, roots), published)
             self.assertIn('scenario: "Race 5"', (roots["loopsense"] / "iteration-5.yaml").read_text())
+
+    def test_control_artifacts_are_mirrored_into_control_map_folder(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run_root = root / "robotrace/runs/race-5"
+            control_root = root / "robotrace-control"
+            files = [
+                run_root / "leaderboard.svg",
+                run_root / "control/iteration-1/entity2/iteration-summary.svg",
+                run_root / "control/iteration-1/entity2/held-out/trials/hairpin-29/track-view.svg",
+            ]
+            for path in files:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(f"<svg>{path.name}</svg>")
+
+            published = publish_control_artifacts(run_root, control_root)
+
+            target_run = control_root / "runs/race-5"
+            self.assertEqual(len(published), 3)
+            self.assertTrue((target_run / "leaderboard.svg").is_file())
+            self.assertTrue((target_run / "control/iteration-1/entity2/iteration-summary.svg").is_file())
+            self.assertTrue((target_run / "control/iteration-1/entity2/held-out/trials/hairpin-29/track-view.svg").is_file())
 
     def test_non_numbered_run_does_not_publish_scenarios(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

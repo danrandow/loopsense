@@ -103,6 +103,24 @@ def publish_race_scenarios(
     return published
 
 
+def publish_control_artifacts(
+    run_root: Path,
+    control_root: Path = ROOT.parent / "robotrace-control",
+) -> list[Path]:
+    """Mirror note-linked control SVGs into the control map's sandboxed folder."""
+    target_run = control_root / "runs" / run_root.name
+    sources = [run_root / "leaderboard.svg", *sorted((run_root / "control").glob("**/*.svg"))]
+    published: list[Path] = []
+    for source in sources:
+        if not source.is_file():
+            continue
+        target = target_run / source.relative_to(run_root)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        published.append(target)
+    return published
+
+
 @dataclass
 class Budget:
     total: int
@@ -573,6 +591,7 @@ class ExperimentRunner:
         match = re.fullmatch(r"race-(\d+)", self.config["experiment_id"])
         if match:
             race_report(ROOT, self.config["experiment_id"], self.results, self.config, repo_changes, previous_race, f"runs/{self.config['experiment_id']}/", f"RACE_{match.group(1)}_REPORT.md")
+        publish_control_artifacts(self.run_root)
         published_scenarios = publish_race_scenarios(
             self.run_root,
             self.config["experiment_id"],
