@@ -1,0 +1,4 @@
+# Map-driven Robot Race
+
+1. opt-eval: 12.8833 — [package](race-18-opt-eval/base.yaml) — [iteration 0](race-18-opt-eval/scenario-iteration-0.yaml) — [iteration 1](race-18-opt-eval/scenario-iteration-1.yaml) — [iteration 2](race-18-opt-eval/scenario-iteration-2.yaml) — [iteration 3](race-18-opt-eval/scenario-iteration-3.yaml) — [iteration 4](race-18-opt-eval/scenario-iteration-4.yaml) — [iteration 5](race-18-opt-eval/scenario-iteration-5.yaml)
+2. randow-maps: 0.0 — [package](race-18-randow-maps/base.yaml) — [iteration 0](race-18-randow-maps/scenario-iteration-0.yaml) — [iteration 1](race-18-randow-maps/scenario-iteration-1.yaml) — [iteration 2](race-18-randow-maps/scenario-iteration-2.yaml) — [iteration 3](race-18-randow-maps/scenario-iteration-3.yaml) — [iteration 4](race-18-randow-maps/scenario-iteration-4.yaml) — [iteration 5](race-18-randow-maps/scenario-iteration-5.yaml)

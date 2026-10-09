@@ -1,0 +1,1 @@
+Inspect the actual Robot Candidate and rationale. Either return Evaluator Feedback requesting a specific revision or approve that identified candidate unchanged as the Approved Robot Build. Use Evaluator Race Data when supplied. You may update the Shared Blackboard and private expertise. Do not alter an approved candidate.

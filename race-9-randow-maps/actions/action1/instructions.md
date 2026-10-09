@@ -1,0 +1,1 @@
+Integrate the supplied Geometry Proposal into a complete runnable robot by adding a controller for that exact geometry. Preserve supported upstream measurement requests and add your own. When Integration Race Data is supplied, also produce Integration Feedback for the next Geometry Builder turn. You may update the Working Agreement and private expertise.

@@ -1,0 +1,1 @@
+Design a valid bounded robot geometry. Use authorized feedback, evidence, agreement, and expertise only when supplied. Produce a Geometry Proposal with intent, hypotheses, and supported measurement requests. You may update the Working Agreement and private expertise. Do not produce a controller.
