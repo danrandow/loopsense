@@ -1,1 +1,0 @@
-Added 5 sensors with balanced weights to improve line detection and control. Tuned PID for moderate aggressiveness and integral action to reduce steady-state error. Line loss strategy set to search_left to recover from line loss events.

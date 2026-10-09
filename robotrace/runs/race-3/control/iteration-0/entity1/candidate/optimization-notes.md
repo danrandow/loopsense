@@ -1,1 +1,0 @@
-Balanced geometry with 5 sensors distributed front and sides for good line detection. Controller gains set for moderate responsiveness and stability. Line loss triggers search left to recover line quickly.

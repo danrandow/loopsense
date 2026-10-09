@@ -1,1 +1,0 @@
-Balanced sensor layout with moderate sensor size and wheel track for stability. Controller gains tuned for responsive but stable control. Requesting detailed measurements on stability during sharp turns and noise impact as per evaluator feedback.

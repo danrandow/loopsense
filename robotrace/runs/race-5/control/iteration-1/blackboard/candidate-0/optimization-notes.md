@@ -1,1 +1,0 @@
-Balanced sensor layout with 5 sensors for good line detection coverage. Moderate PID gains to reduce oscillation and improve noise robustness. Line loss strategy set to search_left to recover from line loss events.

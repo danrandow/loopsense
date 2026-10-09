@@ -1,1 +1,0 @@
-Balanced sensor layout with moderate sensor size and wheel dimensions for stable control. Controller gains set for responsive yet smooth line following. Line loss strategy set to search left to recover from line loss efficiently.

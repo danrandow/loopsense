@@ -1,1 +1,0 @@
-Added two extra sensors near center to improve line detection and reduce line loss. Increased base speed moderately and tuned PID gains to improve control response and reduce oscillations. Set line loss behavior to search_left to recover from line loss events more effectively.
