@@ -60,6 +60,28 @@ LoopSense instead models a production relationship. One agent produces a compone
 
 Robot Race makes that organisational difference visible. A robot either follows the track or it does not, every run produces measurements and trajectories, and repeated iterations reveal not just who wins but how each team learns.
 
+### Why a robot race
+
+The immediate inspiration was **Genetic Cars**, shared by Andy Masters: colourful, odd little machines are dropped onto a friendly-looking track, then stumble, roll and occasionally succeed. The spectacle makes an abstract improvement process instantly legible and gives people a reason to care about each attempt.
+
+This experiment needs a different learning system. The robots are not a genetically evolved population; agent teams design one robot geometry and controller between trials, and the LoopSense harness organises the work and returns evidence. We therefore use the open-source [RobotraceSim](https://github.com/Koyoman/robotrace_Sim) as the measurable world. It supplies controllable robot geometry, line sensors, controllers, deterministic runs and useful telemetry, while the harness supplies the competing team topologies. Keeping those layers separate is fundamental to the experiment: both teams meet the same simulator, and neither presentation code nor the maps can alter the physics or scoring.
+
+Genetic Cars remains the tonal reference for the spectator experience rather than the experimental mechanism. The goal is to preserve RobotraceSim's precise geometry and evidence while making the robots colourful, personable and funny to watch.
+
+### Spectator views
+
+The first spectator surface is the generated `track-view.svg`. It draws the exact track and recorded poses, but presents the robot as a small colourful character. Its path changes colour with centre-line error and its terminal marker says whether it finished, stalled, timed out or left the track. This works for good runs and for the much more common early failures without inventing movement that did not occur.
+
+Every completed race also writes a self-contained `race-N-replay.html`. It plays every recorded development trial from both teams in iteration order, then ends with the held-out trials. The pit wall places each run beside the plan read from that iteration's scenario map and the result written back to it. The replay is therefore a view over the experiment's existing source of truth—not a separate story database—and all motion comes from recorded telemetry.
+
+The useful next views are deliberately different rather than one overloaded dashboard:
+
+1. **Race replay:** animate the recorded poses on the exact track, with a camera that can follow a successful robot. This is race footage, generated from telemetry rather than a second simulation.
+2. **Failure close-up:** when progress is tiny, keep the camera at the start and show heading, wheel effort, sensor activation and line-loss moments at readable scale. A robot wobbling in place is then informative and can still be funny.
+3. **Pit wall:** put the replay beside the iteration's score, measurement returns, robot changes and Randow Map. This is the behind-the-scenes story: what the team thought was happening, what the track reported, and what the agents changed next.
+
+The current tracks are planar. They contain straights and arcs, so direction and curvature change, but there is no elevation axis, hill, gravity or road gradient. This is not a limitation of being 2D: Genetic Cars uses its two dimensions as a side view, so vertical position can describe hills, while RobotraceSim uses them as a top-down floor plan. A drawn gradient is easy; making it affect robot performance would require a new simulator model and would change the experimental task.
+
 ### What is common between the teams
 
 Both conditions have:

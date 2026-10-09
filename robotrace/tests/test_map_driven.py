@@ -128,12 +128,12 @@ overrides: {}
     def test_definition_edit_invalidates_review_and_freeze_locks_edits(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             service = MapDrivenRaceService("edit-test", Path(directory)); service.prepare(); service.review("randow-maps")
-            path = service.packages[0] / "actions/action0/instructions.md"
-            service.update_definition("randow-maps", "actions/action0/instructions.md", path.read_text() + "\nBe concise.\n")
+            path = service.packages[0] / "base.yaml"
+            service.update_definition("randow-maps", "base.yaml", path.read_text() + "\n# review edit\n")
             self.assertNotIn("randow-maps", json.loads(service.pair_path.read_text())["reviewed"])
             service.review("randow-maps"); service.review("opt-eval"); service.freeze()
             with self.assertRaisesRegex(RuntimeError, "before freeze"):
-                service.update_definition("randow-maps", "actions/action0/instructions.md", "changed")
+                service.update_definition("randow-maps", "base.yaml", "changed")
 
     def test_common_settings_are_paired_and_invalidate_reviews(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -11,6 +11,7 @@ from orchestrator.controller import ActionResult, MapDrivenController
 from orchestrator.executors import downstream_dependents, role_brief, iteration_guidance
 from orchestrator.map_package import MapPackage
 from orchestrator.race_service import MapDrivenRaceService
+from orchestrator.validators import ContractFailure
 
 
 def package(root: Path, iterations: int) -> MapPackage:
@@ -54,6 +55,28 @@ class IncompleteIterationTests(unittest.TestCase):
             self.assertIsNone(first["previous_iteration"])
             self.assertEqual(retry["previous_iteration"]["undelivered"], ["entity0"])
             self.assertTrue((root / "iteration-1/entity1/current").exists(), "iteration 1 delivers and completes")
+            self.assertTrue(json.loads((root / "iteration-1/outcome.json").read_text())["complete"])
+
+    def test_rejected_output_is_feedback_not_a_crash(self) -> None:
+        """A contract failure (e.g. a sensor 0.002 out of range) ends the iteration; the next one is told exactly what was rejected."""
+        with tempfile.TemporaryDirectory() as directory:
+            root, seen = Path(directory), []
+            good = self.executor(set(), seen)
+
+            def execute(action, inputs, context):
+                if action.id == "action0" and context["iteration"] == 0:
+                    raise ContractFailure("failed", "action0", ["sensor 0 x must be a number between -0.08 and 0.08 (got -0.082)"])
+                return good(action, inputs, context)
+
+            controller = MapDrivenController(package(root, 3), execute, "test-sim")
+            controller.run_iteration(0)
+            controller.run_iteration(1)
+            outcome = json.loads((root / "iteration-0/outcome.json").read_text())
+            self.assertFalse(outcome["complete"])
+            self.assertIn("-0.082", outcome["reason"])
+            retry = next(ctx for it, action, ctx in seen if it == 1 and action == "action0")
+            self.assertIn("-0.082", retry["previous_iteration"]["reason"])
+            self.assertEqual(retry["previous_iteration"]["rejected"]["action"], "action0")
             self.assertTrue(json.loads((root / "iteration-1/outcome.json").read_text())["complete"])
 
     def test_iteration_plan_flags_the_final_iteration(self) -> None:

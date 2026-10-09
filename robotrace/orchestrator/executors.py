@@ -13,7 +13,7 @@ from .controller import ActionResult
 from .history import CHARS_PER_TOKEN, build_history
 from .io import digest
 from .map_package import ActionDefinition, MapPackage
-from .validators import validate_geometry
+from .validators import ContractFailure, validate_controller, validate_geometry
 
 
 def _design(iteration: int) -> dict[str, Any]:
@@ -36,7 +36,12 @@ DESIGN_FIELDS = ("geometry", "controller", "observation_request")
 
 # Room reserved for the fixed system message when sizing a history pack from the remaining token budget.
 SYSTEM_PROMPT_ALLOWANCE = 1500
-SYSTEM_PROMPT = "Return one JSON object keyed by the entity IDs you update. Every value must match that entity's supplied contract. You are one member of a small team that shares a single score; the team only does well if every member does their own job fully and well. your_role says who you are and what each of your outputs is for. Every entity in required_outputs MUST be present, or the team cannot be scored. Your other authorized outputs are how you help your teammates: downstream_dependents shows who reads each one and what they use it for. Feedback outputs exist so your teammate can do better next time; fill them with specific, concrete, evidence-based content (cite numbers from the telemetry or from your teammate's work, and name the exact values you want changed), never generic advice. Do your best work: diagnose from the evidence you are given, change something that addresses what you found, and say why. Where an output has a rationale field, write it first, before the other fields: think it through there (what the evidence shows, what you decided to change and why, what result you expect). You have a token allowance for this (see remaining_budget, which also shows how many teammates' model calls are still to run this iteration, how many iterations follow this one, and the size of this call's own prompt, already spent); a careful rationale is worth spending it on. The label and notes you give each output in _presentation should then name and explain the change your rationale describes; write the notes as a short Markdown summary, because the map shows your full rationale (or feedback and requested changes) verbatim beneath it, so do not repeat it there. Use only supplied inputs. Also include a top-level '_presentation' object with one entry per entity you write: {'<entity_id>': {'label': '<=25 chars naming what this output is or what changed, e.g. Wider sensor array; never Updated', 'notes': 'one to three sentences describing what you produced and why, and the evidence it rests on'}}. The label and notes appear on the team's map for people reviewing the race; links to the artefact itself are added for you. public_contracts give the exact shape of what you must produce; race_constraints give allowed ranges for numeric fields as [min, max] and, where a field is a list of options (e.g. sensor_sizes), the only allowed values; choose concrete values inside them."
+SYSTEM_PROMPT = ("Return one JSON object keyed by the entity IDs you update. Every value must match that entity's supplied contract. Every entity in required_outputs MUST be present, or the team cannot be scored. "
+    "Your role, your work and your team are described in instructions and your_role; downstream_dependents shows who reads each of your other authorized outputs and what they use it for. Use only supplied inputs. "
+    "You have a token allowance for this (see remaining_budget, which also shows how many teammates' model calls are still to run this iteration, how many iterations follow this one, and the size of this call's own prompt, already spent); a careful rationale is worth spending it on. "
+    "The label and notes you give each output in _presentation should name and explain the change your rationale describes; write the notes as a short Markdown summary, because the map shows your full rationale (or feedback and requested changes) verbatim beneath it, so do not repeat it there. "
+    "You may also include a top-level '_presentation' object (optional; the orchestrator labels any output you leave out) with one entry per entity you write: {'<entity_id>': {'label': '<=25 chars naming what this output is or what changed, e.g. Wider sensor array; never Updated', 'notes': 'one to three sentences describing what you produced and why, and the evidence it rests on'}}. "
+    "The label and notes appear on the team's map for people reviewing the race; links to the artefact itself are added for you. public_contracts give the exact shape of what you must produce, the allowed range (minimum and maximum) or the only allowed options of every field, and a description of what each field does in the simulator; choose concrete values inside them.")
 
 # Every model action describes what it produced, per output entity, under this reserved key. The controller
 # strips it before contract validation and writes it into the scenario as the entity's label and notes.
@@ -76,6 +81,14 @@ def fallback_presentation(output: dict[str, dict[str, Any]], entities: dict[str,
         label = name if len(name) <= MAX_LABEL_CHARS else (name[:MAX_LABEL_CHARS].rsplit(" ", 1)[0] if " " in name[:MAX_LABEL_CHARS] else name[:MAX_LABEL_CHARS]).rstrip(" .,-")
         presentation[entity_id] = {"label": label, "notes": f"{name}. The model did not supply a valid label and summary, so the orchestrator wrote this one."}
     return presentation
+
+
+def resolve_presentation(output: dict[str, dict[str, Any]], presentation: Any, entities: dict[str, Any]) -> dict[str, dict[str, str]]:
+    """The model's label and note when valid, otherwise the orchestrator's own. Cosmetic, so never a reason to reject, retry or lose an agent's work."""
+    try:
+        return validate_presentation(set(output), presentation)
+    except ValueError:
+        return fallback_presentation(output, entities)
 
 
 def full_notes(summary: str, payload: dict[str, Any]) -> str:
@@ -118,17 +131,20 @@ def compact_telemetry(value: Any) -> tuple[Any, bool]:
     return value, False
 
 
-def objective_for_prompt(race: dict[str, Any]) -> dict[str, Any] | None:
-    """What every model action is told about the goal; generated from the frozen race config."""
-    objective = race.get("objective")
-    if not objective:
-        return None
+def objective_for_prompt(race: dict[str, Any]) -> dict[str, Any]:
+    """Scoring facts every model action is told; generated from the frozen race config. The goal itself is in each action's notes."""
+    objective = race.get("objective") or {}
     return {
-        "goal": str(objective["statement"]).strip(),
+        **({"goal": str(objective["statement"]).strip()} if objective.get("statement") else {}),
         "scoring": score_description(race["score"], race["simulator"]),
         "development_tracks": list(race["evaluation"]["development_tracks"]),
         "final_evaluation": "Raced once, after the last iteration, on unseen track(s) of a different shape. The final track, its shape and its seeds are never shown.",
     }
+
+
+def notes_summary(notes: Any) -> Any:
+    """An action's notes open with a one-paragraph description; the rest is that action's prompt."""
+    return str(notes).split("\n\n", 1)[0].strip() if notes else notes
 
 
 def downstream_dependents(package: MapPackage, action: ActionDefinition, targets: list[str]) -> dict[str, list[dict[str, Any]]]:
@@ -144,7 +160,7 @@ def downstream_dependents(package: MapPackage, action: ActionDefinition, targets
                 "does": (package.actions_data.get(other.id) or {}).get("label"),
                 "actor": (package.actors.get(other.actor_id) or {}).get("label"),
                 "cannot_run_without_it": target in other.required_inputs,
-                "what_they_do": (package.actions_data.get(other.id) or {}).get("notes"),
+                "what_they_do": notes_summary((package.actions_data.get(other.id) or {}).get("notes")),
                 "what_this_output_is_for": (package.entities.get(target) or {}).get("notes"),
             })
         if consumers:
@@ -158,7 +174,7 @@ def role_brief(package: MapPackage, action: ActionDefinition, targets: list[str]
     own = package.actions_data.get(action.id) or {}
     return {
         "you_are": actor.get("label"), "about_you": actor.get("notes"),
-        "your_action": own.get("label"), "what_your_action_involves": own.get("notes"),
+        "your_action": own.get("label"), "what_your_action_involves": notes_summary(own.get("notes")),
         "your_outputs": {t: {"label": (package.entities.get(t) or {}).get("label"), "purpose": (package.entities.get(t) or {}).get("notes")} for t in targets},
     }
 
@@ -214,9 +230,12 @@ class PackageExecutor:
             raise RuntimeError(f"unsupported model provider: {provider}")
         unexpected = set(output) - set(targets)
         if unexpected or not output:
-            raise RuntimeError(f"model returned invalid output entities: {sorted(unexpected)}")
+            raise ContractFailure(f"model returned invalid output entities: {sorted(unexpected)}", action.id, [f"invalid output entities: {sorted(unexpected)}"])
         for entity_id, payload in output.items():
-            self.package.validate_payload(entity_id, payload)
+            try:
+                self.package.validate_payload(entity_id, payload)
+            except Exception as error:
+                raise ContractFailure(f"{entity_id} failed its contract: {error}", action.id, [str(error)]) from error
         return ActionResult(output, {entity: presentation[entity]["label"] for entity in output}, {entity: full_notes(presentation[entity]["notes"], output[entity]) for entity in output}, {
             "provider": provider, "request_id": request_id,
             "input_tokens": input_tokens, "output_tokens": output_tokens,
@@ -291,10 +310,14 @@ class PackageExecutor:
         contracts = {target: self.package.contract(target) or {"type": "object"} for target in targets}
         public_contracts = {entity_id: self.package.contract(entity_id) for entity_id in sorted(action.reads - set(inputs)) if (self.package.entities.get(entity_id) or {}).get("system_boundary") == "public" and self.package.contract(entity_id)}
         prompt_inputs, has_telemetry = compact_telemetry(inputs)
-        base_prompt = {"instructions": action.instructions, "authorized_inputs": prompt_inputs, "authorized_output_contracts": contracts, "public_contracts": public_contracts, "race_constraints": self.package.race.get("design_bounds", {}), "remaining_budget": context["budget"], "iteration": context["iteration"]}
+        base_prompt = {"instructions": action.instructions, "authorized_inputs": prompt_inputs, "authorized_output_contracts": contracts, "public_contracts": public_contracts, "remaining_budget": context["budget"], "iteration": context["iteration"]}
+        if not getattr(self.package, "bounds_in_contract", False):  # legacy packages: limits live in race.yaml, not in the contract
+            base_prompt["race_constraints"] = self.package.race.get("design_bounds", {})
         required = [t for t in action.runtime.get("required_outputs", []) if t in targets]
         base_prompt["your_role"] = role_brief(self.package, action, targets)
         base_prompt["required_outputs"] = required
+        # Models often drop the reserved key, so show its exact shape in the user message too (not only the system prompt).
+        base_prompt["response_shape"] = {"<entity_id>": "the entity's payload, matching its contract", PRESENTATION_KEY: {t: {"label": "<=25 chars, what this output is or what changed", "notes": "1-3 sentences: what you produced and the evidence it rests on"} for t in targets}, "reminder": f"{PRESENTATION_KEY} is optional: if you leave it out the orchestrator writes the map label and note, and nothing is rejected."}
         dependents = downstream_dependents(self.package, action, targets)
         if dependents:
             base_prompt["downstream_dependents"] = dependents
@@ -303,9 +326,7 @@ class PackageExecutor:
             base_prompt["iteration_plan"] = guidance
         if context.get("previous_iteration"):
             base_prompt["previous_iteration_incomplete"] = context["previous_iteration"]
-        objective = objective_for_prompt(self.package.race)
-        if objective:
-            base_prompt["objective"] = objective
+        base_prompt["objective"] = objective_for_prompt(self.package.race)
         history = self._history(action, inputs, context, base_tokens=-(-len(json.dumps(base_prompt, sort_keys=True, separators=(",", ":"))) // CHARS_PER_TOKEN))
         if history:
             base_prompt["history"], history_has_telemetry = compact_telemetry(history)
@@ -318,6 +339,7 @@ class PackageExecutor:
         size = -(-(len(SYSTEM_PROMPT) + len(json.dumps(base_prompt, sort_keys=True, separators=(",", ":")))) // CHARS_PER_TOKEN)
         base_prompt["remaining_budget"]["this_call_input_tokens_estimate"] = size
         error = ""
+        errors: list[str] = []
         attempts = int(action.runtime.get("repair_attempts", 0)) + 1
         for _ in range(attempts):
             messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": json.dumps({**base_prompt, "previous_validation_error": error}, sort_keys=True, separators=(",", ":"))}]
@@ -341,24 +363,20 @@ class PackageExecutor:
                 missing = [t for t in required if t not in output]
                 if missing:
                     raise ValueError(f"required outputs are missing: {missing}. You must produce every entity in required_outputs, each matching its contract.")
-                try:
-                    presentation = validate_presentation(set(output), presentation)
-                except ValueError:
-                    if _ < attempts - 1:
-                        raise
-                    presentation = None  # last attempt: label and note are cosmetic, so synthesise them below rather than lose the race
                 for entity_id, payload in output.items():
                     self.package.validate_payload(entity_id, payload)
                     if isinstance(payload, dict) and isinstance(payload.get("geometry"), dict):
                         validate_geometry(payload["geometry"], self.package.race["design_bounds"])
-                if presentation is None:
-                    presentation = fallback_presentation(output, self.package.entities)
+                        if isinstance(payload.get("controller"), dict):  # an out-of-range controller would otherwise only surface as a 0-scoring invalid design
+                            validate_controller(payload["controller"], len(payload["geometry"]["sensor_positions"]), self.package.race["design_bounds"])
+                presentation = resolve_presentation(output, presentation, self.package.entities)
                 usage = response_data.get("usage", {})
                 return output, response_data.get("id", "openrouter-unknown"), int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0)), presentation
             except Exception as validation_error:
                 error = str(validation_error)
+                errors.append(error)
                 self._record_rejected_attempt(action, context, _ + 1, content, error)
-        raise RuntimeError(f"model output failed contract after {attempts} attempts: {error}")
+        raise ContractFailure(f"model output failed contract after {attempts} attempts: {error}", getattr(action, "id", None), errors)
 
     def _record_rejected_attempt(self, action: ActionDefinition, context: dict[str, Any], attempt: int, raw_output: str, error: str) -> None:
         """Keep every rejected model output so a failed contract can be diagnosed afterwards (best effort)."""

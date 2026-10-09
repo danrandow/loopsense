@@ -129,23 +129,34 @@ class PromptTests(unittest.TestCase):
             race = template_race(template)
             objective = objective_for_prompt(race)
             text = json.dumps(objective)
-            self.assertIn("maximise", objective["goal"])
-            self.assertIn("unseen", objective["goal"])
             self.assertIn("progress*(", objective["scoring"])
             self.assertEqual(objective["development_tracks"], race["evaluation"]["development_tracks"])
             for held_out in race["evaluation"]["held_out_tracks"]:
                 self.assertNotIn(held_out, text)
 
+    def test_goal_and_decision_guidance_live_in_every_model_actions_notes(self) -> None:
+        commons = []
+        for template in ("randow-maps", "opt-eval"):
+            topology = yaml.safe_load((TEMPLATES / template / "base.yaml").read_text())
+            for action in topology["actions"]:
+                if action["id"] not in ("action0", "action1"):
+                    continue
+                notes = action["notes"]
+                self.assertIn("maximise", notes)
+                self.assertIn("held-back", notes)
+                self.assertFalse((TEMPLATES / template / "actions" / action["id"] / "instructions.md").exists())
+                commons.append(notes.split("## Common to every agent\n", 1)[1].split("\n## This team", 1)[0])
+        self.assertEqual(len(set(commons)), 1, "the common prompt must be identical for every agent")
+
     def test_templates_agree_on_objective_and_stall_settings(self) -> None:
         first, second = template_race("randow-maps"), template_race("opt-eval")
-        for key in ("objective", "score", "simulator", "budget", "iterations", "evaluation"):
+        for key in ("score", "simulator", "budget", "iterations", "evaluation"):
             self.assertEqual(first[key], second[key], key)
         self.assertGreater(first["simulator"]["stall_steps"], 0)
 
-    def test_no_objective_block_means_nothing_is_added(self) -> None:
-        race = template_race("randow-maps")
-        race.pop("objective")
-        self.assertIsNone(objective_for_prompt(race))
+    def test_goal_text_is_not_in_race_config(self) -> None:
+        for template in ("randow-maps", "opt-eval"):
+            self.assertNotIn("goal", objective_for_prompt(template_race(template)))
 
 
 if __name__ == "__main__":

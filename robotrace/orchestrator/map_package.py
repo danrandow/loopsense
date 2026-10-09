@@ -9,6 +9,7 @@ from typing import Any
 
 from . import canonical
 from .io import read_yaml, safe_child
+from .validators import design_bounds_from_contract
 
 try:
     from jsonschema import Draft202012Validator
@@ -66,6 +67,8 @@ class MapPackage:
         self.entities = self._indexed("entities")
         self.edges = self._indexed("edges")
         self.actions: dict[str, ActionDefinition] = {}
+        # True when the design limits come from the design contract (the single source) rather than race.yaml.
+        self.bounds_in_contract = False
 
     def _indexed(self, section: str) -> dict[str, dict[str, Any]]:
         values = self.topology.get(section)
@@ -158,10 +161,12 @@ class MapPackage:
                 raise PackageValidationError(f"unsupported runtime kind for {action_id}: {kind}")
             instructions = None
             if kind == "model":
+                # The prompt lives in the topology: the action's notes. A legacy package may still carry instructions.md.
                 instructions_path = self.path("actions", action_id, "instructions.md")
-                if not instructions_path.is_file():
-                    raise PackageValidationError(f"missing model instructions for {action_id}")
-                instructions = instructions_path.read_text(encoding="utf-8")
+                if instructions_path.is_file():
+                    instructions = instructions_path.read_text(encoding="utf-8")
+                else:
+                    instructions = str(action.get("notes") or "")
                 if not instructions.strip():
                     raise PackageValidationError(f"empty model instructions for {action_id}")
             elif runtime.get("component") not in COMPONENTS:
@@ -195,6 +200,7 @@ class MapPackage:
 
         self._validate_workflow()
         self._validate_race()
+        self._derive_design_bounds()
         if self.race.get("race_id") != "template":
             entrant = self.race.get("entrant")
             if self.root.name != f"{self.race['race_id']}-{entrant}":
@@ -280,6 +286,29 @@ class MapPackage:
             raise PackageValidationError("model.id must be a non-empty string")
         if not isinstance(model.get("max_output_tokens"), int) or model["max_output_tokens"] < 1:
             raise PackageValidationError("model.max_output_tokens must be positive")
+
+    def design_contract(self) -> dict[str, Any] | None:
+        """The public contract that describes a complete robot design (geometry and controller)."""
+        for entity_id, entity in self.entities.items():
+            if entity.get("system_boundary") != "public":
+                continue
+            contract = self.contract(entity_id)
+            if contract and {"geometry", "controller"} <= set(contract.get("properties") or {}):
+                return contract
+        return None
+
+    def _derive_design_bounds(self) -> None:
+        """The design contract is the single source of design limits; race.yaml may not state different ones."""
+        derived = design_bounds_from_contract(self.design_contract())
+        declared = self.race.get("design_bounds")
+        if derived is None:
+            if declared is None and self.design_contract() is not None:
+                raise PackageValidationError("no design limits: the design contract states no minimum/maximum and race.yaml has no design_bounds")
+            return
+        if declared is not None and declared != derived:
+            raise PackageValidationError("race.yaml design_bounds disagree with the design contract; remove design_bounds from race.yaml, the contract is the single source of design limits")
+        self.race["design_bounds"] = derived
+        self.bounds_in_contract = True
 
     def _validate_reachability(self) -> None:
         available: set[str] = set(self.workflow.get("initial_entities", []))

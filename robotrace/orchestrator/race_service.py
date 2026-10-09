@@ -10,6 +10,7 @@ from simulator.adapter import ADAPTER_VERSION, run_trial
 from .executors import project_design
 
 from .artifacts import leaderboard_svg, summary_svg, track_view_svg, trajectory_svg
+from .replay import render_race_replay
 from .controller import MapDrivenController, clone_package
 from .executors import PackageExecutor
 from .io import atomic_write, digest, read_json, safe_child, write_json
@@ -234,6 +235,9 @@ class MapDrivenRaceService:
         write_json(leaderboard, {"race_id": self.race_id, "results": scores})
         root_lines = self._race_summary_lines(scores)
         root_lines[root_lines.index("[Open the leaderboard chart](leaderboard.svg)")] = f"[Open the leaderboard chart]({Path(scores[0]['package']).name}/leaderboard.svg)"
+        replay = self.workspace / f"{self.race_id}-replay.html"
+        render_race_replay(self.race_id, [controller.package.root for controller in controllers], replay)
+        root_lines += [f"[Watch the whole-race pit replay]({replay.name})", ""]
         root_lines += ["## Team maps", ""] + [f"{index + 1}. {item['entrant']}: {item['score']} — [package]({Path(item['package']).name}/base.yaml) — [team report]({Path(item['package']).name}/race-report.md) — {_iteration_links(item['package'])}" for index, item in enumerate(scores)]
         report.write_text("\n".join(root_lines) + "\n", encoding="utf-8")
         state.update({"status": "complete", "leaderboard": str(leaderboard), "report": str(report), "result_hash": digest(scores)})
