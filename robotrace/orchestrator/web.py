@@ -12,6 +12,7 @@ from urllib.parse import parse_qs, quote, urlparse
 
 import yaml
 
+from . import progress
 from .field_docs import FIELD_DOCS, docs_page_body, help_html
 from .io import read_json, safe_child
 from .map_package import PackageValidationError
@@ -147,7 +148,7 @@ def page(race_id: str | None = None, message: str = "") -> bytes:
         report = Path(state["report"]).name
         leaderboard = Path(state["leaderboard"]).name
         evidence = f'<section><h2>Evidence</h2><p><a href="/{html.escape(report)}">Race report</a> · <a href="/{html.escape(leaderboard)}">Leaderboard</a></p></section>'
-    return layout(f'''<h1>Map-driven Robot Race</h1>{alert}{error_banner}<p>Status: <strong>{html.escape(status)}</strong> <a class="button" href="/">New race</a> <a href="/docs">Settings reference</a></p>{_race_list(service.race_id)}
+    return layout(f'''<h1>Map-driven Robot Race</h1>{alert}{error_banner}<p>Status: <strong>{html.escape(status)}</strong> <a class="button" href="/">New race</a> <a href="/docs">Settings reference</a>{f' · <a href="/progress?race_id={quote(service.race_id)}" target="_blank"><strong>Live progress</strong></a>' if status in {'running', 'frozen', 'complete', 'failed'} else ''}</p>{_race_list(service.race_id)}
 <form method="post">{'' if status == 'new' else f'<input type="hidden" name="race_id" value="{html.escape(service.race_id)}">'}
 <section><h2>1. Prepare</h2><div class="grid">
 <div><label>{FIELD_DOCS['race_id']['label']}{help_html('race_id')}</label><input{' name="race_id"' if status == 'new' else ''} value="{html.escape(service.race_id)}"{' disabled' if status != 'new' else ''}></div>
@@ -201,6 +202,9 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path); query = parse_qs(parsed.query)
         if parsed.path == "/":
             self.send_bytes(page(query.get("race_id", [None])[0])); return
+        if parsed.path in {"/progress", "/progress.json"}:
+            status, kind, body = progress.handle(self.path, ROOT)
+            self.send_response(status); self.send_header("Content-Type", kind); self.send_header("Content-Length", str(len(body))); self.send_header("Cache-Control", "no-store"); self.end_headers(); self.wfile.write(body); return
         if parsed.path == "/docs":
             self.send_bytes(layout(docs_page_body(), "Race settings reference")); return
         if parsed.path == "/edit":
