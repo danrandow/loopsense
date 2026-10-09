@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from orchestrator.executors import full_notes, validate_presentation
+from orchestrator.executors import fallback_presentation, full_notes, validate_presentation
 
 
 class PresentationTests(unittest.TestCase):
@@ -17,16 +17,23 @@ class PresentationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "generic"):
             validate_presentation({"entity0"}, bad)
 
-    def test_overlong_label_is_rejected(self) -> None:
-        bad = {"entity0": {**self.GOOD["entity0"], "label": "x" * 26}}
-        with self.assertRaisesRegex(ValueError, "limit is 25"):
-            validate_presentation({"entity0"}, bad)
+    def test_overlong_label_is_shortened(self) -> None:
+        long = {"entity0": {**self.GOOD["entity0"], "label": "Initial Complete Robot Package"}}
+        out = validate_presentation({"entity0"}, long)
+        self.assertEqual(out["entity0"]["label"], "Initial Complete Robot")
+        self.assertLessEqual(len(validate_presentation({"entity0"}, {"entity0": {**self.GOOD["entity0"], "label": "x" * 40}})["entity0"]["label"]), 25)
 
     def test_missing_entity_and_thin_notes_are_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "missing"):
             validate_presentation({"entity0", "entity3"}, self.GOOD)
         with self.assertRaisesRegex(ValueError, "notes"):
             validate_presentation({"entity0"}, {"entity0": {"label": "Wider sensors", "notes": "ok"}})
+
+    def test_fallback_presentation_is_valid_and_flags_itself(self) -> None:
+        entities = {"entity1": {"label": "Complete robot package for racing"}, "entityR1": {"label": "Integration feedback"}}
+        out = fallback_presentation({"entity1": {}, "entityR1": {}}, entities)
+        self.assertEqual(validate_presentation({"entity1", "entityR1"}, out), out)
+        self.assertIn("orchestrator wrote", out["entity1"]["notes"])
 
 
 if __name__ == "__main__":

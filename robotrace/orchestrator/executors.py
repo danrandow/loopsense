@@ -60,11 +60,23 @@ def validate_presentation(output_ids: set[str], presentation: Any) -> dict[str, 
         if not label or label.lower().strip(". ") in GENERIC_LABELS:
             raise ValueError(f"{PRESENTATION_KEY}.{entity_id}.label must say what this output is or what changed (e.g. 'Wider sensor array'), not a generic word like 'Updated'")
         if len(label) > MAX_LABEL_CHARS:
-            raise ValueError(f"{PRESENTATION_KEY}.{entity_id}.label is {len(label)} characters; the limit is {MAX_LABEL_CHARS}")
+            # Cosmetic field: shorten at a word boundary rather than failing the whole race over it.
+            cut = label[:MAX_LABEL_CHARS]
+            label = (cut.rsplit(" ", 1)[0] if " " in cut and label[MAX_LABEL_CHARS] != " " else cut).rstrip(" .,-")
         if len(notes) < 20:
             raise ValueError(f"{PRESENTATION_KEY}.{entity_id}.notes must describe what you produced and why, in a sentence or two")
         cleaned[entity_id] = {"label": label, "notes": notes}
     return cleaned
+
+def fallback_presentation(output: dict[str, dict[str, Any]], entities: dict[str, Any]) -> dict[str, dict[str, str]]:
+    """Orchestrator-written label and note for when the model never supplied a valid _presentation; the note says so, and the map still shows the agent's full rationale or feedback verbatim."""
+    presentation: dict[str, dict[str, str]] = {}
+    for entity_id in output:
+        name = str((entities.get(entity_id) or {}).get("label", entity_id)).strip() or entity_id
+        label = name if len(name) <= MAX_LABEL_CHARS else (name[:MAX_LABEL_CHARS].rsplit(" ", 1)[0] if " " in name[:MAX_LABEL_CHARS] else name[:MAX_LABEL_CHARS]).rstrip(" .,-")
+        presentation[entity_id] = {"label": label, "notes": f"{name}. The model did not supply a valid label and summary, so the orchestrator wrote this one."}
+    return presentation
+
 
 def full_notes(summary: str, payload: dict[str, Any]) -> str:
     """The map note carries the full reasoning (Markdown): the agent's short summary, then its rationale or feedback verbatim."""
@@ -329,11 +341,18 @@ class PackageExecutor:
                 missing = [t for t in required if t not in output]
                 if missing:
                     raise ValueError(f"required outputs are missing: {missing}. You must produce every entity in required_outputs, each matching its contract.")
-                presentation = validate_presentation(set(output), presentation)
+                try:
+                    presentation = validate_presentation(set(output), presentation)
+                except ValueError:
+                    if _ < attempts - 1:
+                        raise
+                    presentation = None  # last attempt: label and note are cosmetic, so synthesise them below rather than lose the race
                 for entity_id, payload in output.items():
                     self.package.validate_payload(entity_id, payload)
                     if isinstance(payload, dict) and isinstance(payload.get("geometry"), dict):
                         validate_geometry(payload["geometry"], self.package.race["design_bounds"])
+                if presentation is None:
+                    presentation = fallback_presentation(output, self.package.entities)
                 usage = response_data.get("usage", {})
                 return output, response_data.get("id", "openrouter-unknown"), int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0)), presentation
             except Exception as validation_error:
