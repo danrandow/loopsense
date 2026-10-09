@@ -11,10 +11,6 @@ from .io import atomic_write, digest, write_json
 TRACK_VIEW_RENDERER_VERSION = "track-view-svg-v1"
 
 
-def write_manifest(directory: Path, entity: str, files: list[str], inputs: list[str]) -> None:
-    manifest = {"entity": entity, "files": files, "input_allowlist": inputs}
-    manifest["manifest_hash"] = digest(manifest)
-    write_json(directory / "manifest.json", manifest)
 
 
 def trajectory_svg(trial: dict[str, Any], path: Path) -> None:
@@ -40,6 +36,24 @@ def _f(value: float) -> str:
 
 def _svg_text(value: Any) -> str:
     return html.escape(str(value), quote=True)
+
+
+def summary_svg(condition: str, iteration: int | str, trials: list[dict[str, Any]], path: Path) -> None:
+    bars = []
+    for index, trial in enumerate(trials):
+        width = min(620, trial.get("score", 0) * 0.7)
+        y = 85 + index * 46
+        bars.append(f'<text x="20" y="{y + 18}" font-family="sans-serif" font-size="13">{html.escape(trial["track"])} / {trial["seed"]}</text><rect x="180" y="{y}" width="{width:.1f}" height="24" fill="#326da8"/><text x="{190 + width:.1f}" y="{y + 18}" font-family="sans-serif" font-size="13">{trial.get("score", 0):.1f}</text>')
+    body = "".join(bars)
+    height = max(190, 120 + 46 * len(trials))
+    atomic_write(path, f'<svg xmlns="http://www.w3.org/2000/svg" width="860" height="{height}"><rect width="100%" height="100%" fill="#f7f4ec"/><text x="20" y="38" font-family="sans-serif" font-size="24">{html.escape(condition)} — iteration {iteration}</text>{body}</svg>')
+
+
+def leaderboard_svg(rows: list[tuple[str, float]], title: str, path: Path) -> None:
+    """rows: (label, score), best first."""
+    max_score = max((score for _, score in rows), default=0) or 1
+    bars = "".join(f'<text x="20" y="{80 + i * 40}" font-family="sans-serif">{html.escape(label)}</text><rect x="220" y="{62 + i * 40}" width="{520 * score / max_score:.1f}" height="24" fill="#326da8"/><text x="{230 + 520 * score / max_score:.1f}" y="{80 + i * 40}" font-family="sans-serif" font-size="13">{score:.2f}</text>' for i, (label, score) in enumerate(rows))
+    atomic_write(path, f'<svg xmlns="http://www.w3.org/2000/svg" width="800" height="{120 + 40 * len(rows)}"><rect width="100%" height="100%" fill="#f7f4ec"/><text x="20" y="32" font-family="sans-serif" font-size="22">{html.escape(title)}</text>{bars}</svg>')
 
 
 def track_view_svg(
@@ -127,12 +141,12 @@ def track_view_svg(
             events.append({"type": "line-loss", "step": int(point.get("step", 0)), "point": point})
         previously_lost = lost
     terminal = trial.get("termination_reason")
-    if terminal in {"controller_error", "off_track", "timeout", "finished"}:
+    if terminal in {"controller_error", "off_track", "timeout", "stalled", "finished"}:
         event_point = telemetry[-1] if telemetry else {"x": 0, "y": 0, "heading": 0, "step": 0}
         events.append({"type": "finish-crossing" if terminal == "finished" else terminal.replace("_", "-"), "step": int(event_point.get("step", 0)), "point": event_point})
     event_steps: dict[str, list[int]] = {}
     event_svg: list[str] = []
-    symbols = {"line-loss": "!", "controller-error": "E", "off-track": "×", "timeout": "T", "finish-crossing": "✓"}
+    symbols = {"line-loss": "!", "controller-error": "E", "off-track": "×", "timeout": "T", "stalled": "S", "finish-crossing": "✓"}
     for event in events:
         event_steps.setdefault(event["type"], []).append(event["step"])
         ex, ey, _ = pose(event["point"])
@@ -171,85 +185,15 @@ def track_view_svg(
 <g id="trajectory">{"".join(segments)}</g>
 <g id="robot-snapshots">{"".join(snapshot_svg)}</g>
 <g id="events">{"".join(event_svg)}</g>
-<g id="legend" font-family="sans-serif" font-size="11"><rect x="20" y="650" width="960" height="72" rx="6" fill="#fff" stroke="#d7d2c8"/><text x="34" y="671" font-weight="700">Legend</text><line x1="95" y1="667" x2="135" y2="667" stroke="#c4c7ca" stroke-width="10"/><text x="142" y="671">tape {float(track.get("tape_width", .025))*1000:.1f} mm</text><line x1="250" y1="667" x2="278" y2="667" stroke="{colours["green"]}" stroke-width="3"/><text x="284" y="671">≤25%</text><line x1="342" y1="667" x2="370" y2="667" stroke="{colours["amber"]}" stroke-width="3"/><text x="376" y="671">25–75%</text><line x1="449" y1="667" x2="477" y2="667" stroke="{colours["red"]}" stroke-width="3"/><text x="483" y="671">75–100%</text><line x1="570" y1="667" x2="598" y2="667" stroke="{colours["dark-red"]}" stroke-width="3"/><text x="604" y="671">outside envelope</text><rect x="34" y="689" width="24" height="13" fill="#5b67a5" fill-opacity=".25" stroke="#35406f"/><text x="66" y="700">robot snapshots: start, 25%, 50%, 75%, terminal</text><text x="430" y="700">events: ! line loss · E controller · × off-track · T timeout · ✓ finish</text></g>
+<g id="legend" font-family="sans-serif" font-size="11"><rect x="20" y="650" width="960" height="72" rx="6" fill="#fff" stroke="#d7d2c8"/><text x="34" y="671" font-weight="700">Legend</text><line x1="95" y1="667" x2="135" y2="667" stroke="#c4c7ca" stroke-width="10"/><text x="142" y="671">tape {float(track.get("tape_width", .025))*1000:.1f} mm</text><line x1="250" y1="667" x2="278" y2="667" stroke="{colours["green"]}" stroke-width="3"/><text x="284" y="671">≤25%</text><line x1="342" y1="667" x2="370" y2="667" stroke="{colours["amber"]}" stroke-width="3"/><text x="376" y="671">25–75%</text><line x1="449" y1="667" x2="477" y2="667" stroke="{colours["red"]}" stroke-width="3"/><text x="483" y="671">75–100%</text><line x1="570" y1="667" x2="598" y2="667" stroke="{colours["dark-red"]}" stroke-width="3"/><text x="604" y="671">outside envelope</text><rect x="34" y="689" width="24" height="13" fill="#5b67a5" fill-opacity=".25" stroke="#35406f"/><text x="66" y="700">robot snapshots: start, 25%, 50%, 75%, terminal</text><text x="430" y="700">events: ! line loss · E controller · × off-track · T timeout · S stalled · ✓ finish</text></g>
 <g id="trial-metadata" font-family="sans-serif" font-size="10" fill="#555"><text x="24" y="744">{TRACK_VIEW_RENDERER_VERSION} · allowed centre-line error {_f(allowed_m*1000)} mm · exact recorded poses</text></g>
 </svg>'''
     atomic_write(path, svg)
 
 
-def summary_svg(condition: str, iteration: int, trials: list[dict[str, Any]], path: Path) -> None:
-    bars = []
-    for index, trial in enumerate(trials):
-        width = min(620, trial.get("score", 0) * 0.7)
-        y = 85 + index * 46
-        bars.append(f'<text x="20" y="{y + 18}" font-family="sans-serif" font-size="13">{html.escape(trial["track"])} / {trial["seed"]}</text><rect x="180" y="{y}" width="{width:.1f}" height="24" fill="#326da8"/><text x="{190 + width:.1f}" y="{y + 18}" font-family="sans-serif" font-size="13">{trial.get("score", 0):.1f}</text>')
-    body = "".join(bars)
-    height = max(190, 120 + 46 * len(trials))
-    atomic_write(path, f'<svg xmlns="http://www.w3.org/2000/svg" width="860" height="{height}"><rect width="100%" height="100%" fill="#f7f4ec"/><text x="20" y="38" font-family="sans-serif" font-size="24">{html.escape(condition)} — iteration {iteration}</text>{body}</svg>')
 
 
-def leaderboard(run_root: Path, results: list[dict[str, Any]]) -> None:
-    rows = []
-    for result in sorted(results, key=lambda item: (item["iteration"], item["condition"])):
-        signed = dict(result)
-        claimed = signed.pop("artifact_hash")
-        if digest(signed) != claimed:
-            raise ValueError("leaderboard input hash mismatch")
-        rows.append({"condition": result["condition"], "iteration": result["iteration"], "score": result["score"], "artifact_hash": claimed})
-    payload = {"rows": rows, "source_hashes": [row["artifact_hash"] for row in rows]}
-    payload["leaderboard_hash"] = digest(payload)
-    write_json(run_root / "leaderboard.json", payload)
-    markdown = "# Robot Race leaderboard\n\n| Condition | Iteration | Score |\n|---|---:|---:|\n" + "".join(f"| {r['condition']} | {r['iteration']} | {r['score']:.3f} |\n" for r in rows)
-    atomic_write(run_root / "leaderboard.md", markdown)
-    max_score = max((row["score"] for row in rows), default=1)
-    bars = "".join(f'<text x="20" y="{80+i*40}" font-family="sans-serif">{html.escape(r["condition"])} {r["iteration"]}</text><rect x="180" y="{62+i*40}" width="{560*r["score"]/max_score:.1f}" height="24" fill="#326da8"/>' for i, r in enumerate(rows))
-    atomic_write(run_root / "leaderboard.svg", f'<svg xmlns="http://www.w3.org/2000/svg" width="800" height="{120+40*len(rows)}"><rect width="100%" height="100%" fill="#f7f4ec"/><text x="20" y="32" font-family="sans-serif" font-size="22">Robot Race leaderboard</text>{bars}</svg>')
 
 
-def race_report(run_root: Path, experiment_id: str, results: list[dict[str, Any]], config: dict[str, Any], repo_changes: list[dict[str, str]], previous_race: str | None, artifact_prefix: str = "", filename: str = "race-report.md") -> None:
-    """Write a concise, deterministic report for one completed two-team race."""
-    by_condition = {
-        condition: sorted((result for result in results if result["condition"] == condition), key=lambda result: result["iteration"])
-        for condition in config["conditions"]
-    }
-    rows = []
-    final_scores: dict[str, float] = {}
-    for condition, condition_results in by_condition.items():
-        final = condition_results[-1]
-        final_scores[condition] = float(final["score"])
-        held_out = final.get("held_out", {})
-        held_out_score = held_out.get("score", held_out.get("aggregate", {}).get("score"))
-        held_out_text = "—" if held_out_score is None else f"{float(held_out_score):.3f}"
-        rows.append(f"| {condition} | {float(condition_results[0]['score']):.3f} | {max(float(result['score']) for result in condition_results):.3f} | {float(final['score']):.3f} | {held_out_text} |\n")
-    leader = max(final_scores, key=final_scores.get)
-    other = next(condition for condition in final_scores if condition != leader)
-    margin = final_scores[leader] - final_scores[other]
-    change_heading = f"Repository changes since {previous_race} completed" if previous_race else "Repository changes before this race"
-    changes = "".join(f"- [{change['subject']}]({change['url']}) (`{change['short_hash']}`)\n" for change in repo_changes)
-    changes = changes or "- No non-race repository commits were found in this interval.\n"
-    report = (
-        f"# {experiment_id.replace('-', ' ').title()} report\n\n"
-        f"{leader} finished ahead of {other} by {margin:.3f} points. This report describes this race only; it does not by itself establish that either orchestration is generally superior.\n\n"
-        "## Results\n\n| Team | Initial score | Best score | Final score | Final held-out score |\n|---|---:|---:|---:|---:|\n"
-        + "".join(rows)
-        + f"\n[Open the full leaderboard]({artifact_prefix}leaderboard.md) · [Open the frozen manifest]({artifact_prefix}manifest.json)\n\n"
-        + f"## {change_heading}\n\nThis excludes commits whose changed files are only this race's generated or published artifacts.\n\n"
-        + changes
-    )
-    atomic_write(run_root / filename, report)
 
 
-def scenario_yaml(base_map: str, condition: str, iteration: int, summary_url: str, leaderboard_url: str, result: dict[str, Any], setup_notes: str = "", track_view_urls: list[tuple[str, str]] | None = None, race_report_url: str | None = None) -> str:
-    run_match = re.search(r"(?:^|/)runs/([^/]+)/", summary_url)
-    if run_match is None:
-        raise ValueError("summary URL must contain a run identifier")
-    run_id = run_match.group(1)
-    race_match = re.fullmatch(r"race-(\d+)", run_id)
-    suffix = race_match.group(1) if race_match else run_id
-    scenario_name = f"Race {suffix} iteration {iteration}" if race_match else f"{run_id} iteration {iteration}"
-    dimension = f"race: {suffix}" if race_match else f'experiment: "{run_id}"'
-    indented_setup = "\n".join(f"    {line}" for line in setup_notes.splitlines())
-    if race_report_url:
-        indented_setup += f"\n    [Read the race report]({race_report_url})"
-    view_lines = "".join(f"\n        - [{_svg_text(label)}]({url})" for label, url in (track_view_urls or []))
-    return f'''map:\n  id: iteration-{suffix}.{iteration}\n  inherits: "{base_map}"\n  scenario: "{scenario_name}"\n  dimensions:\n    {dimension}\n    iteration: {iteration}\n  notes: |\n    Race-specific initial conditions:\n{indented_setup}\noverrides:\n  entities:\n    - id: entity2\n      label: 'Score: {result["score"]:.4f}'\n      status: complete\n      notes: |\n        - [Open iteration race summary]({summary_url})\n        - [Open shared leaderboard]({leaderboard_url}){view_lines}\n'''

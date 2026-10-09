@@ -4,6 +4,30 @@
 
 Robot Race builds on [RobotraceSim](https://github.com/Koyoman/robotrace_Sim), created by Arthur Jose Sary and distributed under the MIT License. This repository vendors commit `2c99a9b63db8f9e0ef56c930cf1b360f2a1efc1c` with its original copyright and licence intact. The LoopSense experiment harness and headless adapter are separate additions.
 
+## Map-driven controller
+
+Races run from **map packages**: one self-contained package per entrant, cloned from `package-templates/` and owned by that race. A package holds `base.yaml` (the team's topology), `scenario-iteration-N.yaml` (the live work state), `config/workflow.yaml` and `config/race.yaml`, conventionally located action runtime and instruction files (`actions/<id>/`), entity contracts (`entities/<id>/`), and per-iteration artifacts and `events.jsonl` history. The map is the single source of truth for who does what; the controller reads it and nothing else to decide who may read, write and run.
+
+The two entrants are **Randow Maps** (producer–integrator: Geometry Builder → Robot Integrator), which is the LoopSense condition, and **Opt/Eval** (Robot Optimizer ⇄ Evaluator), which is the evaluator–optimizer control. Templates are in `package-templates/randow-maps` and `package-templates/opt-eval`; the authoritative design is [MAP_DRIVEN_ARCHITECTURE_SPEC.md](MAP_DRIVEN_ARCHITECTURE_SPEC.md).
+
+Verification from this directory:
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 -m orchestrator.controller validate package-templates/randow-maps
+python3 -m orchestrator.controller validate package-templates/opt-eval
+```
+
+## Documents
+
+| File | Role |
+|---|---|
+| [MAP_DRIVEN_ARCHITECTURE_SPEC.md](MAP_DRIVEN_ARCHITECTURE_SPEC.md) | What the system is. **Canonical** architecture. |
+| [Loopsense-Robot-Race-Experiment-Design.md](Loopsense-Robot-Race-Experiment-Design.md) | The experiment: question, controls, measures, reporting rules. |
+| [COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md](COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md) | Work order for the map-driven cutover. |
+| [TRACK_VIEW_SVG_SPEC.md](TRACK_VIEW_SVG_SPEC.md) | Specification for the track-view SVGs. |
+| `RACE_16_CHANGES.md`, `RACE_17_CHANGES.md`, `RACE_19_CHANGES.md` | Harness revisions and why scores are not comparable across them. |
+
 This page serves three audiences, in order:
 
 1. **Spectators** who want to understand the idea, watch the teams, and inspect results.
@@ -12,22 +36,9 @@ This page serves three audiences, in order:
 
 ## 1. For spectators
 
-### Races and results
-
-Every numbered race gets its own pair of maps and one shared leaderboard. The two maps show the same race from the perspective of the two competing team topologies; the leaderboard is the common result record.
-
-| Race | LoopSense team | Evaluator–optimizer control | Shared leaderboard |
-|---|---|---|---|
-| Race 0 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=base&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=base&view=full)** | Not available yet |
-| Race 1 | Not published yet | Not published yet | Not available yet |
-| Race 4 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=iteration-4&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=iteration-4&view=full)** | **[Open the leaderboard](https://raw.githubusercontent.com/danrandow/loopsense/main/robotrace/runs/race-4/leaderboard.svg)** · **[Read analysis](https://github.com/danrandow/loopsense/blob/main/robotrace/RACE_4_ANALYSIS.md)** |
-| Race 5 | **[Open the LoopSense map](https://loopsense.randowmaps.com/?map=robotrace&scenario=iteration-5&view=full)** | **[Open the control map](https://loopsense.randowmaps.com/?map=robotrace-control&scenario=iteration-5&view=full)** | **[Open the leaderboard](https://raw.githubusercontent.com/danrandow/loopsense/main/robotrace/runs/race-5/leaderboard.svg)** · **[Read report](RACE_5_REPORT.md)** |
-
-Add one row here whenever a race is published, linking its LoopSense map, control map, and shared leaderboard. Until the maps are forked by race, each map's scenario selector lists the shared sequence as `Race 0`, `Race 1`, and so on.
-
 ### How to read the maps
 
-The maps are the quickest way to see the experiment. They show who does what, which concrete products move forward, and how race evidence and teammate feedback travel back. Start with the Race 0 row above to understand the two designs; as later races are published, use each numbered row to compare both teams under one frozen setup and open the leaderboard beside them.
+The maps are the quickest way to see the experiment. They show who does what, which concrete products move forward, and how race evidence and teammate feedback travel back. Compare both teams under one frozen setup and open the leaderboard beside them.
 
 ### Purpose
 
@@ -59,7 +70,6 @@ Both conditions have:
 - exactly one selected robot package raced per condition per iteration;
 - the same mechanical validation and bounded format-repair policy;
 - the same objective race measurements, delivered through two independently addressed return entities;
-- private role expertise plus persisted coordination state;
 - no access to held-out tracks and no operational access to the aggregate Race Outcome entity;
 - the same deterministic orchestrator, audit log, checkpoints, telemetry, SVGs, and leaderboard; and
 - no human routing or retrospective call inside an iteration.
@@ -71,10 +81,11 @@ The orchestrator is deterministic software, not another agent. Model output is v
 | LoopSense condition | Evaluator–optimizer control |
 |---|---|
 | **Geometry Builder** creates a Geometry Proposal. | **Robot Optimizer** creates a complete robot candidate. |
-| **Robot Integrator** is the Builder's direct customer. It incorporates the geometry, adds the controller, and produces the Complete Robot Package. | **Evaluator** inspects the complete candidate and its rationale, then either requests a revision or passes one recorded candidate through unchanged. |
+| **Robot Integrator** is the Builder's direct customer. It incorporates the geometry, adds the controller, and produces the Complete Robot Package. | **Evaluator** inspects the complete candidate and its rationale, then either gives feedback for another revision or approves the candidate as the build to race. |
 | The team advances once through a serial production spine before each race. | The pair may use multiple internal critique–revision cycles before each race while budget remains. |
-| Explicit entities define the handoff, integration feedback, and addressed race-return paths. | Both agents work through a shared, unstructured blackboard containing candidate and feedback versions. |
-| The agents may evolve their working agreement, but the two roles, two-agent boundary, and forward topology stay fixed in this initial experiment. | The agents may organise their blackboard work as they choose, but the optimizer–evaluator topology stays fixed. |
+| Explicit entities define the handoff, integration feedback, and addressed race-return paths. | Candidate, evaluator feedback and approved build are separate entities; the Evaluator's approval ends the revision loop. |
+
+A shared Working Agreement, a shared blackboard and private role expertise are deliberately out of scope for now and are deferred to a later experiment.
 
 The independent variable is therefore the organisation of work between races: an explicit producer–customer value flow with attributable return paths versus the classic whole-solution evaluator–optimizer loop.
 
@@ -88,219 +99,110 @@ The harness records raw performance and learning-system measures, including:
 - current, best-so-far, and worst-case scores;
 - improvement by iteration and improvement per 10,000 tokens;
 - total tokens, estimated cost, invalid artifacts, and repair calls;
-- working-agreement changes and evaluator–optimizer revision cycles; and
+- evaluator–optimizer revision cycles; and
 - which measurements were requested, received, and used in later reasoning.
 
-Development evidence is returned to the agents; held-out tracks are reserved for preregistered checkpoints and final evaluation. The exact score weights, model, budgets, geometry bounds, run length, and track sets must be frozen before a recorded run.
+Development evidence is returned to the agents; held-out tracks are reserved for the final evaluation. The exact score weights, model, budgets, geometry bounds, run length, and track sets must be frozen before a recorded run.
 
-For the full protocol, contracts, controls, and rationale, see **[LoopSense Robot Race Experiment Design](Loopsense-Robot-Race-Experiment-Design.md)**. The implementation details and build sequence remain in the [Implementation Plan](IMPLEMENTATION_PLAN.md).
+For the full protocol, contracts, controls, and rationale, see **[LoopSense Robot Race Experiment Design](Loopsense-Robot-Race-Experiment-Design.md)**. The architecture is specified in [MAP_DRIVEN_ARCHITECTURE_SPEC.md](MAP_DRIVEN_ARCHITECTURE_SPEC.md).
 
 ## 2. For the race operator
 
-Use this section to see whether the experiment is ready, set up the next race, or find the maps, leaderboard, and underlying evidence from an earlier race.
+Use this section to run a race or find the evidence from an earlier one.
 
 ### Current status
 
-The checked-in system is a safe, deterministic **pilot harness**, not yet a completed recorded experiment. It can use either the bundled mock model or a real model through OpenRouter. RobotraceSim is pinned at commit `2c99a9b63db8f9e0ef56c930cf1b360f2a1efc1c`, its MIT license is preserved, and the headless adapter uses its portable native sensor and motor/drivetrain physics without importing the PySide6 desktop UI. Canonical packages are translated into RobotTraceSim's robot representation, every trial owns a seeded random generator, and controllers receive sensor readings and timestep only.
+The map-driven harness runs complete races end to end: prepare, review, freeze, run, then a final held-out evaluation, leaderboard and report. Several races have completed, but this is still a **pilot harness**, not a recorded experiment. Race 18, for example, scored Opt/Eval 12.9 and Randow Maps 0.0, which led to the changes recorded in [RACE_19_CHANGES.md](RACE_19_CHANGES.md). Harness changes alter what the agents see and how runs are scored, so scores are **not comparable across harness versions** (see the `RACE_*_CHANGES.md` files and the `controller_version` in each race manifest). Pilot, dry-run and smoke scores are not experimental evidence.
 
-Smoke and pilot scores are not final experimental evidence. Before the first recorded run, freeze all preregistered settings, complete and reset disposable pilot runs, and tag the exact configuration.
+Before a recorded run, the settings listed in the [design document](Loopsense-Robot-Race-Experiment-Design.md#current-status-and-recorded-run-gate) must be frozen and the configuration tagged.
 
-### Run the offline smoke experiment
+### Run a race
 
-From this directory:
-
-```sh
-python3 -m orchestrator.runner
-```
-
-This validates configuration, runs two iterations for both conditions with the bundled deterministic mock model, races exactly one selected package per condition and iteration, and writes the complete spectator and audit record under `runs/robotrace-smoke/`.
-
-Validate without running:
+Start the local interface (it binds to localhost only, so an API key is never exposed on the network):
 
 ```sh
-python3 -m orchestrator.runner --validate-only
-python3 -m unittest discover -s tests -v
-```
-
-Resume an interrupted run without replaying completed calls or trials:
-
-```sh
-python3 -m orchestrator.runner --resume
-```
-
-### What a run produces
-
-Each run contains a manifest, immutable JSONL audit log, input-context manifests, budget ledgers, hashed result records, agent entities and feedback, per-trial telemetry, trajectory SVGs, iteration summary SVGs, condition scenario maps, atomic completion checkpoints, and one shared leaderboard.
-
-That record is intended to make a positive, negative, or ambiguous result useful: another person should be able to see what every actor received and produced, what happened on the track, which feedback was available, what changed next, and what that learning cost.
-
-### Set up and run a race from a config file
-
-The config-file workflow is the primary operator path. Create a fresh race definition:
-
-```sh
-cd /Users/danrandow/github/loopsense/robotrace
-python3 -m orchestrator.runner --init-race race-0
-```
-
-This creates `race-definitions/race-0/config.json`. Open that file and edit the values for the race. In particular:
-
-- set `iterations`;
-- set `model.provider` to `openrouter` and `model.id` to the exact OpenRouter model slug;
-- set `budget.total_tokens_per_condition`, `budget.max_tokens_per_iteration`, and `budget.max_control_cycles`;
-- edit `initial_conditions.loopsense_working_agreement`;
-- edit `initial_conditions.control_criteria`; and
-- review the tracks, seeds, design bounds, score weights, and publication URL.
-
-Then provide the API key without putting it in the file and start the race:
-
-```sh
-export OPENROUTER_API_KEY='your-key-here'
-python3 -m orchestrator.runner \
-  --config race-definitions/race-0/config.json \
-  --output runs
-```
-
-The runner freezes the full config in `runs/race-0/manifest.json`, creates a fresh pair of race maps under `runs/race-0/maps/`, and runs the numbered iterations for both teams. When the race completes, it also publishes each team's final state as `iteration-0.yaml` in the corresponding checked-in map directory, labelled `Race 0` in the scenario selector. To run the next comparison, initialise `race-1`, edit its config, and run it the same way. Existing race definitions, outputs, and published race scenarios are never overwritten.
-
-### Optional local setup interface
-
-If you prefer a form instead of editing JSON, start the local interface:
-
-```sh
-cd /Users/danrandow/github/loopsense/robotrace
+cd robotrace
 python3 -m orchestrator.web
 ```
 
-Open [http://127.0.0.1:8765](http://127.0.0.1:8765). The interface is deliberately local-only so an API key is not exposed on the network.
+Open [http://127.0.0.1:8765](http://127.0.0.1:8765). A race moves through four phases:
 
-The setup page lets you choose:
+1. **Prepare.** Choose a fresh race id (the form suggests the next number), then set iterations, provider, model, and the token and action-run budgets. Preparing clones both templates into race-owned packages. The settings apply identically to both entrants. The **Settings reference** link (`/docs`) explains every field and where its value is enforced.
+2. **Review.** Inspect each entrant's definition inventory, open the editor for any file you want to change (instructions, contracts, workflow, race configuration), and acknowledge each entrant's review. Saving a definition clears that acknowledgement.
+3. **Validate and freeze.** Validation runs without model or simulator work. Freezing hashes the definitions and locks them.
+4. **Run frozen race.** The service re-checks both reviews, package identities, common settings, frozen hashes, controller and simulator versions, and readiness, then runs every iteration for both entrants.
 
-- the next race number;
-- iterations per team;
-- OpenRouter or the deterministic offline mock;
-- the exact OpenRouter model slug;
-- total token budget per team, per-iteration budget, and maximum output tokens;
-- the LoopSense team's starter Working Agreement; and
-- the optimizer/evaluator team's initial evaluation criteria.
+Never reuse a race id. A race that fails is recorded as `failed` with the error and cannot be resumed or edited; **Retire** it and prepare a fresh id. A race interrupted at a machine level can be resumed from its last atomic checkpoint with **Resume frozen race**.
 
-Press **Start race** once. The same model, model settings, total budget, tracks, seeds, simulator, and scoring are applied to both teams. At completion the harness writes a race report covering both teams and a linked summary of non-race repository commits since the previous completed race. The page links to that report, the leaderboard, and the manifest. Completed races also remain listed on the setup page.
+### Offline mock or OpenRouter
 
-Stop the interface with `Control-C` in the terminal.
-
-### Use OpenRouter
-
-Create an API key in OpenRouter and choose an exact model slug from [OpenRouter's model catalogue](https://openrouter.ai/models). The model is a race parameter: changing it means starting a new race, not changing an active one.
-
-You can paste the key into the setup page. It is held only in the server process and is never written to a config, manifest, audit log, or Git. Alternatively, set it before starting the interface:
+Choose **Offline deterministic mock** for a no-key, deterministic check of the harness. For a model-backed race choose OpenRouter, enter the exact model slug from [OpenRouter's catalogue](https://openrouter.ai/models), and paste an API key or set it first:
 
 ```sh
 export OPENROUTER_API_KEY='your-key-here'
 python3 -m orchestrator.web
 ```
 
-Do not put a real key in `config/experiment.yaml` or commit it. `.env.example` documents the variable name; `.env` files are ignored by Git.
+The key is held only in the server process and is never written to a package, manifest, log or Git. Before a run, the harness blocks OpenRouter with no key and warns when the model id looks like the offline mock. The model is a race parameter: changing it means a new race.
 
-The OpenRouter adapter is already implemented. It calls the official chat-completions endpoint, requires JSON-only actor artifacts, records the provider request identifier and token use, and applies the same validation and budgets to both conditions. OpenRouter documents the endpoint and authentication in its [quickstart](https://openrouter.ai/docs/quickstart).
+### What happens in an iteration
 
-### Initial conditions and editable files
+Each iteration clones the previous iteration's carried-forward state, runs each entrant's actions as the topology and workflow make them eligible, races one selected robot on the development track, and returns the evidence to the agents for the next iteration. After the last iteration, each entrant's final design is raced once on the held-out track, and that score ranks the leaderboard.
 
-The setup page is the operator-facing source for each new race's mutable initial conditions. When a race starts, it saves a frozen copy under `race-definitions/race-N/config.json`; generated evidence goes under `runs/race-N/`. Both directories are local run state and ignored by Git.
-
-Checked-in defaults live in:
-
-- `config/experiment.yaml` — model defaults, budgets, tracks, seeds, design bounds, score weights, and initial-condition text;
-- `conditions/loopsense/working-agreement-v0.md` — readable source version of the LoopSense starter agreement;
-- `conditions/control/working-agreement-v0.md` — readable source version of the control team's minimal criteria;
-- `conditions/*/private/` — actor-specific starting expertise;
-- `tracks/` — anchor, development, and held-out track definitions; and
-- `config/*.schema.json` — artifact contracts.
-
-The web form overrides the two initial-condition texts and common budget/model fields for that race. Edit the checked-in configuration directly only when deliberately changing the experiment design for future races.
-
-### Race, map, and iteration numbering
-
-A **race** is one complete comparison between both teams under one frozen configuration. Each race owns a new pair of maps:
-
-```text
-runs/race-0/
-  maps/
-    loopsense/
-      base.yaml
-      iteration-0.yaml
-      iteration-1.yaml
-    control/
-      base.yaml
-      iteration-0.yaml
-      iteration-1.yaml
-  loopsense/iteration-0/ ...
-  control/iteration-0/ ...
-  leaderboard.json
-  leaderboard.md
-  leaderboard.svg
-  race-report.md
-
-runs/race-1/
-  maps/loopsense/ ...
-  maps/control/ ...
-  ...
-```
-
-In human terms these are race/iteration pairs such as `0.0`, `0.1`, `1.0`, and `1.1`. On disk they remain explicit names such as `race-0/maps/loopsense/iteration-1.yaml`, avoiding ambiguous decimal filenames. The two checked-in `base.yaml` files are templates; every race receives frozen copies that can carry race-specific starting conditions without changing earlier maps.
-
-Each completed iteration supplies the starting evidence for the next iteration in the same race. A later race starts from its own setup form and configuration; it does not silently inherit an earlier race unless you deliberately copy those settings into the new form.
+- Every model action is told its role, the objective, the iteration and budget, and which outputs it must write; a missing required output goes back to the model through a bounded repair loop.
+- An iteration that cannot finish (no action can run, or a token or action-run budget is spent) does not fail the race. It writes `outcome.json` with the reason and undelivered entities, is not scored, and the next iteration is told.
+- If an entrant's final iteration delivers no design, it scores 0.0 on the held-out evaluation and the race still completes.
 
 ### Find the leaderboard and evidence
 
-While the local interface is running, its **Previous races** table links to every race leaderboard. On disk, open:
+Completed races are listed in the interface with report and leaderboard links. On disk, results are written to the repository root (the parent of `robotrace/`):
 
-- `runs/race-N/leaderboard.svg` for the visual leaderboard;
-- `runs/race-N/race-report.md` for the two-team race report and changes since the previous completed race;
-- `runs/race-N/leaderboard.md` for the table;
-- `runs/race-N/manifest.json` for the frozen configuration and result hashes;
-- `runs/race-N/maps/` for both map/scenario sets; and
-- `runs/race-N/<condition>/iteration-N/entity2/iteration-summary.svg` for one iteration's trajectories and score.
+- `race-N-race-report.md` and `race-N-leaderboard.json` for the ranking and per-iteration summary;
+- `race-N-pair.json` for the race's status, frozen manifests and result hash;
+- `race-N-randow-maps/` and `race-N-opt-eval/` for each entrant's package, including `scenario-iteration-N.yaml`, `race-manifest.json`, `final-evaluation.json`, `leaderboard.svg` and `race-report.md`; and
+- `iteration-N/` inside each package for `events.jsonl`, `budget-ledger.json`, `summary.json`, `outcome.json`, entity versions, trial telemetry, track views and `iteration-summary.svg`.
 
-After publishing a completed race to Randow Maps, add it to the **Races and results** table at the top of this page. Each row must point to that race's LoopSense map, control map, and shared leaderboard; do not repoint an older row to a newer race.
+Open any `scenario-iteration-N.yaml` in Randow Maps to see that iteration's work state; its notes link to the artifacts behind it.
 
-The old `runs/robotrace-smoke/` output is a disposable harness check, not race 0 and not evidence.
-
-### Resume and troubleshoot
-
-The interface prevents reusing a race ID. If a machine interruption leaves a race incomplete, resume from the terminal with its saved definition:
+### Validate or compare packages from the command line
 
 ```sh
-python3 -m orchestrator.runner \
-  --config race-definitions/race-0/config.json \
-  --output runs \
-  --resume
+python3 -m orchestrator.controller validate <package>
+python3 -m orchestrator.controller freeze <package> [--manifest PATH]
+python3 -m orchestrator.controller compare <previous-package> <current-package>
 ```
 
-Completed checkpoints are not replayed. If OpenRouter rejects a model name, choose a current exact slug from its catalogue and start a fresh race definition. If an agent returns malformed JSON or violates a schema, the run stops with the validation error rather than silently racing an invalid or changed design.
+`compare` reports a hash-level definition diff, which is how a change in topology, instructions, contracts, policy or model between races is made visible.
 
 ## 3. For implementers
 
-Start with the **[LoopSense Robot Race Experiment Design](Loopsense-Robot-Race-Experiment-Design.md)** for the research question, independent variable, common controls, lifecycle, measures, and interpretation. Then use the [Implementation Plan](IMPLEMENTATION_PLAN.md) for the detailed artifact contracts, simulator boundary, orchestration rules, build phases, tests, and recorded-run gate. The broader product hypothesis is in the [LoopSense product definition](../Loopsense-product-definition.md).
+Read in this order: [MAP_DRIVEN_ARCHITECTURE_SPEC.md](MAP_DRIVEN_ARCHITECTURE_SPEC.md) (canonical design), the [experiment design](Loopsense-Robot-Race-Experiment-Design.md) (the research question, controls and reporting rules), then [COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md](COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md) (the work order for finishing the cutover). The `RACE_*_CHANGES.md` files record each harness revision. The broader product hypothesis is in the [LoopSense product definition](../Loopsense-product-definition.md).
 
-The key implementation constraint is separation of responsibilities: the agents produce constrained data; a deterministic orchestrator validates and routes it; and a fixed simulator produces the evidence. Both conditions share the same infrastructure. Condition-specific workflow definitions should express the topology difference without quietly changing models, budgets, world evidence, validation, or scoring.
+The governing constraint: **the map is the single source of truth for team topology.** The controller must not branch on team names such as `randow-maps` or `opt-eval`, and must not keep a second routing table. Both entrants use the map identically; only the topology differs. Agents produce constrained data, a deterministic controller validates and routes it, and a fixed simulator produces the evidence.
 
-Useful places to begin:
+### Where things live
 
-- `config/experiment.yaml` and `config/*.schema.json` define the common experiment and artifact boundaries;
-- `orchestrator/` contains the shared runner, condition workflows, model adapter, audit trail, and local setup interface;
-- `conditions/` contains the starting coordination material and private role expertise;
-- `tracks/` contains anchor, development, and held-out track definitions;
-- `simulator/` contains the safe headless boundary and pinned upstream simulator source; and
-- `tests/` checks fairness, determinism, isolation, validation, resumption, and artifact generation.
+- `orchestrator/map_package.py` loads and validates a package and derives read/write permissions from `used by` and `generates` edges. It also runs the canonical Randow Maps validator (`orchestrator/canonical.py`).
+- `orchestrator/controller.py` is the generic readiness scheduler, iteration runner and freeze verification. Its CLI is the `robotrace` entry point.
+- `orchestrator/transactions.py` applies one atomic artifact, scenario and event transition and rejects incomplete prepared transactions on resume.
+- `orchestrator/executors.py` runs actions: model calls (prompt assembly, role brief, required outputs, repair loop) and the simulator action.
+- `orchestrator/race_service.py` is the pair lifecycle (prepare, review, freeze, run, retire), final held-out evaluation, reports and leaderboard.
+- `orchestrator/web.py` and `field_docs.py` are the local interface and its settings reference.
+- `package-templates/` holds the entrant templates; `config/workflow.yaml` and `config/race.yaml` in each package carry the generic-default overrides, budgets, tracks, design bounds, score weights and objective.
+- `simulator/` holds the headless adapter and the pinned upstream RobotraceSim; `tracks/` holds track definitions.
 
-Run the validation and test commands in the operator section before changing the experiment. A substantive change to topology, evidence, budgets, scoring, tracks, or agent permissions creates a new experimental design or run configuration and must not silently alter an active race.
+### Workflow policy
+
+Generic defaults live in the harness (spec §7.2): `reentry_default: on_new_inputs`, `failure_policy: stop`, `transaction_recovery: reject_incomplete`. A package's `workflow.yaml` overrides only what cannot be inferred from topology: entry actions, required inputs, carry-forward entities, re-entry behaviour, the iteration completion predicate, and `stop_reentry_when_present`. Opt/Eval's inner revision loop is expressed that way, so the Evaluator decides when the build races, with no Opt/Eval code in the controller.
+
+### Before changing anything
+
+```sh
+python3 -m unittest discover -s tests -v
+```
+
+Tests need the canonical Randow Maps checkout (set `RANDOW_MAPS_ROOT` if it is not at `~/github/randow-maps`), and a handful need the native simulator, built with `python3 simulator/native/build.py`. A substantive change to topology, evidence, budgets, scoring, tracks or agent permissions creates a new experimental design or race configuration, and must not alter a frozen or running race. Edit Randow Map YAML only as described in the repository's `AGENTS.md`.
 
 ### What “pinned RobotraceSim” means
 
-The exact upstream source is vendored under `simulator/upstream/robotrace_Sim/`, with provenance in `simulator/upstream/UPSTREAM.json`. Rebuild its native C helper with:
-
-```sh
-python3 simulator/native/build.py
-```
-
-No operator action is needed to pin it again. The adapter deliberately extracts the pinned native sensor-coverage and motor/drivetrain functions instead of importing the PySide6 desktop application. Rebuilding the native library from the pinned source must produce the same deterministic test results before a recorded run.
+The exact upstream source is vendored under `simulator/upstream/robotrace_Sim/`, with provenance in `simulator/upstream/UPSTREAM.json`. The adapter deliberately extracts the pinned native sensor-coverage and motor/drivetrain functions instead of importing the PySide6 desktop application. Rebuilding the native library from the pinned source must give the same deterministic results before a recorded run.

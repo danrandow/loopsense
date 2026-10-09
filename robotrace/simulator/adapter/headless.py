@@ -122,18 +122,48 @@ def to_robottrace_spec(package: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+LINE_LOSS_SCALE = 8      # line-loss events at which reliability reaches 0
+RMS_ERROR_SCALE = 0.15   # RMS centre-line error (m) at which precision reaches 0
+TIME_SCALE = 60          # completion time (s) at which time quality reaches 0
+
+
 def _score(metrics: dict[str, Any], weights: dict[str, float]) -> float:
-    reliability = max(0.0, 1 - metrics["line_loss_events"] / 8)
-    time_quality = max(0.0, 1 - metrics["completion_time"] / 60) if metrics["completion"] else 0
-    precision = max(0.0, 1 - metrics["rms_error"] / 0.15)
+    """Composite score.  Robustness and precision are earned only over the track actually covered.
+
+    They are multiplied by progress (1.0 for a completed run), so a robot that does not move scores
+    ~0 instead of collecting full robustness and precision credit for doing nothing.
+    """
+    reliability = max(0.0, 1 - metrics["line_loss_events"] / LINE_LOSS_SCALE)
+    time_quality = max(0.0, 1 - metrics["completion_time"] / TIME_SCALE) if metrics["completion"] else 0
+    precision = max(0.0, 1 - metrics["rms_error"] / RMS_ERROR_SCALE)
+    covered = 1.0 if metrics["completion"] else max(0.0, min(1.0, metrics["progress"]))
     return round(
         weights["completion"] * int(metrics["completion"])
         + weights["progress"] * metrics["progress"]
-        + weights["robustness"] * reliability
-        + weights["time"] * time_quality
-        + weights["precision"] * precision,
+        + covered * (weights["robustness"] * reliability + weights["precision"] * precision)
+        + weights["time"] * time_quality,
         4,
     )
+
+
+def score_description(weights: dict[str, float], simulator: dict[str, Any]) -> str:
+    """Plain-language statement of the scoring rule, generated from the same weights and constants."""
+    w = weights
+    text = (
+        f"score = {w['completion']}*completed + {w['progress']}*progress"
+        f" + progress*({w['robustness']}*(1 - line_loss_events/{LINE_LOSS_SCALE})"
+        f" + {w['precision']}*(1 - rms_error/{RMS_ERROR_SCALE}))"
+        f" + {w['time']}*(1 - completion_time/{TIME_SCALE}) if completed."
+        " progress is the fraction of the track covered (0 to 1); a completed run counts as progress 1 in the"
+        " middle term, so a robot that does not move scores about 0. Each term is floored at 0."
+        f" A run ends when the robot finishes, leaves the track, stalls, or reaches {simulator['max_steps']} steps."
+    )
+    if simulator.get("stall_steps"):
+        text += (
+            f" A run stalls (ends early) if progress rises by less than {simulator.get('stall_min_progress', 0.002)}"
+            f" over {simulator['stall_steps']} consecutive steps."
+        )
+    return text
 
 
 def run_trial(package: dict[str, Any], track: dict[str, Any], seed: int, config: dict[str, Any]) -> dict[str, Any]:
@@ -237,6 +267,10 @@ def run_trial(package: dict[str, Any], track: dict[str, Any], seed: int, config:
         })
         if progress >= 0.995:
             termination = "finished"
+            break
+        stall_steps = int(config["simulator"].get("stall_steps") or 0)
+        if stall_steps and len(telemetry) > stall_steps and progress - telemetry[-1 - stall_steps]["progress"] < float(config["simulator"].get("stall_min_progress", 0.002)):
+            termination = "stalled"
             break
         if error > max(0.06, tape_half / 1000.0 + robot_spec["envelope"]["heightMM"] / 4000.0):
             termination = "off_track"

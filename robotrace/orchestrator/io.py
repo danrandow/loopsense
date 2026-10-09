@@ -7,9 +7,16 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 
 def read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def read_yaml(path: Path) -> Any:
+    """Read trusted, data-only YAML used by map packages."""
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
 def canonical_json(value: Any) -> str:
@@ -45,4 +52,3 @@ def safe_child(root: Path, *parts: str) -> Path:
     if candidate != resolved_root and resolved_root not in candidate.parents:
         raise ValueError(f"path escapes run directory: {candidate}")
     return candidate
-

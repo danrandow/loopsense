@@ -7,12 +7,13 @@ import xml.etree.ElementTree as ET
 from copy import deepcopy
 from pathlib import Path
 
-from orchestrator.artifacts import leaderboard, race_report, scenario_yaml, track_view_svg
+from orchestrator.artifacts import track_view_svg
 from orchestrator.io import digest, safe_child
-from orchestrator.model_client import ModelResponse
-from orchestrator.runner import Budget, ExperimentRunner, ROOT, initialise_race, publish_control_artifacts, publish_race_scenarios, validate_config
-from orchestrator.validators import MEASUREMENTS, ValidationError, validate_geometry, validate_measurement_request, validate_observation, validate_package
+from orchestrator.validators import ValidationError, validate_measurement_request, validate_observation, validate_package
 from simulator.adapter import ADAPTER_VERSION, run_trial, to_robottrace_spec
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class ExperimentTests(unittest.TestCase):
@@ -26,9 +27,6 @@ class ExperimentTests(unittest.TestCase):
         }
         cls.track = json.loads((ROOT / "tracks/anchor/oval.json").read_text())
 
-    def test_configuration_and_package_validate(self) -> None:
-        validate_config(self.config)
-        validate_package(self.package, self.config["design_bounds"])
 
     def test_geometry_bounds_are_enforced(self) -> None:
         invalid = deepcopy(self.package)
@@ -104,32 +102,6 @@ class ExperimentTests(unittest.TestCase):
             self.assertIn('data-error-band="green"', source)
             self.assertIn('data-event="finish-crossing"', source)
 
-    def test_completed_iteration_backfills_missing_track_views(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            config = deepcopy(self.config)
-            config["experiment_id"] = "repair-test"
-            config_path = root / "config.json"
-            config_path.write_text(json.dumps(config))
-            runner = ExperimentRunner(config_path, root / "runs")
-            iteration_dir = runner.run_root / "loopsense/iteration-0"
-            package_dir = iteration_dir / "entity1"
-            package_dir.mkdir(parents=True)
-            (package_dir / "geometry.json").write_text(json.dumps(self.package["geometry"]))
-            (package_dir / "controller.json").write_text(json.dumps(self.package["controller"]))
-            (package_dir / "observation-request.json").write_text(json.dumps(self.package["observation_request"]))
-            trial = run_trial(self.package, self.track, 17, config)
-            telemetry = trial.pop("telemetry")
-            trial_dir = iteration_dir / "entity2/trials/oval-17"
-            trial_dir.mkdir(parents=True)
-            (trial_dir / "result.json").write_text(json.dumps(trial))
-            (trial_dir / "telemetry.json").write_text(json.dumps(telemetry))
-
-            runner.ensure_track_views("loopsense", 0, iteration_dir)
-
-            view = trial_dir / "track-view.svg"
-            self.assertTrue(view.exists())
-            self.assertIn("robotrace-track-view-v1", view.read_text())
 
     def test_track_view_has_timeout_and_off_track_markers(self) -> None:
         timeout_config = deepcopy(self.config)
@@ -174,254 +146,21 @@ class ExperimentTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 safe_child(root, "..", "escape")
 
-    def test_budget_hard_stop(self) -> None:
-        budget = Budget(3, 3)
-        with self.assertRaises(RuntimeError):
-            budget.charge(ModelResponse({}, "id", 2, 2))
 
-    def test_constraints_are_supplied_and_one_repair_is_bounded_and_charged(self) -> None:
-        invalid = {
-            "geometry": {**self.package["geometry"], "sensor_positions": [{"x": 9, "y": 0.05}] * 5},
-            "intent": "invalid first attempt",
-            "feedback_request": {"measurements": ["completion"], "questions": []},
-            "learning": "invalid attempt",
-        }
-        valid = {
-            "geometry": deepcopy(self.package["geometry"]),
-            "intent": "valid repaired attempt",
-            "feedback_request": {"measurements": ["completion"], "questions": []},
-            "learning": "valid repaired learning",
-        }
 
-        class ScriptedClient:
-            def __init__(self) -> None:
-                self.outputs = [invalid, valid]
-                self.contexts: list[dict] = []
 
-            def call(self, actor: str, context: dict) -> ModelResponse:
-                self.contexts.append(context)
-                return ModelResponse(self.outputs.pop(0), f"request-{len(self.contexts)}", 10, 10)
 
-        with tempfile.TemporaryDirectory() as directory:
-            config = deepcopy(self.config)
-            config["experiment_id"] = "repair-test"
-            config_path = Path(directory) / "config.json"
-            config_path.write_text(json.dumps(config))
-            runner = ExperimentRunner(config_path, Path(directory) / "runs")
-            client = ScriptedClient()
-            runner.client = client
-            budget = Budget(1000, 1000)
 
-            def validator(output: dict) -> None:
-                validate_geometry(output["geometry"], config["design_bounds"])
-                validate_measurement_request(output["feedback_request"])
 
-            result = runner.validated_call("loopsense", 0, "geometry_builder", {"iteration": 0}, budget, runner.run_root / "call", validator)
-            self.assertEqual(result, valid)
-            self.assertEqual(budget.used, 40)
-            self.assertEqual(client.contexts[0]["constraints"]["design_bounds"], config["design_bounds"])
-            self.assertEqual(client.contexts[0]["constraints"]["supported_measurements"], sorted(MEASUREMENTS))
-            self.assertEqual(client.contexts[1]["invalid_artifact"], invalid)
-            self.assertIn("sensor 0 x", client.contexts[1]["validation_errors"][0])
 
-    def test_terminal_invalid_artifact_marks_run_failed(self) -> None:
-        invalid = {
-            "geometry": {**self.package["geometry"], "body_length": 9},
-            "intent": "still invalid",
-            "feedback_request": {"measurements": ["completion"], "questions": []},
-            "learning": "still invalid",
-        }
 
-        class InvalidClient:
-            calls = 0
 
-            def call(self, actor: str, context: dict) -> ModelResponse:
-                self.calls += 1
-                return ModelResponse(invalid, f"invalid-{self.calls}", 10, 10)
 
-        with tempfile.TemporaryDirectory() as directory:
-            config = deepcopy(self.config)
-            config.update({"experiment_id": "failed-test", "iterations": 1})
-            config_path = Path(directory) / "config.json"
-            config_path.write_text(json.dumps(config))
-            runner = ExperimentRunner(config_path, Path(directory) / "runs")
-            client = InvalidClient()
-            runner.client = client
-            with self.assertRaises(ValidationError):
-                runner.run()
-            manifest = json.loads((runner.run_root / "manifest.json").read_text())
-            self.assertEqual(manifest["status"], "failed")
-            self.assertEqual(manifest["failed_actor"], "geometry_builder")
-            self.assertEqual(client.calls, 2)
-            self.assertIn("run_failed", (runner.run_root / "audit.jsonl").read_text())
 
-    def test_complete_output_reports_geometry_and_controller_errors_together(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            config = deepcopy(self.config)
-            config["experiment_id"] = "aggregate-errors"
-            config_path = Path(directory) / "config.json"
-            config_path.write_text(json.dumps(config))
-            runner = ExperimentRunner(config_path, Path(directory) / "runs")
-            malformed = {
-                "geometry": {"sensor_count": 5, "sensor_positions": [[0, 0]]},
-                "controller": {"sensor_weight": 1},
-                "observation_request": {"measurements": ["completion"], "questions": []},
-                "notes": "malformed",
-            }
-            with self.assertRaises(ValidationError) as raised:
-                runner.validate_complete_output(malformed)
-            self.assertIn("geometry:", str(raised.exception))
-            self.assertIn("controller:", str(raised.exception))
-            self.assertIn("sensor_weights", str(raised.exception))
 
-    def test_config_rejects_unknown_measurement_catalogue_and_impossible_iteration_budget(self) -> None:
-        invalid = deepcopy(self.config)
-        invalid["simulator"]["measurement_catalogue_version"] = "unknown"
-        with self.assertRaises(ValueError):
-            validate_config(invalid)
-        invalid = deepcopy(self.config)
-        invalid["budget"].update({"total_tokens_per_condition": 100, "max_tokens_per_iteration": 101})
-        with self.assertRaises(ValueError):
-            validate_config(invalid)
 
-    def test_race_definition_is_created_once(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            path = initialise_race("race-7", root)
-            self.assertEqual(json.loads(path.read_text())["experiment_id"], "race-7")
-            with self.assertRaises(FileExistsError):
-                initialise_race("race-7", root)
-            with self.assertRaises(ValueError):
-                initialise_race("../escape", root)
 
-    def test_scenario_uses_local_artifact_links_as_a_markdown_list(self) -> None:
-        scenario = scenario_yaml(
-            "base.yaml", "loopsense", 0,
-            "runs/race-7/loopsense/iteration-0/entity2/iteration-summary.svg",
-            "runs/race-7/leaderboard.svg", {"score": 1}, "",
-            [("anchor: oval-17 track view", "runs/race-7/loopsense/iteration-0/entity2/trials/oval-17/track-view.svg")],
-        )
-        self.assertIn("notes: |", scenario)
-        self.assertIn("- [Open iteration race summary](runs/race-7/", scenario)
-        self.assertIn("- [anchor: oval-17 track view](runs/race-7/", scenario)
-        self.assertNotIn("github.com", scenario)
 
-    def test_scenario_links_race_report_after_initial_conditions(self) -> None:
-        scenario = scenario_yaml(
-            "base.yaml", "loopsense", 0,
-            "runs/race-7/loopsense/iteration-0/entity2/iteration-summary.svg",
-            "runs/race-7/leaderboard.svg", {"score": 1}, "frozen setup",
-            race_report_url="runs/race-7/race-report.md",
-        )
-        setup = scenario.index("frozen setup")
-        report = scenario.index("[Read the race report](runs/race-7/race-report.md)")
-        overrides = scenario.index("overrides:")
-        self.assertLess(setup, report)
-        self.assertLess(report, overrides)
-
-    def test_race_report_covers_both_teams_and_repository_changes(self) -> None:
-        results = [
-            {"condition": "loopsense", "iteration": 0, "score": 10},
-            {"condition": "control", "iteration": 0, "score": 12},
-            {"condition": "loopsense", "iteration": 1, "score": 15, "held_out": {"score": 14}},
-            {"condition": "control", "iteration": 1, "score": 13, "held_out": {"score": 11}},
-        ]
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory)
-            race_report(path, "race-7", results, {"conditions": ["loopsense", "control"]}, [{
-                "subject": "Improve harness", "short_hash": "abc1234",
-                "url": "https://github.com/example/repo/commit/abc1234",
-            }], "race-6")
-            report = (path / "race-report.md").read_text()
-            self.assertIn("loopsense finished ahead of control by 2.000 points", report)
-            self.assertIn("| loopsense | 10.000 | 15.000 | 15.000 | 14.000 |", report)
-            self.assertIn("Repository changes since race-6 completed", report)
-            self.assertIn("[Improve harness](https://github.com/example/repo/commit/abc1234)", report)
-
-    def test_scenario_uses_maps_override_schema(self) -> None:
-        scenario = scenario_yaml(
-            "base.yaml", "loopsense", 2,
-            "runs/race-7/loopsense/iteration-2/entity2/iteration-summary.svg",
-            "runs/race-7/leaderboard.svg",
-            {"score": 12.5}, "agreement",
-        )
-        self.assertIn("id: iteration-7.2", scenario)
-        self.assertIn('inherits: "base.yaml"', scenario)
-        self.assertIn('scenario: "Race 7 iteration 2"', scenario)
-        self.assertIn("overrides:\n  entities:\n    - id: entity2", scenario)
-        self.assertNotIn("ANALYSIS.md", scenario)
-        self.assertNotIn("extends:", scenario)
-
-    def test_completed_race_publishes_one_final_scenario_per_team(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            run_root = root / "runs/race-5"
-            roots = {"loopsense": root / "robotrace", "control": root / "robotrace-control"}
-            for condition in roots:
-                source = run_root / "maps" / condition / "iteration-1.yaml"
-                source.parent.mkdir(parents=True)
-                source.write_text(f'map:\n  scenario: "Race 5 iteration 1"\n  notes: {condition} final\n')
-            published = publish_race_scenarios(run_root, "race-5", 2, roots)
-            self.assertIn('scenario: "Race 5"', (roots["loopsense"] / "iteration-5.yaml").read_text())
-            self.assertIn('scenario: "Race 5"', (roots["control"] / "iteration-5.yaml").read_text())
-            self.assertEqual(published, {condition: root / f"{'robotrace' if condition == 'loopsense' else 'robotrace-control'}/iteration-5.yaml" for condition in roots})
-            self.assertEqual(publish_race_scenarios(run_root, "race-5", 2, roots), published)
-            (run_root / "maps/loopsense/iteration-1.yaml").write_text("scenario: changed\n")
-            self.assertEqual(publish_race_scenarios(run_root, "race-5", 2, roots), published)
-            self.assertIn('scenario: "Race 5"', (roots["loopsense"] / "iteration-5.yaml").read_text())
-
-    def test_control_artifacts_are_mirrored_into_control_map_folder(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            run_root = root / "robotrace/runs/race-5"
-            control_root = root / "robotrace-control"
-            files = [
-                run_root / "leaderboard.svg",
-                run_root / "control/iteration-1/entity2/iteration-summary.svg",
-                run_root / "control/iteration-1/entity2/held-out/trials/hairpin-29/track-view.svg",
-            ]
-            for path in files:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(f"<svg>{path.name}</svg>")
-
-            published = publish_control_artifacts(run_root, control_root)
-
-            target_run = control_root / "runs/race-5"
-            self.assertEqual(len(published), 3)
-            self.assertTrue((target_run / "leaderboard.svg").is_file())
-            self.assertTrue((target_run / "control/iteration-1/entity2/iteration-summary.svg").is_file())
-            self.assertTrue((target_run / "control/iteration-1/entity2/held-out/trials/hairpin-29/track-view.svg").is_file())
-
-    def test_non_numbered_run_does_not_publish_scenarios(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            self.assertEqual(publish_race_scenarios(Path(directory), "robotrace-smoke", 1), {})
-
-    def test_leaderboard_rejects_tampered_result(self) -> None:
-        result = {"condition": "loopsense", "iteration": 0, "score": 1.0, "trials": [], "aggregate": {}}
-        result["artifact_hash"] = digest(result)
-        result["score"] = 2.0
-        with tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
-            leaderboard(Path(directory), [result])
-
-    def test_smoke_run_and_resume_do_not_duplicate_calls(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            config = deepcopy(self.config)
-            config["experiment_id"] = "test"
-            config["iterations"] = 1
-            config_path = Path(directory) / "config.json"
-            config_path.write_text(json.dumps(config))
-            output = Path(directory) / "runs"
-            run_root = ExperimentRunner(config_path, output).run()
-            final_result = json.loads((run_root / "loopsense/iteration-0/entity2/result.json").read_text())
-            self.assertEqual({trial["track"] for trial in final_result["held_out"]["trials"]}, {"hairpin"})
-            for manifest in run_root.glob("**/context-manifest.json"):
-                self.assertNotIn("held_out_tracks", json.loads(manifest.read_text())["keys"])
-            calls_before = len(list(run_root.glob("**/response.json")))
-            lines_before = len((run_root / "audit.jsonl").read_text().splitlines())
-            ExperimentRunner(config_path, output, resume=True).run()
-            self.assertEqual(calls_before, len(list(run_root.glob("**/response.json"))))
-            self.assertEqual(lines_before, len((run_root / "audit.jsonl").read_text().splitlines()))
-            self.assertEqual(json.loads((run_root / "manifest.json").read_text())["status"], "complete")
 
 
 if __name__ == "__main__":

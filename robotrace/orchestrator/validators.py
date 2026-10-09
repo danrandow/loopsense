@@ -16,7 +16,7 @@ class ValidationError(ValueError):
 
 def _number(value: Any, name: str, low: float, high: float) -> None:
     if not isinstance(value, (int, float)) or isinstance(value, bool) or not low <= value <= high:
-        raise ValidationError(f"{name} must be between {low} and {high}")
+        raise ValidationError(f"{name} must be a number between {low} and {high} (got {value!r})")
 
 
 def validate_geometry(geometry: dict[str, Any], bounds: dict[str, Any]) -> None:
@@ -33,7 +33,7 @@ def validate_geometry(geometry: dict[str, Any], bounds: dict[str, Any]) -> None:
         _number(sensor["x"], f"sensor {index} x", *bounds["sensor_x"])
         _number(sensor["y"], f"sensor {index} y", *bounds["sensor_y"])
     if geometry["sensor_size"] not in bounds["sensor_sizes"]:
-        raise ValidationError("sensor_size is not allowed")
+        raise ValidationError(f"sensor_size {geometry['sensor_size']!r} is not allowed; it must be exactly one of {list(bounds['sensor_sizes'])}")
     for field in ("wheel_track", "wheel_radius", "body_width", "body_length", "mass"):
         _number(geometry[field], field, *bounds[field])
 
