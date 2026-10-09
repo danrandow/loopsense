@@ -11,6 +11,7 @@ from typing import Any, Callable
 
 from .io import atomic_write, digest, read_yaml, write_json
 from .map_package import ActionDefinition, MapPackage
+from .validators import ContractFailure
 from .transactions import ScenarioTransaction, recover_transactions
 import yaml
 
@@ -136,7 +137,14 @@ class MapDrivenController:
                     "model_actions_still_to_run_this_iteration": sum(1 for other_id, other in self.package.actions.items() if other.runtime.get("kind") == "model" and other_id != action_id and not run_counts.get(other_id)),
                 },
             }
-            result = self.executor(action, inputs, context)
+            try:
+                result = self.executor(action, inputs, context)
+            except ContractFailure as failure:
+                # The team could not produce a valid output. That is what happened in the race: end the iteration here and
+                # tell the actors why next time (previous_iteration_incomplete), exactly as for any other undelivered output.
+                return self._close_incomplete(iteration, scenario, iteration_dir, available, invocations, complete,
+                                              f"{action_id}'s output was rejected after repeated attempts: {failure.errors[-1] if failure.errors else failure}",
+                                              rejected={"action": action_id, "errors": failure.errors})
             unexpected = set(result.writes) - action.writes
             if unexpected:
                 raise PermissionError(f"{action_id} attempted undeclared writes: {sorted(unexpected)}")
@@ -187,10 +195,10 @@ class MapDrivenController:
         outcome = json.loads(path.read_text(encoding="utf-8"))
         if outcome.get("complete"):
             return None
-        return {key: outcome[key] for key in ("reason", "undelivered", "blocked_actions") if key in outcome}
+        return {key: outcome[key] for key in ("reason", "undelivered", "blocked_actions", "rejected") if key in outcome}
 
     def _close_incomplete(self, iteration: int, scenario: Path, iteration_dir: Path, available: dict[str, str],
-                          invocations: dict[str, tuple[str, ...]], complete: set[str], reason: str) -> Path:
+                          invocations: dict[str, tuple[str, ...]], complete: set[str], reason: str, rejected: dict[str, Any] | None = None) -> Path:
         """An iteration that cannot finish is a race outcome, not a harness fault: record it, then move on."""
         blocked = {
             action_id: sorted(action.required_inputs - set(available))
@@ -202,6 +210,7 @@ class MapDrivenController:
             "missing_completion_entities": sorted(complete - set(available)),
             "undelivered": sorted({entity for missing in blocked.values() for entity in missing}),
             "blocked_actions": blocked,
+            **({"rejected": rejected} if rejected else {}),
         })
         self._seed_next_iteration(iteration, scenario, iteration_dir)
         return scenario

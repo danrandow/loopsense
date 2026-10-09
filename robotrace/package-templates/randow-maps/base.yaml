@@ -22,7 +22,17 @@ actions:
 - id: action0
   label: Design Geometry
   actor: actor0
-  notes: "Produces bounded geometry, intent, hypotheses, and measurement requests."
+  notes: |-
+    Produces bounded geometry, intent, hypotheses, and measurement requests.
+
+    ## Common to every agent
+    You are competing with other teams to race a line-following robot on a held-back track. Do everything you can to maximise your team's score on that track. Learn and improve as much as you can, working with the other agent in your team, with each iteration, within your budget.
+
+    ## This team: Geometry Builder and Robot Integrator
+    You work in sequence. The Geometry Builder's proposal goes to the Robot Integrator, who adds a controller, and the resulting complete robot races every iteration. The Builder never sees the controller, so the Integrator's feedback is the Builder's only view of how its geometry works in practice.
+
+    ## Your role: Geometry Builder
+    Design the sensor and body geometry that gives your teammate, the Robot Integrator, the best possible platform to build a controller on, and that the race simulator rewards. Deliver a Geometry Proposal every iteration. Read the Integration Feedback from the Integrator (they work with your geometry directly and know what it costs them) and the Geometry Race Data (telemetry from the last race), and work out what in that evidence points at geometry. In the proposal's intent say what you changed, why, and what result you expect. Include your hypotheses and the measurements you want to see next. Do not produce a controller.
   measures:
   - id: input_tokens
     name: Model input tokens
@@ -41,7 +51,21 @@ actions:
 - id: action1
   label: Integrate Robot
   actor: actor1
-  notes: "Produces a runnable package and returns integration feedback to the Geometry Builder every iteration, before and after races."
+  notes: |-
+    Produces a runnable package and returns integration feedback to the Geometry Builder every iteration, before and after races.
+
+    ## Common to every agent
+    You are competing with other teams to race a line-following robot on a held-back track. Do everything you can to maximise your team's score on that track. Learn and improve as much as you can, working with the other agent in your team, with each iteration, within your budget.
+
+    ## This team: Geometry Builder and Robot Integrator
+    You work in sequence. The Geometry Builder's proposal goes to the Robot Integrator, who adds a controller, and the resulting complete robot races every iteration. The Builder never sees the controller, so the Integrator's feedback is the Builder's only view of how its geometry works in practice.
+
+    ## Your role: Robot Integrator
+    Your job has two equally important parts, and you deliver both every iteration.
+
+    1. Complete Robot Package: turn the supplied Geometry Proposal into a complete runnable robot by adding a controller for that exact geometry. Use the Integration Race Data (telemetry from the last race) to improve the controller. Preserve supported upstream measurement requests and add your own.
+
+    2. Integration Feedback for the Geometry Builder: they cannot see your controller and rely on you to tell them how to improve. Say concretely how this geometry helped or hurt your controller (what you had to compensate for, and how), and give one to three specific requested_changes, naming the geometry fields and the values you want tried next and why. You can give this feedback as soon as you have read the geometry, before any race; add what the race data shows when you have it.
   measures:
   - id: input_tokens
     name: Model input tokens
@@ -153,7 +177,18 @@ entities:
 - id: entityPub0
   label: Design Constraints
   system_boundary: public
-  notes: "Permitted robot bounds, scoring criteria, and measurement vocabulary. Its contract is the exact shape of a design (geometry and controller)."
+  notes: |-
+    The single description of what a design is and the world it races in. Its contract is the exact shape of a design (geometry, controller, observation request) and carries the allowed range or options of every field, the units, and how the simulator uses each one (sensing, control loop, drivetrain physics, race rules). Agents receive this contract in full; the scoring rule and goal arrive separately as the objective.
+
+    Files, for a human to follow:
+    - Contract (the source of truth for limits): entities/entityPub0/contract.schema.json
+    - Race settings (tracks, seeds, noise, score weights, run limits): config/race.yaml
+    - Limits enforced from the contract: https://github.com/danrandow/loopsense/blob/main/robotrace/orchestrator/validators.py (design_bounds_from_contract, validate_package, validate_controller)
+    - Where limits are derived at package load: https://github.com/danrandow/loopsense/blob/main/robotrace/orchestrator/map_package.py
+    - What the agent is shown: https://github.com/danrandow/loopsense/blob/main/robotrace/orchestrator/executors.py
+    - Simulation and scoring: https://github.com/danrandow/loopsense/blob/main/robotrace/simulator/adapter/headless.py
+    - Native motor and sensor model: https://github.com/danrandow/loopsense/blob/main/robotrace/simulator/upstream/robotrace_Sim/utills_c/linesim.c
+    - Tracks: https://github.com/danrandow/loopsense/blob/main/robotrace/tracks/
 - id: entityPub2
   label: Track Conditions
   system_boundary: public

@@ -8,7 +8,7 @@ import os
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import yaml
 
@@ -20,6 +20,9 @@ from .race_service import MapDrivenRaceService, RaceStateError, ROOT, TEMPLATES
 
 
 ENTRANTS = ("randow-maps", "opt-eval")
+# Race packages are local until they are committed/deployed, so the local viewer is the useful default.
+# A hosted deployment can point the UI at its own viewer without changing race artifacts.
+MAP_VIEWER_URL = os.environ.get("RANDOW_MAPS_VIEWER_URL", "http://localhost:5173/").rstrip("/") + "/"
 _ACTIVE_RUNS: set[str] = set()
 
 
@@ -109,6 +112,53 @@ def _model_picker() -> str:
             f'<option value="">Previously used…</option>{options}</select>')
 
 
+def _latest_scenario(package: Path) -> Path | None:
+    scenarios = []
+    for path in package.glob("scenario-iteration-*.yaml"):
+        try:
+            iteration = int(path.stem.rsplit("-", 1)[1])
+        except ValueError:
+            continue
+        scenarios.append((iteration, path))
+    return max(scenarios, default=(None, None), key=lambda item: item[0])[1]
+
+
+def _map_link(package: Path, label: str) -> tuple[str, str] | None:
+    scenario = _latest_scenario(package)
+    if scenario is None:
+        return None
+    query = urlencode({"map": package.name, "scenario": scenario.stem, "view": "full"})
+    return label, f"{MAP_VIEWER_URL}?{query}"
+
+
+def _race_links(race_id: str, state: dict[str, object], workspace: Path) -> list[tuple[str, str]]:
+    """Links backed by artifacts that exist, while retaining the established report and leaderboard behavior."""
+    links = []
+    if state.get("report"):
+        links.append(("Report", f'/{quote(Path(str(state["report"])).name)}'))
+    if state.get("leaderboard"):
+        links.append(("Leaderboard", f'/{quote(Path(str(state["leaderboard"])).name)}'))
+    replay = workspace / f"{race_id}-replay.html"
+    if replay.is_file():
+        links.append(("Pit Wall", f"/{quote(replay.name)}"))
+    packages = {}
+    for value in state.get("packages", []):
+        package = Path(str(value))
+        for entrant in ENTRANTS:
+            if package.name.endswith(f"-{entrant}"):
+                packages[entrant] = package
+    for entrant, label in (("randow-maps", "Randow Map"), ("opt-eval", "Control Map")):
+        package = packages.get(entrant, workspace / f"{race_id}-{entrant}")
+        link = _map_link(package, label)
+        if link:
+            links.append(link)
+    return links
+
+
+def _links_html(links: list[tuple[str, str]]) -> str:
+    return " · ".join(f'<a href="{html.escape(url, quote=True)}">{html.escape(label)}</a>' for label, url in links)
+
+
 def _race_list(current: str) -> str:
     rows = []
     for path in sorted(ROOT.glob("*-pair.json"), key=lambda p: (len(p.name), p.name), reverse=True):
@@ -116,8 +166,8 @@ def _race_list(current: str) -> str:
         links = ""
         try:
             state = read_json(path); status = state.get("status", "unknown")
-            if status == "complete" and state.get("report") and state.get("leaderboard"):
-                links = f'<a href="/{quote(Path(state["report"]).name)}">Report</a> · <a href="/{quote(Path(state["leaderboard"]).name)}">Leaderboard</a>'
+            if status == "complete":
+                links = _links_html(_race_links(race_id, state, path.parent))
         except Exception: status = "unreadable"
         css = "ok" if status == "complete" else "warn" if status in {"failed", "running"} else "muted"
         name = f"<strong>{html.escape(race_id)}</strong>" if race_id == current else html.escape(race_id)
@@ -145,9 +195,7 @@ def page(race_id: str | None = None, message: str = "") -> bytes:
         error_banner = f'<section><strong class="warn">Run failed: {html.escape(str(failure.get("message", "unknown error")))}</strong><p>This race cannot be resumed or edited. Retire it and prepare a fresh race id.</p></section>'
     run_warnings = "".join(f'<p class="warn">Warning: {html.escape(w)}</p>' for w in service.run_warnings()) if status in {"frozen", "running"} else ""
     if status == "complete":
-        report = Path(state["report"]).name
-        leaderboard = Path(state["leaderboard"]).name
-        evidence = f'<section><h2>Evidence</h2><p><a href="/{html.escape(report)}">Race report</a> · <a href="/{html.escape(leaderboard)}">Leaderboard</a></p></section>'
+        evidence = f'<section><h2>Evidence</h2><p>{_links_html(_race_links(service.race_id, state, service.workspace))}</p></section>'
     return layout(f'''<h1>Map-driven Robot Race</h1>{alert}{error_banner}<p>Status: <strong>{html.escape(status)}</strong> <a class="button" href="/">New race</a> <a href="/docs">Settings reference</a>{f' · <a href="/progress?race_id={quote(service.race_id)}" target="_blank"><strong>Live progress</strong></a>' if status in {'running', 'frozen', 'complete', 'failed'} else ''}</p>{_race_list(service.race_id)}
 <form method="post">{'' if status == 'new' else f'<input type="hidden" name="race_id" value="{html.escape(service.race_id)}">'}
 <section><h2>1. Prepare</h2><div class="grid">
@@ -194,6 +242,12 @@ def error_status(error: Exception) -> HTTPStatus:
     return HTTPStatus.INTERNAL_SERVER_ERROR
 
 
+def artifact_content_type(path: Path) -> str:
+    if path.suffix.lower() == ".html":
+        return "text/html; charset=utf-8"
+    return "text/plain; charset=utf-8"
+
+
 class Handler(BaseHTTPRequestHandler):
     def send_bytes(self, body: bytes, status: int = 200, content_type: str = "text/html; charset=utf-8") -> None:
         self.send_response(status); self.send_header("Content-Type", content_type); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
@@ -215,7 +269,7 @@ class Handler(BaseHTTPRequestHandler):
         try: path = safe_child(ROOT, *[part for part in parsed.path.lstrip("/").split("/") if part])
         except ValueError: self.send_error(HTTPStatus.BAD_REQUEST); return
         if not path.is_file(): self.send_error(HTTPStatus.NOT_FOUND); return
-        self.send_bytes(path.read_bytes(), content_type="text/plain; charset=utf-8")
+        self.send_bytes(path.read_bytes(), content_type=artifact_content_type(path))
 
     def do_POST(self) -> None:
         form: dict[str, str] = {}

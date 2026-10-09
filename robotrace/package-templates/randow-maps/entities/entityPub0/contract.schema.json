@@ -1,1 +1,188 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","title":"Design Constraints: the exact shape of a design","description":"Authoritative shape of a complete robot design. A design is ONE concrete robot: every field holds a single concrete value, never a range, an option list or a description of bounds. Numeric ranges and allowed values are given separately in race_constraints; choose values inside them.","type":"object","required":["geometry","controller","observation_request"],"additionalProperties":false,"properties":{"geometry":{"type":"object","required":["sensor_positions","sensor_size","wheel_track","wheel_radius","body_width","body_length","mass"],"additionalProperties":false,"properties":{"sensor_positions":{"type":"array","items":{"type":"object","required":["x","y"],"additionalProperties":false,"properties":{"x":{"type":"number"},"y":{"type":"number"}}}},"sensor_size":{"enum":[0.008,0.012,0.016]},"wheel_track":{"type":"number"},"wheel_radius":{"type":"number"},"body_width":{"type":"number"},"body_length":{"type":"number"},"mass":{"type":"number"}}},"controller":{"type":"object","required":["base_speed","kp","ki","kd","sensor_weights","line_loss"],"additionalProperties":false,"properties":{"base_speed":{"type":"number"},"kp":{"type":"number"},"ki":{"type":"number"},"kd":{"type":"number"},"sensor_weights":{"type":"array","items":{"type":"number"}},"line_loss":{"enum":["stop","search_left","search_right","last_direction"]}}},"observation_request":{"type":"object","description":"Measurements you want reported back after the race. Must list at least one allowed name.","required":["measurements"],"additionalProperties":false,"properties":{"measurements":{"type":"array","minItems":1,"uniqueItems":true,"items":{"enum":["completion","progress","completion_time","rms_error","max_error","line_loss_events","steering_oscillation","control_effort","controller_errors","noise_robustness"]}}}}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Design contract: the robot and the simulator it races in",
+  "description": "The complete design space. A design is ONE concrete robot: every field holds a single value inside its minimum/maximum (or one of its listed options), never a range or a description. A design outside any limit is rejected before it races.\nHOW A RACE RUNS. Your robot follows a black tape line (25 mm wide) along a curved course roughly 4 to 5 m long, with smooth bends of different sizes and sharpness. It starts on the line pointing along it. The simulation steps at 100 Hz (10 ms per step) and ends after 300 steps (3.0 s), so to finish it must cover the whole course in under 3 s, which needs an average speed of roughly 1.5 m/s or more. A run ends early when: the robot finishes (progress reaches 0.995); it goes off track (distance from the centre line greater than max(0.06 m, tape_half_width + body_width/4)); or it stalls (progress rises by less than 0.002 over 50 consecutive steps). Every design races each development track and each held-back track once per seed; held-back tracks are never shown to you. Each race also draws a small random disturbance (about 2 percent): sensor noise and a fixed left/right motor mismatch.\nSENSING. Each sensor reports a number from 0 (all background) to 1 (fully covered by tape): the fraction of its square footprint (sensor_size) lying on the tape, plus small noise. A sensor's position is (x, y) in metres from the midpoint of the axle between the two wheels: x is sideways, POSITIVE = LEFT of the robot's centre line, negative = right; y is forward, positive = ahead of the axle, negative = behind it. Sensors only see the line directly under their footprint.\nCONTROL LOOP (every 10 ms). signal = (sum of sensor_weights[i] * reading[i]) / (sum of readings), a weighted average of the sensor weights where the tape is, so its size is set by the weights (|signal| is at most the largest |weight|). A positive signal steers the robot LEFT and a negative signal steers it RIGHT. turn = kp*signal + ki*integral + kd*(change in signal per second), with the integral of the signal limited to +/-2. base_pwm = 4095 * min(1, base_speed/2) * throttle (so base_speed above 2 gives no extra speed). left wheel command = base_pwm - 350*turn; right wheel command = base_pwm + 350*turn; each limited to +/-4095.\nLINE LOSS. When the sum of all sensor readings is below 0.05 the line is lost: this counts as one line-loss event each time it begins, throttle drops to 0.35 (0 for 'stop'), and signal is replaced by a fixed value chosen by controller.line_loss (see that field).\nDRIVETRAIN PHYSICS. Each wheel is driven by a brushed DC motor with a 20:1 gearbox (90 percent efficient) from a 7.4 V battery with internal resistance, so available voltage falls as current is drawn. PWM sets the voltage fraction applied to each motor. Ground speed is wheel_radius times wheel rotation rate. Turn rate is the difference between the two wheel speeds divided by wheel_track. Yaw inertia is mass * wheel_track^2 / 12. Rolling resistance, air drag and tyre friction (slip) are included. Speed and turn rate change gradually: the robot does not respond instantly to a command.\nThe scoring rule and the goal are given separately in the objective.",
+  "type": "object",
+  "required": [
+    "geometry",
+    "controller",
+    "observation_request"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "geometry": {
+      "type": "object",
+      "description": "The physical robot: where the sensors sit and the body, wheels and mass. All lengths are in metres, mass in kilograms.",
+      "required": [
+        "sensor_positions",
+        "sensor_size",
+        "wheel_track",
+        "wheel_radius",
+        "body_width",
+        "body_length",
+        "mass"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "sensor_positions": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 7,
+          "description": "One entry per line sensor, 3 to 7 sensors. The order matters: controller.sensor_weights[i] applies to sensor_positions[i], and the list must have the same length as sensor_weights.",
+          "items": {
+            "type": "object",
+            "description": "One sensor's position relative to the axle midpoint, in metres.",
+            "required": [
+              "x",
+              "y"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "x": {
+                "type": "number",
+                "minimum": -0.08,
+                "maximum": 0.08,
+                "description": "Sideways position of the sensor in metres from the robot's centre line, between -0.08 and 0.08. Positive = left of centre, negative = right."
+              },
+              "y": {
+                "type": "number",
+                "minimum": -0.06,
+                "maximum": 0.08,
+                "description": "Forward position of the sensor in metres from the axle midpoint, between -0.06 and 0.08. Positive = ahead of the axle."
+              }
+            }
+          }
+        },
+        "sensor_size": {
+          "enum": [
+            0.008,
+            0.012,
+            0.016
+          ],
+          "description": "Side length in metres of every sensor's square footprint; exactly one of 0.008, 0.012 or 0.016 (8, 12 or 16 mm). The same for all sensors. The tape is 25 mm wide."
+        },
+        "wheel_track": {
+          "type": "number",
+          "minimum": 0.08,
+          "maximum": 0.18,
+          "description": "Distance between the two drive wheels in metres, 0.08 to 0.18."
+        },
+        "wheel_radius": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 0.05,
+          "description": "Drive wheel radius in metres, 0.02 to 0.05."
+        },
+        "body_width": {
+          "type": "number",
+          "minimum": 0.08,
+          "maximum": 0.18,
+          "description": "Width of the robot body in metres, 0.08 to 0.18. In the simulator it only enters the off-track limit (the allowed distance from the centre line is max(0.06 m, tape_half_width + body_width/4)): a wider body is allowed further from the line before the run ends."
+        },
+        "body_length": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 0.24,
+          "description": "Length of the robot body in metres, 0.10 to 0.24. In the simulator this is the body envelope only and has no direct effect on dynamics or the off-track limit."
+        },
+        "mass": {
+          "type": "number",
+          "minimum": 0.4,
+          "maximum": 1.5,
+          "description": "Total robot mass in kilograms, 0.4 to 1.5."
+        }
+      }
+    },
+    "controller": {
+      "type": "object",
+      "description": "The control law that turns sensor readings into wheel commands (see the CONTROL LOOP in the contract description for the exact equations).",
+      "required": [
+        "base_speed",
+        "kp",
+        "ki",
+        "kd",
+        "sensor_weights",
+        "line_loss"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "base_speed": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 2,
+          "description": "Forward drive demand, 0.05 to 2. PWM base = 4095 * min(1, base_speed/2): 2 is full voltage and values above that change nothing. Each wheel command is limited to +/-4095."
+        },
+        "kp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20,
+          "description": "Proportional gain, 0 to 20. turn = kp*signal + ...; each unit of turn changes the wheel commands by 350 PWM counts (right wheel +, left wheel -)."
+        },
+        "ki": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Integral gain, 0 to 5, acting on the integral of the signal (integral limited to +/-2)."
+        },
+        "kd": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Derivative gain, 0 to 10, acting on the change in signal per second (signal is updated every 10 ms)."
+        },
+        "sensor_weights": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 7,
+          "description": "One weight per sensor, in the same order and number as geometry.sensor_positions. The steering signal is the reading-weighted average of these weights, so they set the scale of the signal; positive signal steers left, negative steers right. At least one weight must be non-zero.",
+          "items": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2,
+            "description": "Weight for one sensor, between -2 and 2."
+          }
+        },
+        "line_loss": {
+          "enum": [
+            "stop",
+            "search_left",
+            "search_right",
+            "last_direction"
+          ],
+          "description": "What to do when all sensors lose the line (sum of readings below 0.05). 'stop': throttle 0. 'last_direction': throttle 0.35 with signal set to +1 or -1 matching the sign of the last valid signal. 'search_left': throttle 0.35 with signal fixed at -1, which steers the robot to its RIGHT. 'search_right': throttle 0.35 with signal fixed at +1, which steers it to its LEFT (the names are the opposite of the direction turned). Each loss counts as one line-loss event."
+        }
+      }
+    },
+    "observation_request": {
+      "type": "object",
+      "description": "Measurements you want reported back after the race, as a list of names from the allowed set. At least one must be listed.",
+      "required": [
+        "measurements"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "measurements": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Metric definitions. completion: 1 if the run finished, else 0. progress: fraction of the course covered (0 to 1). completion_time: seconds elapsed (steps * 0.01). rms_error: root-mean-square distance from the centre line in metres (lower is better). max_error: largest distance from the centre line in metres. line_loss_events: number of times the line was lost. steering_oscillation: sum of the absolute change in distance from the line between steps (jitter). control_effort: kp times the summed absolute line error. controller_errors: steps with a controller exception (0 if none). noise_robustness: 1 - noise level - max_error, floored at 0.",
+          "items": {
+            "description": "One measurement name from the allowed set.",
+            "enum": [
+              "completion",
+              "progress",
+              "completion_time",
+              "rms_error",
+              "max_error",
+              "line_loss_events",
+              "steering_oscillation",
+              "control_effort",
+              "controller_errors",
+              "noise_robustness"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

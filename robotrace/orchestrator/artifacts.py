@@ -8,7 +8,7 @@ from typing import Any
 
 from .io import atomic_write, digest, write_json
 
-TRACK_VIEW_RENDERER_VERSION = "track-view-svg-v1"
+TRACK_VIEW_RENDERER_VERSION = "track-view-svg-v2"
 
 
 
@@ -112,17 +112,31 @@ def track_view_svg(
     snapshot_steps = {label: int(item.get("step", 0)) for label, item in snapshot_points}
 
     snapshot_svg: list[str] = []
-    for label, point in snapshot_points:
+    palette_index = sum(ord(character) for character in condition) % 4
+    body_colours = ("#ff5d8f", "#7c5cff", "#18a999", "#ff9f1c")
+    body_colour = body_colours[palette_index]
+    for snapshot_index, (label, point) in enumerate(snapshot_points):
         px, py, heading = pose(point)
         vx, vy = xy(px, py)
         angle = -heading * 180 / 3.141592653589793
         parts = [f'<g class="robot-snapshot" data-label="{label}" data-step="{int(point.get("step", 0))}" transform="translate({_f(vx)} {_f(vy)}) rotate({_f(angle)}) scale({_f(scale)})">']
-        parts.append(f'<rect class="body" x="{_f(-body_length/2)}" y="{_f(-body_width/2)}" width="{_f(body_length)}" height="{_f(body_width)}" rx="8.000" fill="#5b67a5" fill-opacity=".18" stroke="#35406f" stroke-width="{_f(1.5/scale)}"/>')
+        opacity = ".92" if snapshot_index == len(snapshot_points) - 1 else ".38"
+        parts.append(f'<rect class="body" x="{_f(-body_length/2)}" y="{_f(-body_width/2)}" width="{_f(body_length)}" height="{_f(body_width)}" rx="{_f(min(body_width/2, 18))}" fill="{body_colour}" fill-opacity="{opacity}" stroke="#332f4a" stroke-width="{_f(1.5/scale)}"/>')
+        # Decorative details stay inside the exact body envelope. They make the
+        # spectator rendering personable without changing simulated geometry.
+        face_x = body_length * .28
+        eye_y = min(body_width * .22, 13)
+        eye_r = min(body_width, body_length) * .055
+        parts.append(f'<path class="cockpit" d="M {_f(-body_length*.12)} {_f(-body_width*.32)} Q {_f(body_length*.12)} {_f(-body_width*.48)} {_f(body_length*.24)} 0 Q {_f(body_length*.12)} {_f(body_width*.48)} {_f(-body_length*.12)} {_f(body_width*.32)} Z" fill="#fff4c2" fill-opacity=".72"/>')
+        for eye_offset in (-eye_y, eye_y):
+            parts.append(f'<circle class="eye" cx="{_f(face_x)}" cy="{_f(eye_offset)}" r="{_f(eye_r)}" fill="#fff" stroke="#332f4a" stroke-width="{_f(.8/scale)}"/>')
+            parts.append(f'<circle class="pupil" cx="{_f(face_x+eye_r*.25)}" cy="{_f(eye_offset)}" r="{_f(eye_r*.38)}" fill="#332f4a"/>')
         for wheel in robot["wheels"]:
             # RobotTraceSim x is forward and y is lateral; SVG y is inverted.
             wx, wy = float(wheel["xMM"]), -float(wheel["yMM"])
             ww, wh = float(wheel["widthMM"]), float(wheel["heightMM"])
-            parts.append(f'<rect class="wheel {wheel["id"]}" x="{_f(wx-ww/2)}" y="{_f(wy-wh/2)}" width="{_f(ww)}" height="{_f(wh)}" fill="#252525"/>')
+            parts.append(f'<rect class="wheel {wheel["id"]}" x="{_f(wx-ww/2)}" y="{_f(wy-wh/2)}" width="{_f(ww)}" height="{_f(wh)}" rx="{_f(min(ww, wh)*.28)}" fill="#29263a"/>')
+            parts.append(f'<circle class="wheel-hub" cx="{_f(wx)}" cy="{_f(wy)}" r="{_f(min(ww, wh)*.18)}" fill="#ffd166"/>')
         for sensor in robot["sensors"]:
             sx, sy, size = float(sensor["xMM"]), -float(sensor["yMM"]), float(sensor["sizeMM"])
             parts.append(f'<circle class="sensor" data-sensor="{_svg_text(sensor["id"])}" cx="{_f(sx)}" cy="{_f(sy)}" r="{_f(size/2)}" fill="#21a7c7" fill-opacity=".50" stroke="#07566a" stroke-width="{_f(1/scale)}"/>')
@@ -178,18 +192,17 @@ def track_view_svg(
 <desc>Exact track, recorded trajectory, robot snapshots, and terminal events for a {_svg_text(terminal)} trial.</desc>
 <metadata id="robotrace-metadata">{metadata_json}</metadata>
 <defs><marker id="direction-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#30343b"/></marker><marker id="heading-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/></marker></defs>
-<g id="background"><rect width="1000" height="760" fill="#f8f5ed"/><rect x="20" y="92" width="960" height="546" rx="8" fill="#fff" stroke="#d7d2c8"/><text x="24" y="30" font-family="sans-serif" font-size="18" font-weight="700">Robot Race trial</text><text x="24" y="55" font-family="sans-serif" font-size="13">{header}</text><text x="24" y="76" font-family="monospace" font-size="10">{run_label}</text></g>
-<g id="track-envelope"><polyline points="{centre_points}" fill="none" stroke="#c4c7ca" stroke-width="{_f(tape_width_px)}" stroke-linecap="round" stroke-linejoin="round"/></g>
+<g id="background"><rect width="1000" height="760" fill="#fff7df"/><rect x="20" y="92" width="960" height="546" rx="22" fill="#dff6e8" stroke="#8ac6a3" stroke-width="2"/><circle cx="72" cy="138" r="7" fill="#ffd166" opacity=".65"/><circle cx="928" cy="164" r="10" fill="#ff8fab" opacity=".55"/><circle cx="904" cy="586" r="8" fill="#7c5cff" opacity=".35"/><text x="24" y="30" font-family="sans-serif" font-size="18" font-weight="700" fill="#332f4a">Robot Race trial</text><text x="24" y="55" font-family="sans-serif" font-size="13" fill="#4c4668">{header}</text><text x="24" y="76" font-family="monospace" font-size="10" fill="#6d6688">{run_label}</text></g>
+<g id="track-envelope"><polyline points="{centre_points}" fill="none" stroke="#fff" stroke-width="{_f(tape_width_px + 8)}" stroke-linecap="round" stroke-linejoin="round"/><polyline points="{centre_points}" fill="none" stroke="#4c4668" stroke-width="{_f(tape_width_px)}" stroke-linecap="round" stroke-linejoin="round"/></g>
 <g id="track-centreline"><polyline points="{centre_points}" fill="none" stroke="#30343b" stroke-width="1.300" stroke-dasharray="6 5"/><line x1="{_f(xy(*centreline[15])[0])}" y1="{_f(xy(*centreline[15])[1])}" x2="{_f(xy(*centreline[30])[0])}" y2="{_f(xy(*centreline[30])[1])}" stroke="#30343b" stroke-width="2" marker-end="url(#direction-arrow)"/></g>
 <g id="start-finish"><line x1="{_f(start[0])}" y1="{_f(start[1]-15)}" x2="{_f(start[0])}" y2="{_f(start[1]+15)}" stroke="#2364aa" stroke-width="4"/><text x="{_f(start[0]+6)}" y="{_f(start[1]-18)}" font-family="sans-serif" font-size="11">START</text><line x1="{_f(finish[0])}" y1="{_f(finish[1]-15)}" x2="{_f(finish[0])}" y2="{_f(finish[1]+15)}" stroke="#111" stroke-width="4" stroke-dasharray="4 3"/><text x="{_f(finish[0]-42)}" y="{_f(finish[1]-18)}" font-family="sans-serif" font-size="11">FINISH</text></g>
 <g id="trajectory">{"".join(segments)}</g>
 <g id="robot-snapshots">{"".join(snapshot_svg)}</g>
 <g id="events">{"".join(event_svg)}</g>
-<g id="legend" font-family="sans-serif" font-size="11"><rect x="20" y="650" width="960" height="72" rx="6" fill="#fff" stroke="#d7d2c8"/><text x="34" y="671" font-weight="700">Legend</text><line x1="95" y1="667" x2="135" y2="667" stroke="#c4c7ca" stroke-width="10"/><text x="142" y="671">tape {float(track.get("tape_width", .025))*1000:.1f} mm</text><line x1="250" y1="667" x2="278" y2="667" stroke="{colours["green"]}" stroke-width="3"/><text x="284" y="671">≤25%</text><line x1="342" y1="667" x2="370" y2="667" stroke="{colours["amber"]}" stroke-width="3"/><text x="376" y="671">25–75%</text><line x1="449" y1="667" x2="477" y2="667" stroke="{colours["red"]}" stroke-width="3"/><text x="483" y="671">75–100%</text><line x1="570" y1="667" x2="598" y2="667" stroke="{colours["dark-red"]}" stroke-width="3"/><text x="604" y="671">outside envelope</text><rect x="34" y="689" width="24" height="13" fill="#5b67a5" fill-opacity=".25" stroke="#35406f"/><text x="66" y="700">robot snapshots: start, 25%, 50%, 75%, terminal</text><text x="430" y="700">events: ! line loss · E controller · × off-track · T timeout · S stalled · ✓ finish</text></g>
+<g id="legend" font-family="sans-serif" font-size="11"><rect x="20" y="650" width="960" height="72" rx="12" fill="#fff" stroke="#d7d2c8"/><text x="34" y="671" font-weight="700">Legend</text><line x1="95" y1="667" x2="135" y2="667" stroke="#4c4668" stroke-width="10"/><text x="142" y="671">tape {float(track.get("tape_width", .025))*1000:.1f} mm</text><line x1="250" y1="667" x2="278" y2="667" stroke="{colours["green"]}" stroke-width="3"/><text x="284" y="671">≤25%</text><line x1="342" y1="667" x2="370" y2="667" stroke="{colours["amber"]}" stroke-width="3"/><text x="376" y="671">25–75%</text><line x1="449" y1="667" x2="477" y2="667" stroke="{colours["red"]}" stroke-width="3"/><text x="483" y="671">75–100%</text><line x1="570" y1="667" x2="598" y2="667" stroke="{colours["dark-red"]}" stroke-width="3"/><text x="604" y="671">outside envelope</text><rect x="34" y="689" width="24" height="13" rx="5" fill="{body_colour}" fill-opacity=".65" stroke="#332f4a"/><text x="66" y="700">robot snapshots: start, 25%, 50%, 75%, terminal</text><text x="430" y="700">events: ! line loss · E controller · × off-track · T timeout · S stalled · ✓ finish</text></g>
 <g id="trial-metadata" font-family="sans-serif" font-size="10" fill="#555"><text x="24" y="744">{TRACK_VIEW_RENDERER_VERSION} · allowed centre-line error {_f(allowed_m*1000)} mm · exact recorded poses</text></g>
 </svg>'''
     atomic_write(path, svg)
-
 
 
 

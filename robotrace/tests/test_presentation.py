@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from orchestrator.executors import fallback_presentation, full_notes, validate_presentation
+from orchestrator.executors import fallback_presentation, full_notes, resolve_presentation, validate_presentation
 
 
 class PresentationTests(unittest.TestCase):
@@ -34,6 +34,16 @@ class PresentationTests(unittest.TestCase):
         out = fallback_presentation({"entity1": {}, "entityR1": {}}, entities)
         self.assertEqual(validate_presentation({"entity1", "entityR1"}, out), out)
         self.assertIn("orchestrator wrote", out["entity1"]["notes"])
+
+    def test_missing_or_invalid_presentation_never_rejects_the_work(self) -> None:
+        entities = {"entity0": {"label": "Robot Candidate"}}
+        for bad in (None, {}, "text", {"entity0": {"label": "Updated", "notes": "ok"}}):
+            out = resolve_presentation({"entity0": {}}, bad, entities)
+            self.assertEqual(out["entity0"]["label"], "Robot Candidate")
+            self.assertIn("orchestrator wrote", out["entity0"]["notes"])
+
+    def test_valid_presentation_is_kept(self) -> None:
+        self.assertEqual(resolve_presentation({"entity0": {}}, self.GOOD, {}), self.GOOD)
 
 
 if __name__ == "__main__":
