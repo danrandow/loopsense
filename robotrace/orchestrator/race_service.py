@@ -89,6 +89,9 @@ class MapDrivenRaceService:
                 "total_tokens_per_condition": int(settings["total_tokens_per_condition"]),
                 "max_tokens_per_iteration": int(settings["max_tokens_per_iteration"]),
             })
+            for key, field in (("seeds", "seeds"), ("held_out_seeds", "held_out_seeds")):
+                if settings.get(key) not in (None, "", []):
+                    race["evaluation"][field] = [int(seed) for seed in (settings[key].split(",") if isinstance(settings[key], str) else settings[key])]
             atomic_write(race_path, yaml.safe_dump(race, sort_keys=False))
         state["reviewed"] = {}
         write_json(self.pair_path, state)
@@ -218,7 +221,8 @@ class MapDrivenRaceService:
             robotrace_root = Path(__file__).resolve().parents[1]
             for track_name in controller.package.race["evaluation"]["held_out_tracks"]:
                 track = json.loads((robotrace_root / "tracks" / "held-out" / f"{track_name}.json").read_text())
-                for seed in controller.package.race["evaluation"]["seeds"]:
+                evaluation = controller.package.race["evaluation"]
+                for seed in evaluation.get("held_out_seeds", evaluation["seeds"]):  # held-out seeds never reach a prompt, so more of them cost no tokens
                     held_out_trials.append(run_trial(project_design(design), track, seed, controller.package.race))
             invalid = [trial for trial in held_out_trials if trial.get("termination_reason") == "invalid_design"]
             if held_out_trials and len(invalid) == len(held_out_trials):

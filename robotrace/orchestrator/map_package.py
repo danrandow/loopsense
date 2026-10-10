@@ -280,6 +280,10 @@ class MapPackage:
                 raise PackageValidationError(f"budget.{key} must be positive")
         if budget["max_tokens_per_iteration"] > budget["total_tokens_per_condition"]:
             raise PackageValidationError("per-iteration token budget cannot exceed the total entrant budget")
+        evaluation = _object(self.race["evaluation"], "race evaluation")
+        for key in ("seeds", "held_out_seeds"):
+            if key in evaluation and (not isinstance(evaluation[key], list) or not evaluation[key] or not all(isinstance(seed, int) and not isinstance(seed, bool) for seed in evaluation[key])):
+                raise PackageValidationError(f"evaluation.{key} must be a non-empty list of integers")
         if "history" in self.race:
             history = _object(self.race["history"], "race history")
             if not isinstance(history.get("enabled", True), bool):
