@@ -154,7 +154,7 @@ class MapPackage:
             if not runtime_path.is_file():
                 raise PackageValidationError(f"missing runtime binding for {action_id}")
             runtime = _object(read_yaml(runtime_path), f"{action_id} runtime")
-            if set(runtime) - {"kind", "component", "output_contract", "output_contracts", "provider", "repair_attempts", "required_outputs"}:
+            if set(runtime) - {"kind", "component", "output_contract", "output_contracts", "provider", "repair_attempts", "required_outputs", "release"}:
                 raise PackageValidationError(f"unsupported runtime fields for {action_id}")
             kind = runtime.get("kind")
             if kind not in RUNTIME_KINDS:
@@ -177,6 +177,14 @@ class MapPackage:
             required_outputs = runtime.get("required_outputs")
             if required_outputs is not None and (not isinstance(required_outputs, list) or not set(required_outputs) <= writes[action_id]):
                 raise PackageValidationError(f"{action_id} required_outputs must be a list of topology-authorized writes")
+            release = runtime.get("release")
+            if release is not None:
+                if not isinstance(release, dict) or set(release) != {"decision_entity", "field", "approve_value", "release_entity", "from_entity"}:
+                    raise PackageValidationError(f"{action_id} release must name decision_entity, field, approve_value, release_entity and from_entity")
+                if release["decision_entity"] not in (runtime.get("required_outputs") or []):
+                    raise PackageValidationError(f"{action_id} release decision_entity must be a required output")
+                if release["release_entity"] not in writes[action_id] or release["from_entity"] not in reads[action_id]:
+                    raise PackageValidationError(f"{action_id} release entities must be topology-authorized (release_entity written, from_entity read)")
             output_contracts = runtime.get("output_contracts")
             if output_contracts is not None:
                 if not isinstance(output_contracts, list) or not output_contracts:

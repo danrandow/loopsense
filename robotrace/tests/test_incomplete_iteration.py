@@ -11,7 +11,7 @@ from orchestrator.controller import ActionResult, MapDrivenController
 from orchestrator.executors import downstream_dependents, role_brief, iteration_guidance
 from orchestrator.map_package import MapPackage
 from orchestrator.race_service import MapDrivenRaceService
-from orchestrator.validators import ContractFailure
+from orchestrator.validators import BudgetExhausted, ContractFailure
 
 
 def package(root: Path, iterations: int) -> MapPackage:
@@ -100,6 +100,44 @@ class IncompleteIterationTests(unittest.TestCase):
             outcome = json.loads((root / "iteration-0/outcome.json").read_text())
             self.assertFalse(outcome["complete"])
             self.assertIn("token budget", outcome["reason"])
+
+    def test_budget_exhausted_before_a_call_ends_the_iteration_and_counts_spent_tokens(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def execute(action, inputs, context):
+                if action.id == "action0":
+                    raise BudgetExhausted("action0 needs about 9000 input tokens but 100 remain", "action0", 300, 40)
+                raise AssertionError("nothing downstream of an undelivered output may run")
+            controller = MapDrivenController(package(root, 2), execute, "test-sim")
+            controller.run_iteration(0)  # must not raise: running out of budget is a race outcome
+            outcome = json.loads((root / "iteration-0/outcome.json").read_text())
+            self.assertFalse(outcome["complete"])
+            self.assertIn("token budget exhausted", outcome["reason"])
+            events = [json.loads(line) for line in (root / "iteration-0/events.jsonl").read_text().splitlines()]
+            self.assertEqual([(e["type"], e["input_tokens"], e["output_tokens"]) for e in events], [("budget_exhausted", 300, 40)])
+            self.assertTrue((root / "scenario-iteration-1.yaml").exists(), "the next iteration must still be seeded")
+
+    def test_rejected_attempts_tokens_are_recorded(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def execute(action, inputs, context):
+                raise ContractFailure("rejected", action.id, ["bad"], 700, 90)
+            MapDrivenController(package(root, 1), execute, "test-sim").run_iteration(0)
+            events = [json.loads(line) for line in (root / "iteration-0/events.jsonl").read_text().splitlines()]
+            self.assertEqual((events[0]["type"], events[0]["input_tokens"], events[0]["output_tokens"]), ("action_rejected", 700, 90))
+
+    def test_a_call_that_overruns_is_kept_and_the_next_call_is_not_made(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pkg = package(root, 1)
+            calls: list[str] = []
+            def execute(action, inputs, context):
+                calls.append(action.id)
+                return ActionResult({"entity0": {"value": 1}}, {"entity0": "Ready"}, {}, {"kind": "made", "input_tokens": 10**6, "output_tokens": 0})
+            MapDrivenController(pkg, execute, "test-sim").run_iteration(0)  # used to raise RuntimeError("...exceeded the configured token budget")
+            self.assertEqual(calls, ["action0"])
+            self.assertTrue((root / "iteration-0/entity0/current").exists(), "the paid-for output is kept")
+            self.assertTrue(json.loads((root / "iteration-0/budget-ledger.json").read_text())["over_budget"])
 
 
 class PromptContentTests(unittest.TestCase):

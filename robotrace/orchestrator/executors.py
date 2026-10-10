@@ -13,7 +13,7 @@ from .controller import ActionResult
 from .history import CHARS_PER_TOKEN, build_history
 from .io import digest
 from .map_package import ActionDefinition, MapPackage
-from .validators import ContractFailure, validate_controller, validate_geometry
+from .validators import BudgetExhausted, ContractFailure, validate_controller, validate_geometry
 
 
 def _design(iteration: int) -> dict[str, Any]:
@@ -36,6 +36,7 @@ DESIGN_FIELDS = ("geometry", "controller", "observation_request")
 
 # Room reserved for the fixed system message when sizing a history pack from the remaining token budget.
 SYSTEM_PROMPT_ALLOWANCE = 1500
+MIN_OUTPUT_TOKENS = 500  # a call that cannot leave at least this much for the answer is not made
 SYSTEM_PROMPT = ("Return one JSON object keyed by the entity IDs you update. Every value must match that entity's supplied contract. Every entity in required_outputs MUST be present, or the team cannot be scored. "
     "Your role, your work and your team are described in instructions and your_role; downstream_dependents shows who reads each of your other authorized outputs and what they use it for. Use only supplied inputs. "
     "You have a token allowance for this (see remaining_budget, which also shows how many teammates' model calls are still to run this iteration, how many iterations follow this one, and the size of this call's own prompt, already spent); a careful rationale is worth spending it on. "
@@ -215,7 +216,8 @@ class PackageExecutor:
         provider = self.package.race["model"]["provider"]
         if provider == "mock":
             output = self._mock_outputs(action, targets, inputs, int(context["iteration"]))
-            presentation = self._mock_presentation(output, int(context["iteration"]))
+            released = self._apply_release(action, output, inputs)
+            presentation = {**self._mock_presentation(output, int(context["iteration"])), **released}
             history = self._history(action, inputs, context, base_tokens=0)
             self._history_tokens = -(-len(json.dumps(history, separators=(",", ":"))) // CHARS_PER_TOKEN) if history else 0
             request_id = "mock-" + digest({"instructions": action.instructions, "inputs": inputs, "iteration": context["iteration"], **({"history": history} if history else {})})[:16]
@@ -226,21 +228,40 @@ class PackageExecutor:
         elif provider == "openrouter":
             self._history_tokens = 0
             output, request_id, input_tokens, output_tokens, presentation = self._openrouter(action, targets, inputs, context)
+            presentation = {**presentation, **self._apply_release(action, output, inputs)}
         else:
             raise RuntimeError(f"unsupported model provider: {provider}")
-        unexpected = set(output) - set(targets)
+        unexpected = set(output) - set(targets) - ({action.runtime["release"]["release_entity"]} if action.runtime.get("release") else set())
         if unexpected or not output:
-            raise ContractFailure(f"model returned invalid output entities: {sorted(unexpected)}", action.id, [f"invalid output entities: {sorted(unexpected)}"])
+            raise ContractFailure(f"model returned invalid output entities: {sorted(unexpected)}", action.id, [f"invalid output entities: {sorted(unexpected)}"], input_tokens, output_tokens)
         for entity_id, payload in output.items():
             try:
                 self.package.validate_payload(entity_id, payload)
             except Exception as error:
-                raise ContractFailure(f"{entity_id} failed its contract: {error}", action.id, [str(error)]) from error
+                raise ContractFailure(f"{entity_id} failed its contract: {error}", action.id, [str(error)], input_tokens, output_tokens) from error
         return ActionResult(output, {entity: presentation[entity]["label"] for entity in output}, {entity: full_notes(presentation[entity]["notes"], output[entity]) for entity in output}, {
             "provider": provider, "request_id": request_id,
             "input_tokens": input_tokens, "output_tokens": output_tokens,
             "history_tokens_estimate": getattr(self, "_history_tokens", 0),
         })
+
+    def _apply_release(self, action: ActionDefinition, output: dict[str, dict[str, Any]], inputs: dict[str, dict[str, Any]]) -> dict[str, dict[str, str]]:
+        """An agent's decision releases a recorded candidate: when its required decision field says approve, the orchestrator writes the
+        release entity as an unchanged copy of the candidate it reviewed. The agent never has to re-emit the build, so approving costs
+        it no extra output and the approved build cannot differ from the one reviewed. Returns the presentation for what it wrote."""
+        release = action.runtime.get("release")
+        if not release:
+            return {}
+        decision = output.get(release["decision_entity"], {}).get(release["field"])
+        candidate = inputs.get(release["from_entity"])
+        if decision != release["approve_value"] or not candidate:
+            return {}
+        entity = release["release_entity"]
+        output[entity] = {**project_design(candidate), "approval": {"decision": "ship", "candidate_id": digest(project_design(candidate))[:16]}}
+        for key in ("rationale", "learning", "notes"):  # keep the candidate's own reasoning if the release contract asks for it
+            if key in (self.package.contract(entity) or {}).get("required", []) and key in candidate:
+                output[entity][key] = candidate[key]
+        return fallback_presentation({entity: output[entity]}, self.package.entities)
 
     def _history(self, action: ActionDefinition, inputs: dict[str, dict[str, Any]], context: dict[str, Any], base_tokens: int) -> dict[str, Any] | None:
         """This actor's history pack (see history.py), sized to what the token budget leaves for this call; None when the race has no history setting."""
@@ -296,7 +317,9 @@ class PackageExecutor:
             elif "entries" in required:
                 outputs[target] = {"entries": [{"kind": "mock", "iteration": iteration}]}
             elif "feedback" in required:
-                if not approval_flow and any(key.endswith("R2B") for key in inputs):
+                if "decision" in required:  # decision-gated evaluator: the mock always approves, so the loop ends
+                    outputs[target] = {"feedback": "Use addressed race evidence in the next revision.", "requested_changes": [], "decision": "approve"}
+                elif not approval_flow and any(key.endswith("R2B") for key in inputs):
                     outputs[target] = {"feedback": "Use addressed race evidence in the next revision.", "requested_changes": []}
             else:
                 outputs[target] = {key: "mock" for key in required}
@@ -317,7 +340,7 @@ class PackageExecutor:
         base_prompt["your_role"] = role_brief(self.package, action, targets)
         base_prompt["required_outputs"] = required
         # Models often drop the reserved key, so show its exact shape in the user message too (not only the system prompt).
-        base_prompt["response_shape"] = {"<entity_id>": "the entity's payload, matching its contract", PRESENTATION_KEY: {t: {"label": "<=25 chars, what this output is or what changed", "notes": "1-3 sentences: what you produced and the evidence it rests on"} for t in targets}, "reminder": f"{PRESENTATION_KEY} is optional: if you leave it out the orchestrator writes the map label and note, and nothing is rejected."}
+        base_prompt["response_shape"] = {"<entity_id>": "the entity's payload, matching its contract", PRESENTATION_KEY: {t: {"label": "<=25 chars, what this output is or what changed", "notes": "1-3 sentences: what you produced and the evidence it rests on"} for t in targets}, "key_order": "Write each entity's keys in the order its contract lists them: reasoning fields (rationale, intent) come first, so you have worked out the limits before you write the numbers.", "reminder": f"{PRESENTATION_KEY} is optional: if you leave it out the orchestrator writes the map label and note, and nothing is rejected."}
         dependents = downstream_dependents(self.package, action, targets)
         if dependents:
             base_prompt["downstream_dependents"] = dependents
@@ -336,21 +359,29 @@ class PackageExecutor:
             base_prompt["telemetry_format"] = TELEMETRY_FORMAT
         # This call's own input size (estimate, ~3 chars/token): the prompt is spent before the model writes a word.
         base_prompt["remaining_budget"] = {**base_prompt["remaining_budget"], "this_call_input_tokens_estimate": 0}
-        size = -(-(len(SYSTEM_PROMPT) + len(json.dumps(base_prompt, sort_keys=True, separators=(",", ":")))) // CHARS_PER_TOKEN)
+        size = -(-(len(SYSTEM_PROMPT) + len(json.dumps(base_prompt, separators=(",", ":")))) // CHARS_PER_TOKEN)
         base_prompt["remaining_budget"]["this_call_input_tokens_estimate"] = size
         error = ""
         errors: list[str] = []
+        spent_in = spent_out = 0  # every attempt is paid for, including the ones the contract rejects
         attempts = int(action.runtime.get("repair_attempts", 0)) + 1
         for _ in range(attempts):
-            messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": json.dumps({**base_prompt, "previous_validation_error": error}, sort_keys=True, separators=(",", ":"))}]
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": json.dumps({**base_prompt, "previous_validation_error": error}, separators=(",", ":"))}]  # no sort_keys: the model copies the key order it is shown, so contract order (rationale before numbers) must survive
             available_tokens = min(
                 int(context["budget"]["iteration_tokens_remaining"]),
                 int(context["budget"]["total_tokens_remaining"]),
-            )
-            body = {"model": config["id"], "messages": messages, "temperature": config.get("temperature", 0), "max_tokens": min(config["max_output_tokens"], available_tokens), "response_format": {"type": "json_object"}}
+            ) - spent_in - spent_out
+            prompt_estimate = -(-sum(len(m["content"]) for m in messages) // CHARS_PER_TOKEN)
+            room = available_tokens - prompt_estimate  # what is left for the model's answer once the prompt is paid for
+            if room < MIN_OUTPUT_TOKENS:
+                raise BudgetExhausted(f"{action.id} needs about {prompt_estimate} input tokens plus at least {MIN_OUTPUT_TOKENS} to answer, but {max(0, available_tokens)} remain", getattr(action, "id", None), spent_in, spent_out)
+            body = {"model": config["id"], "messages": messages, "temperature": config.get("temperature", 0), "max_tokens": min(config["max_output_tokens"], room), "response_format": {"type": "json_object"}}
             request = Request(config.get("base_url", "https://openrouter.ai/api/v1").rstrip("/") + "/chat/completions", data=json.dumps(body).encode(), headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}, method="POST")
             with urlopen(request, timeout=config.get("timeout_seconds", 120)) as response:
                 response_data = json.loads(response.read())
+            usage = response_data.get("usage", {})
+            spent_in += int(usage.get("prompt_tokens", 0))
+            spent_out += int(usage.get("completion_tokens", 0))
             content = ""
             try:
                 content = response_data["choices"][0]["message"]["content"].strip()
@@ -358,8 +389,13 @@ class PackageExecutor:
                     content = content.split("\n", 1)[1].rsplit("```", 1)[0]
                 output = json.loads(content)
                 presentation = output.pop(PRESENTATION_KEY, None) if isinstance(output, dict) else None
-                if not isinstance(output, dict) or not output or set(output) - set(targets):
-                    raise ValueError("response must contain one or more authorized output entity keys")
+                if isinstance(output, dict):
+                    presentation = self._tidy_shape(output, targets, presentation)
+                if not isinstance(output, dict) or not output:
+                    raise ValueError("response must be a JSON object keyed by the entity IDs you write")
+                stray = sorted(set(output) - set(targets))
+                if stray:
+                    raise ValueError(f"unknown top-level keys {stray}; the only keys allowed at the top level are your authorized output entity IDs {sorted(targets)} and the optional {PRESENTATION_KEY}")
                 missing = [t for t in required if t not in output]
                 if missing:
                     raise ValueError(f"required outputs are missing: {missing}. You must produce every entity in required_outputs, each matching its contract.")
@@ -370,13 +406,29 @@ class PackageExecutor:
                         if isinstance(payload.get("controller"), dict):  # an out-of-range controller would otherwise only surface as a 0-scoring invalid design
                             validate_controller(payload["controller"], len(payload["geometry"]["sensor_positions"]), self.package.race["design_bounds"])
                 presentation = resolve_presentation(output, presentation, self.package.entities)
-                usage = response_data.get("usage", {})
-                return output, response_data.get("id", "openrouter-unknown"), int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0)), presentation
+                return output, response_data.get("id", "openrouter-unknown"), spent_in, spent_out, presentation
             except Exception as validation_error:
                 error = str(validation_error)
                 errors.append(error)
                 self._record_rejected_attempt(action, context, _ + 1, content, error)
-        raise ContractFailure(f"model output failed contract after {attempts} attempts: {error}", getattr(action, "id", None), errors)
+        raise ContractFailure(f"model output failed contract after {attempts} attempts: {error}", getattr(action, "id", None), errors, spent_in, spent_out)
+
+    def _tidy_shape(self, output: dict[str, Any], targets: Any, presentation: Any) -> Any:
+        """Put misplaced fields where they belong instead of rejecting the output (a retry resends the whole prompt). Moves only placement,
+        never content: a nested '_presentation' becomes the top-level one, and a stray top-level key that is a field of the single entity
+        being written moves into that entity. Anything else is left for the contract to reject, with the offending key named."""
+        for payload in output.values():
+            if isinstance(payload, dict) and PRESENTATION_KEY in payload:
+                nested = payload.pop(PRESENTATION_KEY)
+                if presentation is None:
+                    presentation = nested
+        entities = [key for key in output if key in targets]
+        if len(entities) == 1 and isinstance(output[entities[0]], dict):
+            fields = (self.package.contract(entities[0]) or {}).get("properties", {})
+            for key in [key for key in output if key not in targets]:
+                if key in fields and key not in output[entities[0]]:
+                    output[entities[0]][key] = output.pop(key)
+        return presentation
 
     def _record_rejected_attempt(self, action: ActionDefinition, context: dict[str, Any], attempt: int, raw_output: str, error: str) -> None:
         """Keep every rejected model output so a failed contract can be diagnosed afterwards (best effort)."""

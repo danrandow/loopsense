@@ -50,10 +50,23 @@ def design_bounds_from_contract(contract: dict[str, Any] | None) -> dict[str, An
 class ContractFailure(RuntimeError):
     """A model output that never satisfied its contract. A race outcome (fed back to the team), not a harness fault."""
 
-    def __init__(self, message: str, action: str | None = None, errors: list[str] | None = None):
+    def __init__(self, message: str, action: str | None = None, errors: list[str] | None = None,
+                 input_tokens: int = 0, output_tokens: int = 0):
         super().__init__(message)
         self.action = action
         self.errors = errors or []
+        self.input_tokens = input_tokens  # tokens already spent on the rejected attempts
+        self.output_tokens = output_tokens
+
+
+class BudgetExhausted(RuntimeError):
+    """The token budget cannot pay for the next model call. A race outcome: the iteration ends and the team is told."""
+
+    def __init__(self, message: str, action: str | None = None, input_tokens: int = 0, output_tokens: int = 0):
+        super().__init__(message)
+        self.action = action
+        self.input_tokens = input_tokens  # tokens already spent on earlier attempts in this action
+        self.output_tokens = output_tokens
 
 
 def _number(value: Any, name: str, low: float, high: float) -> None:

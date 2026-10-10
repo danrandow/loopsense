@@ -247,6 +247,22 @@ class TemplateCanonicalKeyTests(unittest.TestCase):
         approved = {**rejected, "entity1": "b"}
         self.assertEqual(package.ready_actions(approved, ran), ["action2"])
 
+    def test_opt_eval_decision_field_releases_the_reviewed_candidate_unchanged(self) -> None:
+        from orchestrator.executors import PackageExecutor
+        from orchestrator.map_package import MapPackage
+        package = MapPackage(self.TEMPLATES / "opt-eval").validate()
+        executor, action = PackageExecutor(package), package.actions["action1"]
+        candidate = {"rationale": "r", "geometry": {"g": 1}, "controller": {"c": 2}, "observation_request": {}}
+        approved = {"entityR1": {"feedback": "ok", "requested_changes": [], "decision": "approve"}}
+        shown = executor._apply_release(action, approved, {"entity0": candidate})
+        self.assertEqual(approved["entity1"]["geometry"], {"g": 1})
+        self.assertEqual(approved["entity1"]["approval"]["decision"], "ship")
+        package.validate_payload("entity1", approved["entity1"])
+        self.assertIn("entity1", shown)
+        revised = {"entityR1": {"feedback": "no", "requested_changes": ["x"], "decision": "revise"}}
+        self.assertEqual(executor._apply_release(action, revised, {"entity0": candidate}), {})
+        self.assertNotIn("entity1", revised)
+
     def test_design_outputs_carry_a_required_rationale_in_both_entrants(self) -> None:
         import json
         for name, entities in (("randow-maps", ("entity0", "entity1")), ("opt-eval", ("entity0",))):

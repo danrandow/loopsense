@@ -210,7 +210,7 @@ class MapDrivenRaceService:
                 outcome_path = controller.package.path(f"iteration-{controller.package.race['iterations'] - 1}", "outcome.json")
                 outcome = json.loads(outcome_path.read_text()) if outcome_path.is_file() else {}
                 write_json(controller.package.path("final-evaluation.json"), {"held_out": True, "incomplete": True, "reason": outcome.get("reason", "no design delivered in the final iteration"), "undelivered": outcome.get("undelivered", []), "trials": [], "simulator_version": ADAPTER_VERSION})
-                scores.append({"entrant": controller.package.race["entrant"], "score": 0.0, "development_score": None, "incomplete": True, "package": str(controller.package.root)})
+                scores.append({"entrant": controller.package.race["entrant"], "score": 0.0, "development_score": None, "incomplete": True, "package": str(controller.package.root), "tokens": self._token_totals(controller.package), **self._score_columns(controller.package, False)})
                 continue
             design_version = design_current.read_text().strip()
             design = json.loads((design_current.parent / "versions" / design_version / "payload.json").read_text())
@@ -226,8 +226,8 @@ class MapDrivenRaceService:
             write_json(controller.package.path("final-evaluation.json"), {"held_out": True, "trials": held_out_trials, "simulator_version": ADAPTER_VERSION})
             self._publish_trials(controller.package, "final-held-out", design, held_out_trials, held_out=True)
             held_out_score = round(sum(float(trial["score"]) for trial in held_out_trials) / len(held_out_trials), 4)
-            scores.append({"entrant": controller.package.race["entrant"], "score": held_out_score, "development_score": result["score"] if result else None, "package": str(controller.package.root), "tokens": self._token_totals(controller.package)})
-        scores.sort(key=lambda item: item["score"], reverse=True)
+            scores.append({"entrant": controller.package.race["entrant"], "score": held_out_score, "development_score": result["score"] if result else None, "package": str(controller.package.root), "tokens": self._token_totals(controller.package), **self._score_columns(controller.package, result is not None)})
+        scores.sort(key=lambda item: (-item["score"], item["entrant"]))  # ties are not ordered by who ran first
         for controller in controllers:
             self._write_package_report(controller.package, scores)
         leaderboard = self.workspace / f"{self.race_id}-leaderboard.json"
@@ -279,16 +279,18 @@ class MapDrivenRaceService:
 
     def _race_summary_lines(self, scores: list[dict[str, Any]]) -> list[str]:
         """The race-level summary: identical in the root report and in every team's copy, so no team reads as the owner."""
-        lines = [f"# {self.race_id} — race report", "", "| Place | Entrant | Held-out score | Final development score |", "|---:|---|---:|---:|"]
-        lines += [f"| {i + 1} | {item['entrant']} | {item['score']} | {item['development_score'] if item['development_score'] is not None else '—'} |" for i, item in enumerate(scores)]
+        lines = [f"# {self.race_id} — race report", "", "| Place | Entrant | Held-out score | Best development score | Final development score |", "|---|---|---:|---:|---:|"]
+        dash = lambda value, missing="—": missing if value is None else value
+        places = [1 + sum(1 for other in scores if other["score"] > item["score"]) for item in scores]
+        lines += [f"| {place}{'=' if places.count(place) > 1 else ''} | {item['entrant']} | {item['score']} | {dash(item.get('best_development_score'))} | {dash(item.get('final_development_score', item['development_score']), 'not raced')} |" for place, item in zip(places, scores)]
         lines += ["", "[Open the leaderboard chart](leaderboard.svg)", ""]
         if all("tokens" in item for item in scores):
-            lines += ["## Token cost", "", "Input plus output tokens over every model call. History-pack tokens are an estimate of the part of the input that is the history pack (about 3 characters per token).", "",
-                      "| Entrant | Model calls | Input tokens | Output tokens | Total tokens | of which history pack (est.) |", "|---|---:|---:|---:|---:|---:|"]
+            lines += ["## Token cost", "", "Total charged is what each team spent against its allowance, including calls whose output the contract rejected (their tokens are not in the input and output columns). History-pack tokens are an estimate of the part of the input that is the history pack (about 3 characters per token).", "",
+                      "| Entrant | Model calls | Input tokens | Output tokens | Total charged | of which rejected attempts | history pack (est.) |", "|---|---:|---:|---:|---:|---:|---:|"]
             for item in scores:
                 t = item["tokens"]
-                lines.append(f"| {item['entrant']} | {t['calls']} | {t['input']} | {t['output']} | {t['input'] + t['output']} | {t['history']} |")
-            lines.append(f"| **Race total** | {sum(i['tokens']['calls'] for i in scores)} | {sum(i['tokens']['input'] for i in scores)} | {sum(i['tokens']['output'] for i in scores)} | **{sum(i['tokens']['input'] + i['tokens']['output'] for i in scores)}** | {sum(i['tokens']['history'] for i in scores)} |")
+                lines.append(f"| {item['entrant']} | {t['calls']} | {t['input']} | {t['output']} | {t['total']} | {t['unrecorded']} | {t['history']} |")
+            lines.append(f"| **Race total** | {sum(i['tokens']['calls'] for i in scores)} | {sum(i['tokens']['input'] for i in scores)} | {sum(i['tokens']['output'] for i in scores)} | **{sum(i['tokens']['total'] for i in scores)}** | {sum(i['tokens']['unrecorded'] for i in scores)} | {sum(i['tokens']['history'] for i in scores)} |")
             lines.append("")
         return lines
 
@@ -320,7 +322,35 @@ class MapDrivenRaceService:
                     totals["output"] += call["output"] or 0
                     totals["history"] += call["history"] or 0
                     totals["calls"] += 1
+        # The budget ledger is cumulative and also counts calls whose output the contract rejected, which never become an action run;
+        # the difference is shown separately so the team's spend matches what it was charged against its allowance.
+        spent = 0
+        for iteration in reversed(range(int(package.race["iterations"]))):
+            ledger = package.path(f"iteration-{iteration}", "budget-ledger.json")
+            if ledger.is_file():
+                spent = int(json.loads(ledger.read_text(encoding="utf-8")).get("total_tokens", 0))
+                break
+        totals["total"] = max(spent, totals["input"] + totals["output"])
+        totals["unrecorded"] = totals["total"] - totals["input"] - totals["output"]
         return totals
+
+    @staticmethod
+    def _development_scores(package: MapPackage) -> dict[int, float]:
+        """Mean development score of every iteration that was raced."""
+        scores = {}
+        for iteration in range(int(package.race["iterations"])):
+            summary = package.path(f"iteration-{iteration}", "summary.json")
+            if summary.is_file():
+                trials = json.loads(summary.read_text(encoding="utf-8"))["trials"]
+                scores[iteration] = sum(float(t["score"]) for t in trials) / max(1, len(trials))
+        return scores
+
+    @staticmethod
+    def _score_columns(package: MapPackage, final_iteration_raced: bool) -> dict[str, Any]:
+        scores = MapDrivenRaceService._development_scores(package)
+        last = int(package.race["iterations"]) - 1
+        return {"best_development_score": round(max(scores.values()), 4) if scores else None,
+                "final_development_score": round(scores[last], 4) if final_iteration_raced and last in scores else None}
 
     @staticmethod
     def _retriggers(calls: list[dict[str, Any]]) -> int:
@@ -358,7 +388,7 @@ class MapDrivenRaceService:
             lines.append("")
         t = self._token_totals(package)
         cap = int(package.race["budget"]["total_tokens_per_condition"])
-        lines += [f"## {entrant} token cost", "", f"- Total: {t['input'] + t['output']} of {cap} allowed ({t['input']} input, {t['output']} output) over {t['calls']} model calls", f"- History pack (estimate, part of input): {t['history']}", ""]
+        lines += [f"## {entrant} token cost", "", f"- Total charged: {t['total']} of {cap} allowed; {t['input']} input and {t['output']} output over {t['calls']} completed model calls, plus {t['unrecorded']} on rejected attempts", f"- History pack (estimate, part of input): {t['history']}", ""]
         table = []
         for iteration in range(total):
             for number, call in enumerate(self._action_call_stats(package, iteration), 1):

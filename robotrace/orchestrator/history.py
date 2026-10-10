@@ -32,7 +32,7 @@ ABOUT = (
     "generated for you in that iteration; race data describes the robot raced in that same iteration, and feedback "
     "describes the candidate of that iteration (you read it in the next one). 'same_as_authorized_input' means the "
     "entity is identical to one already supplied in authorized_inputs. outcome_table lines up, for each iteration, the "
-    "design values you are authorised to see with the race result. Per-step telemetry is kept for the most recent race "
+    "design values you are authorised to see with the race result; scoreboard summarises the raced scores. Per-step telemetry is kept for the most recent race "
     "data that fits the token ceiling; older race data keeps its metrics only."
 )
 
@@ -104,6 +104,21 @@ def _outcome(record: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
+def _scoreboard(table: list[dict[str, Any]], iteration: int) -> dict[str, Any] | None:
+    """Orchestrator-written facts about the raced iterations: the best score, and each iteration's change from the one before. No advice."""
+    scored = [(row["iteration"], float(row["outcome"]["score"])) for row in table if row.get("outcome") and row["outcome"].get("score") is not None]
+    if not scored:
+        return None
+    best_iteration, best_score = max(scored, key=lambda item: (item[1], -item[0]))
+    changes = {k: round(score - scored[n - 1][1], 4) for n, (k, score) in enumerate(scored) if n}
+    return {
+        "scores_by_iteration": {k: round(score, 4) for k, score in scored},
+        "change_from_previous_raced_iteration": changes,
+        "best_iteration": best_iteration, "best_score": round(best_score, 4),
+        "not_yet_raced": f"The design in iteration {iteration} has not raced, so it has no row in this table or scoreboard.",
+    }
+
+
 def _view(record: dict[str, Any], input_digests: dict[str, str]) -> dict[str, Any]:
     """The record as shown: received entities already supplied as authorized inputs are replaced by a reference."""
     shown = {key: value for key, value in record.items() if key not in ("produced", "received")}
@@ -138,8 +153,10 @@ def build_history(
     for i, entity_id in heavy:
         views[i]["received"][entity_id] = metrics_only(originals[(i, entity_id)])
 
+    scoreboard = _scoreboard(table, iteration)
+
     def assemble(details: list[dict[str, Any]]) -> dict[str, Any]:
-        return {"about": ABOUT, "outcome_table": table, "iterations": details}
+        return {"about": ABOUT, **({"scoreboard": scoreboard} if scoreboard else {}), "outcome_table": table, "iterations": details}
 
     ceiling = int(settings.get("telemetry_token_ceiling", 0))
     allowance = ceiling - sum(estimate_tokens(payload, pack) for payload in inputs.values() if has_telemetry(payload))

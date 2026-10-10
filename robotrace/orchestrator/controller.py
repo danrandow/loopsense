@@ -11,7 +11,7 @@ from typing import Any, Callable
 
 from .io import atomic_write, digest, read_yaml, write_json
 from .map_package import ActionDefinition, MapPackage
-from .validators import ContractFailure
+from .validators import BudgetExhausted, ContractFailure
 from .transactions import ScenarioTransaction, recover_transactions
 import yaml
 
@@ -139,9 +139,16 @@ class MapDrivenController:
             }
             try:
                 result = self.executor(action, inputs, context)
+            except BudgetExhausted as failure:
+                # The budget cannot pay for this call. Running out is a race outcome, not a harness fault: end the iteration and
+                # tell the actors why next time (previous_iteration_incomplete) so they can plan with less. The race goes on.
+                self._record_spent(events_path, action_id, "budget_exhausted", failure)
+                return self._close_incomplete(iteration, scenario, iteration_dir, available, invocations, complete,
+                                              f"token budget exhausted: {failure}")
             except ContractFailure as failure:
                 # The team could not produce a valid output. That is what happened in the race: end the iteration here and
                 # tell the actors why next time (previous_iteration_incomplete), exactly as for any other undelivered output.
+                self._record_spent(events_path, action_id, "action_rejected", failure)
                 return self._close_incomplete(iteration, scenario, iteration_dir, available, invocations, complete,
                                               f"{action_id}'s output was rejected after repeated attempts: {failure.errors[-1] if failure.errors else failure}",
                                               rejected={"action": action_id, "errors": failure.errors})
@@ -165,8 +172,9 @@ class MapDrivenController:
             input_tokens += int(result.event.get("input_tokens", 0))
             output_tokens += int(result.event.get("output_tokens", 0))
             iteration_tokens = input_tokens + output_tokens
-            if iteration_tokens > iteration_token_limit or prior_total_tokens + iteration_tokens > total_token_limit:
-                raise RuntimeError("model response exceeded the configured token budget")
+            # A call that overran its budget (the prompt estimate is conservative, so this should be rare) has been paid for:
+            # keep its output and the true figures. The check before the next model call then ends the iteration.
+            over_budget = iteration_tokens > iteration_token_limit or prior_total_tokens + iteration_tokens > total_token_limit
             transaction.update_budget({
                 "action_runs": runs + 1, "maximum_action_runs": maximum,
                 "input_tokens": input_tokens, "output_tokens": output_tokens,
@@ -174,6 +182,7 @@ class MapDrivenController:
                 "maximum_iteration_tokens": iteration_token_limit,
                 "total_tokens": prior_total_tokens + iteration_tokens,
                 "maximum_total_tokens": total_token_limit,
+                **({"over_budget": True} if over_budget else {}),
             })
             transaction.commit()
             for entity_id in result.writes:
@@ -196,6 +205,15 @@ class MapDrivenController:
         if outcome.get("complete"):
             return None
         return {key: outcome[key] for key in ("reason", "undelivered", "blocked_actions", "rejected") if key in outcome}
+
+    @staticmethod
+    def _record_spent(events_path: Path, action_id: str, kind: str, failure: Exception) -> None:
+        """Tokens spent on attempts that delivered nothing still count against the budget: log them as an event."""
+        spent_in, spent_out = int(getattr(failure, "input_tokens", 0)), int(getattr(failure, "output_tokens", 0))
+        if spent_in + spent_out:
+            with events_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps({"id": f"{kind}-{action_id}", "timestamp": datetime.now(timezone.utc).isoformat(), "type": kind,
+                                         "action": action_id, "input_tokens": spent_in, "output_tokens": spent_out}) + "\n")
 
     def _close_incomplete(self, iteration: int, scenario: Path, iteration_dir: Path, available: dict[str, str],
                           invocations: dict[str, tuple[str, ...]], complete: set[str], reason: str, rejected: dict[str, Any] | None = None) -> Path:
