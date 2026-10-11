@@ -44,6 +44,27 @@ oval, s-bend, hairpin and hairpin-b are unchanged. Verified on fresh seeds 101 t
 
 As-is designs from earlier races fail slalom, hairpin-b and slalom-b outright; the improvement that unlocks them is discoverable (body size is one lever). No track is all-finish or all-fail for the minimum-body population. Scripts: `tools/calibration/`.
 
+## Harder held-out tracks (second calibration)
+
+A free (1+1) search (`tools/baseline_search.py`, no model) trained on the development tracks reaches about 930 to 940 on all of them, so development scores saturate. Held-out scores for four such designs (different search seeds) ranged from 391 to 895, so held-out tracks are what separate them. They were then made harder so the best development-trained design does not reach 100%:
+
+| Track | Before | After |
+|---|---|---|
+| hairpin (held-out) | difficulty 0.78, length 22 | difficulty 0.85, length 16 |
+| hairpin-b (held-out) | difficulty 0.85, length 12 | difficulty 1.0, length 12 |
+| slalom-b (held-out) | difficulty 0.35, length 18 | difficulty 0.45, length 20 |
+
+Check on fresh seeds 201 to 220, four development-trained search designs, finish rate and held-out mean score:
+
+| Track | rng1 | rng2 | rng3 | rng4 |
+|---|---:|---:|---:|---:|
+| hairpin | 100% | 100% | 0% | 100% |
+| hairpin-b | 65% | 40% | 0% | 0% |
+| slalom-b | 45% | 0% | 25% | 0% |
+| held-out mean score | 759 | 611 | 161 | 402 |
+
+Feasibility: designs optimised directly on the held-out tracks solved them (hairpin 100%, hairpin-b 100% in a 70-evaluation search; slalom-b 93% to 100% in two of three 350-evaluation searches, 0% in the third). One design (rng13) generalised, scoring 880 over all three held-out tracks. The tracks are hard but solvable, and generalisation is what separates designs.
+
 ## Not done
 
 - Calibration used past teams' designs; agents under v2 may find other levers, so recheck after the first replicate races.
