@@ -8,6 +8,7 @@ from urllib.request import Request, urlopen
 
 from simulator.adapter import ADAPTER_VERSION, run_trial
 from simulator.adapter.headless import score_description
+from orchestrator.evidence import keep_telemetry, mode_of, summarise_payload
 
 from .controller import ActionResult
 from .history import CHARS_PER_TOKEN, build_history
@@ -203,6 +204,11 @@ class PackageExecutor:
 
     def __init__(self, package: MapPackage):
         self.package = package
+        self.evidence_mode = mode_of(package.race)
+
+    def _shown(self, value: Any) -> Any:
+        """The form race evidence takes in a prompt (see evidence.py); stored payloads and artefacts are never changed."""
+        return summarise_payload(value) if self.evidence_mode == "summary" else value
 
     def __call__(self, action: ActionDefinition, inputs: dict[str, dict[str, Any]], context: dict[str, Any]) -> ActionResult:
         if action.runtime["kind"] == "model":
@@ -222,7 +228,7 @@ class PackageExecutor:
             self._history_tokens = -(-len(json.dumps(history, separators=(",", ":"))) // CHARS_PER_TOKEN) if history else 0
             request_id = "mock-" + digest({"instructions": action.instructions, "inputs": inputs, "iteration": context["iteration"], **({"history": history} if history else {})})[:16]
             # Estimate from the packed form the real prompt uses (see compact_telemetry), at the same ~3 chars/token the history sizing assumes.
-            packed_inputs, _ = compact_telemetry(inputs)
+            packed_inputs, _ = compact_telemetry(self._shown(inputs))
             packed_history = compact_telemetry(history)[0] if history else {}
             input_tokens, output_tokens = max(1, (len(json.dumps(packed_inputs, separators=(",", ":"))) + len(json.dumps(packed_history, separators=(",", ":")))) // CHARS_PER_TOKEN), max(1, len(json.dumps(output)) // 4)
         elif provider == "openrouter":
@@ -272,7 +278,7 @@ class PackageExecutor:
         budget = context["budget"]
         share = min(int(budget["iteration_tokens_remaining"]), int(budget["total_tokens_remaining"])) // model_actions
         cap = max(0, share - int(self.package.race["model"]["max_output_tokens"]) - base_tokens - SYSTEM_PROMPT_ALLOWANCE)
-        return build_history(self.package.root, reads=action.reads, writes=action.writes, iteration=int(context["iteration"]), inputs=inputs, settings=settings, pack=compact_telemetry, pack_cap=cap)
+        return build_history(self.package.root, reads=action.reads, writes=action.writes, iteration=int(context["iteration"]), inputs=inputs, settings={**settings, "evidence": self.evidence_mode}, pack=compact_telemetry, pack_cap=cap)
 
     def _mock_presentation(self, output: dict[str, dict[str, Any]], iteration: int) -> dict[str, dict[str, str]]:
         """Deterministic, specific labels and notes so mock races exercise the same path as real ones."""
@@ -332,7 +338,7 @@ class PackageExecutor:
         config = self.package.race["model"]
         contracts = {target: self.package.contract(target) or {"type": "object"} for target in targets}
         public_contracts = {entity_id: self.package.contract(entity_id) for entity_id in sorted(action.reads - set(inputs)) if (self.package.entities.get(entity_id) or {}).get("system_boundary") == "public" and self.package.contract(entity_id)}
-        prompt_inputs, has_telemetry = compact_telemetry(inputs)
+        prompt_inputs, has_telemetry = compact_telemetry(self._shown(inputs))
         base_prompt = {"instructions": action.instructions, "authorized_inputs": prompt_inputs, "authorized_output_contracts": contracts, "public_contracts": public_contracts, "remaining_budget": context["budget"], "iteration": context["iteration"]}
         if not getattr(self.package, "bounds_in_contract", False):  # legacy packages: limits live in race.yaml, not in the contract
             base_prompt["race_constraints"] = self.package.race.get("design_bounds", {})
@@ -445,7 +451,7 @@ class PackageExecutor:
         evaluation = self.package.race["evaluation"]
         root = Path(__file__).resolve().parents[1]
         tracks = [json.loads((root / "tracks" / "development" / f"{name}.json").read_text()) if name != "oval" else json.loads((root / "tracks/anchor/oval.json").read_text()) for name in evaluation["development_tracks"]]
-        trials = [run_trial(design, track, seed, self.package.race) for track in tracks for seed in evaluation["seeds"]]
+        trials = keep_telemetry([run_trial(design, track, seed, self.package.race) for track in tracks for seed in evaluation["seeds"]], evaluation.get("recorded_seeds_per_track"))
         score = round(sum(float(trial["score"]) for trial in trials) / len(trials), 4)
         invalid = [trial for trial in trials if trial.get("termination_reason") == "invalid_design"]
         invalid_note = {"invalid_trials": len(invalid), "total_trials": len(trials), "first_error": invalid[0].get("error")} if invalid else {}

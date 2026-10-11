@@ -99,7 +99,7 @@ class IncompleteIterationTests(unittest.TestCase):
             controller.run_iteration(0)
             outcome = json.loads((root / "iteration-0/outcome.json").read_text())
             self.assertFalse(outcome["complete"])
-            self.assertIn("token budget", outcome["reason"])
+            self.assertIn("iteration token cap reached", outcome["reason"])
 
     def test_budget_exhausted_before_a_call_ends_the_iteration_and_counts_spent_tokens(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

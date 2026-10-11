@@ -116,7 +116,13 @@ class MapDrivenController:
             remaining_iteration_tokens = iteration_token_limit - iteration_tokens
             remaining_total_tokens = total_token_limit - prior_total_tokens - iteration_tokens
             if action.runtime.get("kind") == "model" and min(remaining_iteration_tokens, remaining_total_tokens) < 1:
-                return self._close_incomplete(iteration, scenario, iteration_dir, available, invocations, complete, "token budget exhausted")
+                # Say which limit bound: the per-iteration cap can stop an iteration while most of the total budget remains.
+                if remaining_iteration_tokens < 1 <= remaining_total_tokens:
+                    reason = (f"iteration token cap reached: {iteration_tokens:,} of {iteration_token_limit:,} tokens used this iteration "
+                              f"({remaining_total_tokens:,} of {total_token_limit:,} total tokens still unspent)")
+                else:
+                    reason = (f"total token budget exhausted: {prior_total_tokens + iteration_tokens:,} of {total_token_limit:,} tokens used")
+                return self._close_incomplete(iteration, scenario, iteration_dir, available, invocations, complete, reason)
             inputs: dict[str, dict[str, Any]] = {}
             for entity_id in sorted(action.reads & set(available)):
                 self.package.require_read(action_id, entity_id)

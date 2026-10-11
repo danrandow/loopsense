@@ -53,6 +53,8 @@ def _story(package: Path, section: str, track_roots: dict[str, Path]) -> list[di
     entrant = package.name.split("-", 2)[-1]
     stories = []
     for trial in summary.get("trials", []):
+        if not trial.get("telemetry"):
+            continue  # recorded as a result only (see recorded_seeds_per_track)
         telemetry_path = package / trial["telemetry"]
         result_path = package / trial["result"]
         telemetry = json.loads(telemetry_path.read_text(encoding="utf-8"))

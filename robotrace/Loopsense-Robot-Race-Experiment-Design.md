@@ -153,7 +153,7 @@ The track suite has three parts:
 - a **development set**, used during iterative learning and represented in returned evidence; and
 - a **held-out set**, excluded from prompts and development returns and used only for the final evaluation after the last iteration.
 
-The race configuration names the development and held-out tracks, seeds and noise; the current templates use one track of each, of different shapes.
+The race configuration names the development and held-out tracks, seeds and noise; the current templates develop on oval, s-bend and slalom and hold out hairpin, hairpin-b (shorter, tighter) and slalom-b (longer, steeper). Held-out tracks were calibrated so that the race-33 designs neither all finish nor all fail on them.
 
 Both conditions use identical track definitions, seeds, noise settings, and order. Conditions run sequentially or in a preregistered deterministic interleave; world conditions never change in response to current scores.
 

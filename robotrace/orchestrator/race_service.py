@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from simulator.adapter import ADAPTER_VERSION, run_trial
+from .evidence import keep_telemetry
 from .executors import project_design
 
 from .artifacts import leaderboard_svg, summary_svg, track_view_svg, trajectory_svg
@@ -224,6 +225,7 @@ class MapDrivenRaceService:
                 evaluation = controller.package.race["evaluation"]
                 for seed in evaluation.get("held_out_seeds", evaluation["seeds"]):  # held-out seeds never reach a prompt, so more of them cost no tokens
                     held_out_trials.append(run_trial(project_design(design), track, seed, controller.package.race))
+            keep_telemetry(held_out_trials, controller.package.race["evaluation"].get("recorded_seeds_per_track"))
             invalid = [trial for trial in held_out_trials if trial.get("termination_reason") == "invalid_design"]
             if held_out_trials and len(invalid) == len(held_out_trials):
                 raise RuntimeError(f"every held-out trial for {controller.package.race['entrant']} was invalid_design ({invalid[0].get('error')}); refusing to publish a leaderboard")
@@ -264,6 +266,8 @@ class MapDrivenRaceService:
     def _trial_links(section: str, trials: list[dict[str, Any]], kind: str) -> list[str]:
         lines = [f"- [Open {kind} race summary]({section}/iteration-summary.svg)"]
         for trial in trials:
+            if "telemetry" in trial and not trial["telemetry"] and trial.get("termination_reason") != "invalid_design":
+                continue  # result recorded without telemetry (recorded_seeds_per_track): no artefacts to link
             view = f"{section}/trials/{trial['track']}-{trial['seed']}/track-view.svg"
             lines.append(f"- [{kind}: {trial['track']}-{trial['seed']} track view, score {float(trial['score']):.1f}, {trial.get('termination_reason')}]({view})")
         return lines
@@ -423,6 +427,9 @@ class MapDrivenRaceService:
         for trial in trials:
             trial_root = package.path(section, "trials", f"{trial['track']}-{trial['seed']}")
             write_json(trial_root / "result.json", {key: value for key, value in trial.items() if key != "telemetry"})
+            if not trial.get("telemetry") and trial.get("termination_reason") != "invalid_design":
+                summary.append({"track": trial["track"], "seed": trial["seed"], "score": trial["score"], "termination_reason": trial.get("termination_reason"), "error": trial.get("error"), "result": str((trial_root / "result.json").relative_to(package.root)), "telemetry": None, "track_view": None})
+                continue  # recorded as a result only: no telemetry, so no trajectory or track view
             write_json(trial_root / "telemetry.json", trial.get("telemetry", []))
             trajectory_svg(trial, trial_root / "trajectory.svg")
             # An invalid design is evidence, not a crash: there is no robot to draw, so record the trial without a track view.

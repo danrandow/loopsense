@@ -4,7 +4,7 @@
     python3 replicates.py compare race-40-a race-40-b race-40-c
     python3 replicates.py compare --base race-40
 
-Each replicate gets its own development seed (so the teams' histories, and so their trajectories, can diverge) and the SAME
+Each replicate gets its own block of development seeds (so the teams' histories, and so their trajectories, can diverge) and the SAME
 held-out seeds, so held-out scores are comparable across replicates. Both teams in a replicate share everything else.
 Set RANDOW_MAPS_ROOT (canonical validator) and, for openrouter, OPENROUTER_API_KEY before `run`.
 """
@@ -19,8 +19,8 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-DEV_SEEDS = [17, 29, 41, 53, 67, 79, 83, 97]
-HELD_OUT_SEEDS = [101, 102, 103, 104, 105]
+SEEDS_PER_REPLICATE = 20  # development seeds per track; each replicate gets its own block so trajectories can diverge
+MAX_REPLICATES = 8
 ENTRANTS = ("randow-maps", "opt-eval")
 
 
@@ -28,20 +28,20 @@ def run(args: argparse.Namespace) -> None:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from orchestrator.race_service import MapDrivenRaceService
 
-    if args.n > len(DEV_SEEDS):
-        raise SystemExit(f"at most {len(DEV_SEEDS)} replicates")
+    if args.n > MAX_REPLICATES:
+        raise SystemExit(f"at most {MAX_REPLICATES} replicates")
     for index in range(args.n):
         race_id = f"{args.base}-{string.ascii_lowercase[index]}"
         settings = {"iterations": args.iterations, "provider": args.provider, "model_id": args.model, "max_output_tokens": args.max_output_tokens, "max_action_runs": 6,
                     "total_tokens_per_condition": args.total_tokens, "max_tokens_per_iteration": args.iteration_tokens,
-                    "seeds": [DEV_SEEDS[index]], "held_out_seeds": HELD_OUT_SEEDS}
+                    "seeds": list(range(index * SEEDS_PER_REPLICATE + 1, (index + 1) * SEEDS_PER_REPLICATE + 1))}  # held-out seeds come from the template, identical in every replicate
         service = MapDrivenRaceService(race_id, args.workspace)
         service.prepare()
         service.configure_common(settings)
         for entrant in ENTRANTS:
             service.review(entrant)
         service.freeze()
-        print(f"{race_id}: dev seed {DEV_SEEDS[index]}, held-out seeds {HELD_OUT_SEEDS} — running", flush=True)
+        print(f"{race_id}: dev seeds {settings['seeds'][0]}-{settings['seeds'][-1]} per track, template held-out seeds — running", flush=True)
         print(service.run(), flush=True)
     compare(argparse.Namespace(races=[], base=args.base, workspace=args.workspace, out=None))
 
@@ -131,7 +131,7 @@ def main() -> None:
     r.add_argument("--model", default="deterministic-mock-v1")
     r.add_argument("--max-output-tokens", type=int, default=4000)
     r.add_argument("--total-tokens", type=int, default=1_000_000)
-    r.add_argument("--iteration-tokens", type=int, default=160_000)
+    r.add_argument("--iteration-tokens", type=int, default=300_000)
     r.add_argument("--workspace", type=Path, default=ROOT)
     r.set_defaults(func=run)
     c = sub.add_parser("compare", help="compare finished races")

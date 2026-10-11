@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
+from .evidence import summarise_payload, summarise_trials
 from .io import digest
 
 CHARS_PER_TOKEN = 3  # conservative for number-heavy packed telemetry (measured at about 3.3)
@@ -92,10 +93,12 @@ def _design(record: dict[str, Any]) -> dict[str, Any]:
     return design
 
 
-def _outcome(record: dict[str, Any]) -> dict[str, Any] | None:
+def _outcome(record: dict[str, Any], summary: bool = False) -> dict[str, Any] | None:
     for bucket in ("received", "produced"):
         for payload in record[bucket].values():
             if isinstance(payload.get("trials"), list):
+                if summary:  # one row per track over all seeds, not one row per trial
+                    return {"score": payload.get("score"), "per_track": summarise_trials(payload["trials"])}
                 return {"score": payload.get("score"), "trials": [
                     {"track": trial.get("track"), "termination_reason": trial.get("termination_reason"), "score": trial.get("score"),
                      **{key: (trial.get("metrics") or {}).get(key) for key in ROW_METRICS}}
@@ -146,8 +149,13 @@ def build_history(
     if not records:
         return None
     input_digests = {digest(payload): entity_id for entity_id, payload in inputs.items()}
-    table = [{"iteration": r["iteration"], "design": _design(r), "outcome": _outcome(r), **({"incomplete_reason": r["incomplete_reason"]} if "incomplete_reason" in r else {})} for r in records]
+    summary = settings.get("evidence") == "summary"
+    table = [{"iteration": r["iteration"], "design": _design(r), "outcome": _outcome(r, summary), **({"incomplete_reason": r["incomplete_reason"]} if "incomplete_reason" in r else {})} for r in records]
     views = [_view(r, input_digests) for r in records]
+    if summary:  # the prompt sees per-track summaries of every race, never per-trial rows or telemetry
+        for view in views:
+            view["produced"] = {k: summarise_payload(v) for k, v in view["produced"].items()}
+            view["received"] = {k: (v if "same_as_authorized_input" in v else summarise_payload(v)) for k, v in view["received"].items()}
     heavy = [(i, entity_id) for i, view in enumerate(views) for entity_id, payload in view["received"].items() if has_telemetry(payload)]
     originals = {(i, entity_id): views[i]["received"][entity_id] for i, entity_id in heavy}
     for i, entity_id in heavy:

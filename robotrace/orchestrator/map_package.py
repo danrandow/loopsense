@@ -284,6 +284,11 @@ class MapPackage:
         for key in ("seeds", "held_out_seeds"):
             if key in evaluation and (not isinstance(evaluation[key], list) or not evaluation[key] or not all(isinstance(seed, int) and not isinstance(seed, bool) for seed in evaluation[key])):
                 raise PackageValidationError(f"evaluation.{key} must be a non-empty list of integers")
+        if evaluation.get("evidence_to_agents", "full") not in ("full", "summary"):
+            raise PackageValidationError("evaluation.evidence_to_agents must be full or summary")
+        recorded = evaluation.get("recorded_seeds_per_track")
+        if recorded is not None and (not isinstance(recorded, int) or isinstance(recorded, bool) or recorded < 1):
+            raise PackageValidationError("evaluation.recorded_seeds_per_track must be a positive integer")
         if "history" in self.race:
             history = _object(self.race["history"], "race history")
             if not isinstance(history.get("enabled", True), bool):
