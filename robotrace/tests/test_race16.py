@@ -36,17 +36,17 @@ class ScoreTests(unittest.TestCase):
         return {**base, **overrides}
 
     def test_robot_that_does_not_move_scores_zero(self) -> None:
-        self.assertEqual(_score(self.metrics(), WEIGHTS), 0.0)
+        self.assertEqual(_score(self.metrics(), WEIGHTS, 60.0), 0.0)
 
     def test_moving_and_failing_beats_not_moving(self) -> None:
-        failing = _score(self.metrics(progress=0.02, rms_error=0.025, line_loss_events=2), WEIGHTS)
+        failing = _score(self.metrics(progress=0.02, rms_error=0.025, line_loss_events=2), WEIGHTS, 60.0)
         self.assertGreater(failing, 0.0)
         self.assertLess(failing, 20.0)
 
     def test_completed_run_keeps_the_ungated_formula(self) -> None:
         metrics = self.metrics(completion=True, progress=1.0, completion_time=30.0, rms_error=0.015, line_loss_events=0)
         expected = 500 + 250 + 120 * 1 + 60 * 0.5 + 70 * 0.9
-        self.assertAlmostEqual(_score(metrics, WEIGHTS), expected, places=6)
+        self.assertAlmostEqual(_score(metrics, WEIGHTS, 60.0), expected, places=6)
 
     def test_description_is_generated_from_the_weights(self) -> None:
         text = score_description({**WEIGHTS, "completion": 777}, {"max_steps": 300, "stall_steps": 50, "stall_min_progress": 0.002})

@@ -17,10 +17,11 @@ Robot Race asks whether those different ways of organising the same underlying c
 
 Start with the [Robot Race overview and live maps](robotrace/README.md).
 
-Robot Race builds on [RobotraceSim](https://github.com/Koyoman/robotrace_Sim),
-created by Arthur Jose Sary and distributed under the MIT License. The original
-copyright and licence are preserved with the vendored source; LoopSense's
-experiment harness and headless adapter are separate additions.
+Robot Race's physics core is taken from [RobotraceSim](https://github.com/Koyoman/robotrace_Sim),
+created by Arthur Jose Sary and distributed under the MIT License: the sensor-coverage and
+motor/drivetrain functions of its native library. LoopSense's headless adapter supplies the tracks,
+the parametric controller, the run loop, termination and scoring, and the experiment harness is a
+separate addition. The original copyright and licence are preserved with the vendored source.
 
 ## The original LoopSense experiment
 

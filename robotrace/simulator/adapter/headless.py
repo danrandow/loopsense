@@ -12,7 +12,9 @@ from orchestrator.io import digest
 from orchestrator.validators import ValidationError, validate_observation, validate_package
 
 
-ADAPTER_VERSION = "robottracesim-native-v1"
+ADAPTER_VERSION = "robottracesim-native-v2"
+
+DT = 0.01  # simulation step in seconds; the controller runs once per step
 
 
 class _Point(ctypes.Structure):
@@ -110,7 +112,7 @@ def to_robottrace_spec(package: dict[str, Any]) -> dict[str, Any]:
             "pwm_resolution_bits": 12,
             "pwm_max": pwm_max,
             "pwm_min": -pwm_max,
-            "simulation_step_dt_ms": 50.0,
+            "simulation_step_dt_ms": DT * 1000.0,
             "policy": deepcopy(controller),
         },
         "sensorsConfig": {
@@ -124,17 +126,16 @@ def to_robottrace_spec(package: dict[str, Any]) -> dict[str, Any]:
 
 LINE_LOSS_SCALE = 8      # line-loss events at which reliability reaches 0
 RMS_ERROR_SCALE = 0.15   # RMS centre-line error (m) at which precision reaches 0
-TIME_SCALE = 60          # completion time (s) at which time quality reaches 0
 
 
-def _score(metrics: dict[str, Any], weights: dict[str, float]) -> float:
+def _score(metrics: dict[str, Any], weights: dict[str, float], time_scale: float) -> float:
     """Composite score.  Robustness and precision are earned only over the track actually covered.
 
     They are multiplied by progress (1.0 for a completed run), so a robot that does not move scores
     ~0 instead of collecting full robustness and precision credit for doing nothing.
     """
     reliability = max(0.0, 1 - metrics["line_loss_events"] / LINE_LOSS_SCALE)
-    time_quality = max(0.0, 1 - metrics["completion_time"] / TIME_SCALE) if metrics["completion"] else 0
+    time_quality = max(0.0, 1 - metrics["completion_time"] / time_scale) if metrics["completion"] else 0
     precision = max(0.0, 1 - metrics["rms_error"] / RMS_ERROR_SCALE)
     covered = 1.0 if metrics["completion"] else max(0.0, min(1.0, metrics["progress"]))
     return round(
@@ -149,11 +150,12 @@ def _score(metrics: dict[str, Any], weights: dict[str, float]) -> float:
 def score_description(weights: dict[str, float], simulator: dict[str, Any]) -> str:
     """Plain-language statement of the scoring rule, generated from the same weights and constants."""
     w = weights
+    time_scale = simulator["max_steps"] * DT
     text = (
         f"score = {w['completion']}*completed + {w['progress']}*progress"
         f" + progress*({w['robustness']}*(1 - line_loss_events/{LINE_LOSS_SCALE})"
         f" + {w['precision']}*(1 - rms_error/{RMS_ERROR_SCALE}))"
-        f" + {w['time']}*(1 - completion_time/{TIME_SCALE}) if completed."
+        f" + {w['time']}*(1 - completion_time/{time_scale:g}) if completed."
         " progress is the fraction of the track covered (0 to 1); a completed run counts as progress 1 in the"
         " middle term, so a robot that does not move scores about 0. Each term is floored at 0."
         f" A run ends when the robot finishes, leaves the track, stalls, or reaches {simulator['max_steps']} steps."
@@ -181,14 +183,16 @@ def run_trial(package: dict[str, Any], track: dict[str, Any], seed: int, config:
     if not any(abs(weight) > 1e-9 for weight in controller["sensor_weights"]):
         return {"adapter_version": ADAPTER_VERSION, "run_id": run_id, "termination_reason": "controller_error", "error": "controller has no steering signal", "seed": seed, "track": track["id"], "score": 0, "telemetry": []}
 
-    rng = random.Random(f"{seed}:{digest(package)}:{track['id']}")
+    # The disturbance depends only on seed and track, never on the design, so two designs that behave
+    # identically meet identical noise and any score difference between them comes from the design.
+    rng = random.Random(f"{seed}:{track['id']}")
     library = _native_library()
     points = _track_polyline(track)
     polyline = (_Point * len(points))(*(_Point(x, y) for x, y in points))
     count = len(robot_spec["sensors"])
     sensor_sizes = (ctypes.c_double * count)(*(sensor["sizeMM"] for sensor in robot_spec["sensors"]))
     tape_half = float(track.get("tape_width", 0.025)) * 500.0
-    dt = 0.01
+    dt = DT
     max_steps = int(config["simulator"]["max_steps"])
     x_m = y_m = heading = velocity = omega = current_left = current_right = 0.0
     integral = previous_signal = last_direction = 0.0
@@ -244,7 +248,8 @@ def run_trial(package: dict[str, Any], track: dict[str, Any], seed: int, config:
             0.0, 0.0, 20.0, 0.9, robot_spec["geometric_mechanical"]["mass_kg"],
             robot_spec["geometric_mechanical"]["track_mm"] / 1000.0,
             robot_spec["geometric_mechanical"]["wheel_radius_mm"] / 1000.0,
-            max(1e-5, robot_spec["geometric_mechanical"]["mass_kg"] * (robot_spec["geometric_mechanical"]["track_mm"] / 1000.0) ** 2 / 12),
+            # Yaw inertia of a uniform rectangular body of the stated size.
+            max(1e-5, robot_spec["geometric_mechanical"]["mass_kg"] * ((robot_spec["geometric_mechanical"]["body_length_mm"] / 1000.0) ** 2 + (robot_spec["geometric_mechanical"]["body_width_mm"] / 1000.0) ** 2) / 12),
             0.005, 1.225, 0.02, 1.0, 0.8, 3.0, dt,
         ]
         converted = [ctypes.c_int(value) if index in (7, 8) else ctypes.c_double(value) for index, value in enumerate(args)]
@@ -290,4 +295,4 @@ def run_trial(package: dict[str, Any], track: dict[str, Any], seed: int, config:
         "controller_errors": controller_errors,
         "noise_robustness": round(max(0.0, 1 - config["evaluation"]["noise"] - max(errors)), 6),
     }
-    return {"adapter_version": ADAPTER_VERSION, "run_id": run_id, "termination_reason": termination, "seed": seed, "track": track["id"], "metrics": metrics, "score": _score(metrics, config["score"]), "telemetry": telemetry}
+    return {"adapter_version": ADAPTER_VERSION, "run_id": run_id, "termination_reason": termination, "seed": seed, "track": track["id"], "metrics": metrics, "score": _score(metrics, config["score"], config["simulator"]["max_steps"] * DT), "telemetry": telemetry}
