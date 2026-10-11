@@ -22,9 +22,31 @@ Prompted by a reassessment of how RobotraceSim is used. **Scores are not compara
 
 The same design with the minimum body (0.08 x 0.10) finishes hairpin-b 10/10 in v2.
 
+## Track recalibration for v2
+
+Under v2 both slalom tracks were unsolvable by every design from races 33, 34 and 40 (65 distinct designs, 0 finishes even with the minimum body), so they gave no gradient. Slalom settings were searched over difficulty 0.15 to 0.55 and length 14 to 26 (seeds 41 to 50); finishing is easiest near length 22.
+
+| Track | v1 setting | v2 setting |
+|---|---|---|
+| slalom (development) | difficulty 0.6, length 24 | difficulty 0.25, length 22 |
+| slalom-b (held-out) | difficulty 0.7, length 28 | difficulty 0.35, length 18 |
+
+oval, s-bend, hairpin and hairpin-b are unchanged. Verified on fresh seeds 101 to 110 over the same 65 designs, mean finish rate (as-is design / same design with the minimum body):
+
+| Track | as-is | minimum body |
+|---|---:|---:|
+| oval | 0.67 | 0.66 |
+| s-bend | 0.36 | 0.49 |
+| slalom | 0.00 | 0.35 |
+| hairpin | 0.38 | 0.56 |
+| hairpin-b | 0.00 | 0.35 |
+| slalom-b | 0.00 | 0.16 |
+
+As-is designs from earlier races fail slalom, hairpin-b and slalom-b outright; the improvement that unlocks them is discoverable (body size is one lever). No track is all-finish or all-fail for the minimum-body population. Scripts: `tools/calibration/`.
+
 ## Not done
 
-- Tracks are not recalibrated for v2 (hairpin-b is now unsolved by that design but solvable; slalom tracks remain unsolved by it).
+- Calibration used past teams' designs; agents under v2 may find other levers, so recheck after the first replicate races.
 - The precision term (RMS error scale 0.15 m) is unchanged and still gives little gradient.
 - Tests that need the Randow Maps checkout were not run.
 - Finish rate over many seeds, rather than the mean score, is the more robust readout for learning.
