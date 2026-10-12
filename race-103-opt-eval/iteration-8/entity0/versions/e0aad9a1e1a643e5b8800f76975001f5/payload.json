@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 0.9,
+    "ki": 0.0,
+    "kp": 2.8,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.04
+      },
+      {
+        "x": -0.012,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.012,
+        "y": 0.04
+      },
+      {
+        "x": 0.024,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 7 (kp 2.8, kd 0.9, base_speed 1.1, iteration 4 spread; score 688.5, the best so far). The oval finished 20 of 20 at 1.96 s with max_error 0.017 and no line losses. The s-bend finished 20 of 20 at 2.57 s with steering_oscillation 0.38, so kp 2.8 did not hurt it. The slalom still finished 0 of 20, with max_error 0.0618 (just above the 0.06 m limit) and 1.05 line-loss events per run. rms_error is low on every track (0.006 to 0.017), so the slalom failures are edge excursions on its sharp alternating bends, not poor average tracking.\n\nWhat has been ruled out for the slalom: base_speed (1.2 to 1.1, no gain), a wider sensor spread (iteration 5, which also hurt the s-bend), kd (0.8 to 0.9, max_error only 0.0613 to 0.0634), and kp (3.0 to 2.8, max_error 0.0634 to 0.0618, which is a small move only). Body width cannot help because the off-track limit stays at 0.06 m. The Evaluator's next untested lever is geometry.sensor_size, which changes edge detection without changing the signal scale.\n\nChange: geometry.sensor_size from 0.012 to 0.016 m, with everything else held at the iteration 7 best (kp 2.8, kd 0.9, ki 0, base_speed 1.1, the iteration 4 spread, sensor_weights [-2,-1,0,1,2], line_loss 'last_direction'). A larger footprint lets the outer sensors see the tape edge earlier, since a sensor at x = 0.024 m with size 0.016 m starts reading tape when the tape edge is about 0.02 m away. It should also reduce the number of moments when all sensors fall below the 0.05 line-loss threshold, which should lower slalom line_loss_events from about 1.05 toward 0.5 or less.\n\nExpected result: slalom max_error below 0.06, fewer line-loss events, and some slalom finishes. The oval and s-bend should hold near their iteration 7 levels, though the larger footprint could slightly change their oscillation. Risk: the signal may be smoother and less sharp on the s-bend, which could lower completion there.\n\nHow to read the next race: if the s-bend completion falls below 18 of 20 or the oval completion drops, revert sensor_size to 0.012 (the iteration 7 best, 688.5). If the slalom max_error is still at or above 0.06 with sensor_size 0.016, the next test is sensor_size 0.008 with the same spread, to check whether sharper edge detection helps instead."
+}

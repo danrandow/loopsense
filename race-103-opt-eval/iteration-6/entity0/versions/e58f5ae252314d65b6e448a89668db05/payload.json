@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 0.9,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.04
+      },
+      {
+        "x": -0.012,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.012,
+        "y": 0.04
+      },
+      {
+        "x": 0.024,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 5 (wider sensor spread x = \u00b10.03 m, base_speed 1.1, kp 3.0, kd 0.8; score 513.3, below the best of 555.0 at iteration 4). The wider spread did not fix the slalom: it still finished 0 of 20, with max_error 0.0631 and 1.05 line-loss events per run, so geometry did not clear the slalom edge excursions. It also hurt the s-bend, where finishes fell from 9 of 20 to 2 of 20, steering_oscillation rose from 0.36 to 0.51, and timeouts appeared. The oval stayed at 20 of 20 with max_error 0.031 (up from 0.014). Both of the Optimizer's revert conditions are met: s-bend completion dropped and steering_oscillation rose clearly above 0.37. So I revert geometry.sensor_positions to the iteration 4 spread (x = -0.024, -0.012, 0, 0.012, 0.024 m). The wider spread is a noise amplifier on straights and the s-bend, and the slalom failure is not fixed by it.\n\nWith the spread reverted, the one controller lever I can test is kd. The Evaluator's rule would set kd 0.9 with the wide spread, but the spread is being reverted, so the rule's intent is what carries over: slalom max_error is still at or above 0.06 at base_speed 1.1 with kp 3.0. I raise kd from 0.8 to 0.9 to add damping at the slalom's sharp alternating bends. base_speed stays at 1.1 (the oval and s-bend finish times are comfortably inside 3 s), kp stays at 3.0, ki stays at 0, sensor_weights and line_loss stay the same. Only kd changes relative to the iteration 4 best.\n\nExpected result: s-bend and oval completion stay at or above the iteration 4 levels, slalom max_error drifts toward 0.06 or below, and steering_oscillation stays near 0.36 or falls. Risk: kd 0.9 could add jitter on the s-bend (already 0.36), and slalom completion may still be 0. Hypotheses for the next race: (a) kd 0.9 lowers slalom max_error and line_loss_events without cutting s-bend completion; (b) if s-bend oscillation rises above 0.4, kd is past its useful range at kp 3.0. Measurements requested: slalom max_error and line_loss_events, s-bend completion and steering_oscillation, and oval completion_time."
+}

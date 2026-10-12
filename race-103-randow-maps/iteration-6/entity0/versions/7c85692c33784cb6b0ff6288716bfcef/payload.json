@@ -1,0 +1,67 @@
+{
+  "feedback_request": {
+    "decision_triggers": [
+      "If line_loss_events stays at 1 or more on the S-bend or slalom with this geometry, the cause is still not geometric. Keep geometry fixed and report where on the course the loss begins.",
+      "If line_loss_events is 0 on all three tracks but max_error still approaches 0.06 m, the next geometry step is wheel_track 0.12 m for more differential turn authority.",
+      "If runs complete but completion_time exceeds 2.5 s, test wheel_radius 0.035 m for more top speed."
+    ],
+    "integration_questions": [
+      "At what course position do the S-bend and slalom line losses begin, and what are the sensor readings and the signal at that moment?",
+      "Does last_direction or a search direction change the S-bend and slalom loss count with geometry held fixed?",
+      "Do the outer sensors at \u00b10.05 m read near zero on most of the course, and is the controller still steering correctly from the centre sensors?"
+    ],
+    "race_measurements_wanted": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.04
+      },
+      {
+        "x": -0.035,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.035,
+        "y": 0.04
+      },
+      {
+        "x": 0.05,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "intent": "Hold the iteration 5 geometry unchanged, so that any change in S-bend and slalom line loss comes from the controller or start pose and not from the body. Geometry edits stay queued: wheel_track 0.12 m if line loss is 0 on all three tracks and max_error still approaches 0.06 m; wheel_radius 0.035 m only if runs complete and completion_time exceeds 2.5 s.",
+  "learning": "Iterations 3 to 5 show that span \u00b10.05 m removes oval loss, mass has negligible effect, and S-bend and slalom loss survives every geometry that clears the oval. Record whether the controller-side line_loss or start-pose change clears those losses. If it does not, the next geometry test should be wheel_track 0.12 m, which is the only geometry lever left for bend overshoot.",
+  "rationale": "Iteration 5 held the iteration 4 geometry (mass 0.6 kg, sensors at x = \u00b10.05 m with 16 mm footprints at y = 0.04 m, wheel_track 0.10 m, wheel_radius 0.03 m, body 0.18 \u00d7 0.12 m) and changed only the controller side. Results: oval line_loss_events 0, but S-bend 1.0 and slalom 1.0 events, with every run ending off_track and max_error about 0.062 to 0.066 m. Scored 53.69, down from 54.98 at iteration 4.\n\nThe geometry evidence is now consistent. Span \u00b10.05 m removed oval loss, and a sensor at x sees tape while the centre offset is within about 0.0125 + 0.008 + x, so the outer sensors detect the line to about 0.07 m. That is beyond the 0.06 m off-track limit, so geometry should not be causing S-bend or slalom loss at \u00b10.05 m. Mass 0.7 to 0.6 kg changed max_error and progress by under 0.002 m and 0.01, so mass is not a useful lever. Body width cannot move the 0.06 m limit (max(0.06, 0.0125 + bw/4) with bw \u2264 0.18 stays at 0.06 m).\n\nThe decision rules I was given apply directly. The wheel_track 0.12 m change is only triggered when line_loss_events is 0 on all three tracks. It is not, since S-bend and slalom still log one loss each. Mass and wheel_radius changes are also not triggered. Therefore I make no geometry edit this iteration and keep the iteration 5 design exactly. The remaining S-bend and slalom losses point to the controller's line_loss handling or the start pose, which the Integrator is asked to check.\n\nExpected result: score near 54 to 55 unless the Integrator clears the S-bend and slalom losses. If they clear, progress on those tracks should rise sharply, and max_error should be the next limit to test against wheel_track."
+}

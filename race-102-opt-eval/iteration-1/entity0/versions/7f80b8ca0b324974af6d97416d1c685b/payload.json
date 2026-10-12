@@ -1,0 +1,58 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.2,
+    "ki": 0.4,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      2,
+      1,
+      0,
+      -1,
+      -2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.03,
+        "y": 0.07
+      },
+      {
+        "x": 0.015,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": -0.015,
+        "y": 0.07
+      },
+      {
+        "x": -0.03,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation"
+    ]
+  },
+  "rationale": "Evidence from the baseline (entityR2A): all 60 trials went off track with no finishes. Progress was nearly identical on oval and slalom (about 0.105), which points to a failure early in the run, not a failure at a specific bend. rms_error sat near 0.025 to 0.029 and max_error near 0.06 on every track, which is the off-track limit (max(0.06, 0.0125 + 0.03) = 0.06). One line-loss event occurred per run. Oscillation was low (0.07 to 0.15), so the robot is not jittering. The likely cause is a steady offset rather than instability. The contract has a fixed left/right motor mismatch, and a pure proportional controller with ki = 0 settles at an offset of roughly bias/kp from the line. That offset grows until the robot slides off or loses the tape. The baseline's own suggestion to raise base_speed is not well supported here, because higher speed would not remove a steady offset and the failure occurs early. Changes: (1) add a small integral term, ki = 0.4, so the mismatch-driven offset is driven to zero (the integral is clamped at \u00b12, so windup is limited); (2) raise kp from 2.0 to 2.5 to shrink the offset and the error before the integral takes over; (3) raise kd from 0.1 to 0.2 to damp the extra gain and keep steering_oscillation from rising; (4) lower base_speed from 1.5 to 1.4 to give the controller more time to correct at the start, while staying near the speed needed to finish. Geometry is unchanged. The off-track limit cannot be widened above 0.06 with body_width (0.0125 + body_width/4 stays below 0.06 for any allowed width), so body width does not help. Expected result: lower rms_error and max_error, fewer line-loss events, and some runs reaching progress above 0.5. Completion is possible but not yet assured. Next, I want per-track completion_time, rms_error, max_error, line_loss_events and steering_oscillation to test whether the offset (ki) hypothesis holds. If the robot now oscillates, kd or kp should be reduced; if it still drifts with a constant sign, ki should be raised."
+}

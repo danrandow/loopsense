@@ -1,0 +1,236 @@
+map:
+  id: race-104-randow-maps
+  schema: v0.2
+  scenario: Iteration 4
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 3.
+dimensions:
+  time_horizon: prepared
+  iteration: '4'
+overrides:
+  entities:
+  - id: entity0
+    label: Wheel radius pipeline
+    notes: 'Changes only wheel_radius from 0.03 to 0.04 m. Iterations 0 to 3 gave
+      identical metrics across five geometry changes, so this tests whether the race
+      pipeline reacts to geometry at all. Evidence: entityR2A shows the same 26.0449
+      score for every iteration.
+
+
+      ### Rationale
+
+
+      Iteration 3 (wheel_track 0.10 m, 16 mm footprints, ±0.03 m spread, 0.05 m lead)
+      reproduced iterations 0 to 2 exactly on every track: score 26.0449, max_error
+      0.0609 to 0.0614 m, one line-loss event per trial, and progress 0.035 to 0.115.
+      Five geometry changes across sensor spread, footprint and yaw response have
+      now produced identical outcomes to four decimals. Either the race results are
+      not responding to geometry, or the pipeline is repeating one run. The Integrator''s
+      rule says to stop geometry changes and check the pipeline. Body width cannot
+      lift the 0.06 m off-track floor, so no body change is worth testing. I therefore
+      make one diagnostic change rather than another tuning step: wheel_radius from
+      0.03 m to 0.04 m. This is a large change to the drivetrain, and it alters the
+      ground speed and the wheel-to-command ratio, so the simulator should produce
+      different metrics if it is live. Sensors, footprint, lead, track, body and mass
+      stay at iteration 3 values. If the metrics change, the pipeline is live and
+      the earlier geometry tests were simply ineffective; the next step is to resume
+      tuning from there. If they match again exactly, the race data is repeating and
+      no further geometry test should be run until the pipeline is fixed. Expected
+      result: a metric change, probably in progress and completion_time, since a larger
+      wheel radius raises speed per PWM.
+
+
+      - [Open this output](iteration-4/entity0/versions/7a618e13d75046f2a6473400a0a842a6/payload.json)
+
+      - Based on: [entityR1](iteration-4/entityR1/versions/carried-a6b69ad629ec9e69/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-2d50b4b4c8f7846e/payload.json)'
+  - id: entity1
+    label: Wheel radius 0.04 probe
+    notes: 'Complete robot with wheel_radius 0.04 m and all other geometry fixed at
+      iteration 3, with the same controller gains. This isolates the one change the
+      Builder requested, to test whether the race pipeline responds at all, since
+      iterations 0 to 3 matched exactly.
+
+
+      ### Rationale
+
+
+      Iterations 0 to 3 produced identical race metrics to four decimals on every
+      track (score 26.0449, one line-loss event per trial, max_error 0.0609 to 0.0614
+      m, no finishes), across changes to spread, footprint, weight scaling and wheel_track.
+      That pattern suggests the race pipeline may be repeating one result, so this
+      package keeps the controller fixed to isolate the geometry change. The Builder''s
+      iteration 4 geometry changes only wheel_radius from 0.03 m to 0.04 m, with sensors,
+      footprint, wheel_track 0.10 m, body and mass unchanged. For this geometry I
+      keep the iteration-3 controller exactly: base_speed 1.6, kp 2.0, ki 0.0, kd
+      0.05, sensor_weights (-1.5, -0.75, 0, 0.75, 1.5) matching x/0.02 scaling, and
+      line_loss last_direction. A larger wheel radius raises ground speed per PWM
+      by about 33 percent and also raises the wheel-speed difference per unit turn,
+      so yaw response per turn command should rise. I expect the speed and yaw changes
+      to show up in progress and completion_time first. I have no measured evidence
+      for a different gain, so I do not change kp or kd now. The full observation
+      set is kept so the first line-loss point and the first off-track step can be
+      located if the race responds.
+
+
+      - [Open this output](iteration-4/entity1/versions/f4c75045799f4d97a59db63c88f95e38/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/7a618e13d75046f2a6473400a0a842a6/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-2d50b4b4c8f7846e/payload.json)'
+  - id: entityR1
+    label: Radius probe, pipeline
+    notes: 'Feedback written before the race: it gives rules for reading the wheel_radius
+      result, including stopping geometry work if metrics repeat to four decimals.
+      The requested changes rest on the identical outcomes across iterations 0 to
+      3.
+
+
+      ### Feedback
+
+
+      Written before this candidate has raced. Iterations 0 to 3 gave identical metrics
+      to four decimals on all tracks (score 26.0449, one line-loss event per trial,
+      max_error 0.0609 to 0.0614 m, progress 0.035 to 0.115). Those iterations changed
+      spread (iteration 1), footprint (iteration 2) and wheel_track (iteration 3),
+      so none of those geometry axes has moved the score. The off-track floor of 0.06
+      m binds, because body_width cannot lift it. Your wheel_radius 0.04 m test is
+      a sensible single-variable probe. A larger radius raises ground speed per PWM
+      and the wheel-speed difference per turn command, so yaw response should rise,
+      and progress and completion_time should move first. Next-race rules: (a) if
+      the metrics again match iterations 0 to 3 to four decimals, stop geometry changes
+      and treat the pipeline as the blocker; (b) if progress or completion_time changes
+      but line_loss_events stay at one or more with max_error near 0.06 m, the robot
+      is still losing the line, so the next lever is controller gain, not geometry;
+      (c) if max_error falls below 0.06 m and line_loss_events reach zero, keep wheel_radius
+      0.04 m and vary one other geometry value.
+
+
+      ### Requested changes
+
+
+      - Keep wheel_radius at 0.04 m with all other values from iteration 3 for one
+      race. If the metrics match iterations 0 to 3 exactly, stop geometry changes
+      and check the race data pipeline.
+
+      - If the metrics change but line_loss_events stay at one or more, hold the geometry
+      and test a controller gain change (kp 2.0 to 3.0) to see whether the limit is
+      steering response rather than geometry.
+
+      - If progress rises but steering_oscillation becomes high, test wheel_radius
+      0.035 m as the midpoint to back off the speed and yaw response while keeping
+      the sensor geometry fixed.
+
+
+      - [Open this output](iteration-4/entityR1/versions/f4c75045799f4d97a59db63c88f95e38/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/7a618e13d75046f2a6473400a0a842a6/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-2d50b4b4c8f7846e/payload.json)'
+  - id: entityR2B
+    label: Score 25.72
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 25.72.
+      Per trial — oval-1: 46.3 (off_track); oval-2: 46.3 (off_track); oval-3: 46.3
+      (off_track); oval-4: 46.3 (off_track); oval-5: 46.3 (off_track); oval-6: 46.3
+      (off_track); oval-7: 46.3 (off_track); oval-8: 46.3 (off_track); oval-9: 46.3
+      (off_track); oval-10: 46.3 (off_track); oval-11: 46.3 (off_track); oval-12:
+      46.3 (off_track); oval-13: 46.3 (off_track); oval-14: 46.3 (off_track); oval-15:
+      46.3 (off_track); oval-16: 46.3 (off_track); oval-17: 46.3 (off_track); oval-18:
+      46.3 (off_track); oval-19: 46.3 (off_track); oval-20: 46.3 (off_track); s-bend-1:
+      16.5 (off_track); s-bend-2: 16.5 (off_track); s-bend-3: 16.5 (off_track); s-bend-4:
+      16.5 (off_track); s-bend-5: 16.5 (off_track); s-bend-6: 16.5 (off_track); s-bend-7:
+      16.5 (off_track); s-bend-8: 16.5 (off_track); s-bend-9: 16.5 (off_track); s-bend-10:
+      16.5 (off_track); s-bend-11: 16.5 (off_track); s-bend-12: 16.5 (off_track);
+      s-bend-13: 16.5 (off_track); s-bend-14: 16.5 (off_track); s-bend-15: 16.5 (off_track);
+      s-bend-16: 16.5 (off_track); s-bend-17: 16.5 (off_track); s-bend-18: 16.5 (off_track);
+      s-bend-19: 16.5 (off_track); s-bend-20: 16.5 (off_track); slalom-1: 14.4 (off_track);
+      slalom-2: 14.4 (off_track); slalom-3: 14.4 (off_track); slalom-4: 14.4 (off_track);
+      slalom-5: 14.4 (off_track); slalom-6: 14.4 (off_track); slalom-7: 14.4 (off_track);
+      slalom-8: 14.4 (off_track); slalom-9: 14.4 (off_track); slalom-10: 14.4 (off_track);
+      slalom-11: 14.4 (off_track); slalom-12: 14.4 (off_track); slalom-13: 14.4 (off_track);
+      slalom-14: 14.4 (off_track); slalom-15: 14.4 (off_track); slalom-16: 14.4 (off_track);
+      slalom-17: 14.4 (off_track); slalom-18: 14.4 (off_track); slalom-19: 14.4 (off_track);
+      slalom-20: 14.4 (off_track).
+
+
+      - [Open this output](iteration-4/entityR2B/versions/39a4307f745d4e93ae66f86b9a33d2f1/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/f4c75045799f4d97a59db63c88f95e38/payload.json)'
+  - id: entityR2A
+    label: Score 25.72
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 25.72.
+      Per trial — oval-1: 46.3 (off_track); oval-2: 46.3 (off_track); oval-3: 46.3
+      (off_track); oval-4: 46.3 (off_track); oval-5: 46.3 (off_track); oval-6: 46.3
+      (off_track); oval-7: 46.3 (off_track); oval-8: 46.3 (off_track); oval-9: 46.3
+      (off_track); oval-10: 46.3 (off_track); oval-11: 46.3 (off_track); oval-12:
+      46.3 (off_track); oval-13: 46.3 (off_track); oval-14: 46.3 (off_track); oval-15:
+      46.3 (off_track); oval-16: 46.3 (off_track); oval-17: 46.3 (off_track); oval-18:
+      46.3 (off_track); oval-19: 46.3 (off_track); oval-20: 46.3 (off_track); s-bend-1:
+      16.5 (off_track); s-bend-2: 16.5 (off_track); s-bend-3: 16.5 (off_track); s-bend-4:
+      16.5 (off_track); s-bend-5: 16.5 (off_track); s-bend-6: 16.5 (off_track); s-bend-7:
+      16.5 (off_track); s-bend-8: 16.5 (off_track); s-bend-9: 16.5 (off_track); s-bend-10:
+      16.5 (off_track); s-bend-11: 16.5 (off_track); s-bend-12: 16.5 (off_track);
+      s-bend-13: 16.5 (off_track); s-bend-14: 16.5 (off_track); s-bend-15: 16.5 (off_track);
+      s-bend-16: 16.5 (off_track); s-bend-17: 16.5 (off_track); s-bend-18: 16.5 (off_track);
+      s-bend-19: 16.5 (off_track); s-bend-20: 16.5 (off_track); slalom-1: 14.4 (off_track);
+      slalom-2: 14.4 (off_track); slalom-3: 14.4 (off_track); slalom-4: 14.4 (off_track);
+      slalom-5: 14.4 (off_track); slalom-6: 14.4 (off_track); slalom-7: 14.4 (off_track);
+      slalom-8: 14.4 (off_track); slalom-9: 14.4 (off_track); slalom-10: 14.4 (off_track);
+      slalom-11: 14.4 (off_track); slalom-12: 14.4 (off_track); slalom-13: 14.4 (off_track);
+      slalom-14: 14.4 (off_track); slalom-15: 14.4 (off_track); slalom-16: 14.4 (off_track);
+      slalom-17: 14.4 (off_track); slalom-18: 14.4 (off_track); slalom-19: 14.4 (off_track);
+      slalom-20: 14.4 (off_track).
+
+
+      - [Open this output](iteration-4/entityR2A/versions/39a4307f745d4e93ae66f86b9a33d2f1/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/f4c75045799f4d97a59db63c88f95e38/payload.json)'
+  - id: entity2
+    label: Score 25.72
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 25.72.
+      Per trial — oval-1: 46.3 (off_track); oval-2: 46.3 (off_track); oval-3: 46.3
+      (off_track); oval-4: 46.3 (off_track); oval-5: 46.3 (off_track); oval-6: 46.3
+      (off_track); oval-7: 46.3 (off_track); oval-8: 46.3 (off_track); oval-9: 46.3
+      (off_track); oval-10: 46.3 (off_track); oval-11: 46.3 (off_track); oval-12:
+      46.3 (off_track); oval-13: 46.3 (off_track); oval-14: 46.3 (off_track); oval-15:
+      46.3 (off_track); oval-16: 46.3 (off_track); oval-17: 46.3 (off_track); oval-18:
+      46.3 (off_track); oval-19: 46.3 (off_track); oval-20: 46.3 (off_track); s-bend-1:
+      16.5 (off_track); s-bend-2: 16.5 (off_track); s-bend-3: 16.5 (off_track); s-bend-4:
+      16.5 (off_track); s-bend-5: 16.5 (off_track); s-bend-6: 16.5 (off_track); s-bend-7:
+      16.5 (off_track); s-bend-8: 16.5 (off_track); s-bend-9: 16.5 (off_track); s-bend-10:
+      16.5 (off_track); s-bend-11: 16.5 (off_track); s-bend-12: 16.5 (off_track);
+      s-bend-13: 16.5 (off_track); s-bend-14: 16.5 (off_track); s-bend-15: 16.5 (off_track);
+      s-bend-16: 16.5 (off_track); s-bend-17: 16.5 (off_track); s-bend-18: 16.5 (off_track);
+      s-bend-19: 16.5 (off_track); s-bend-20: 16.5 (off_track); slalom-1: 14.4 (off_track);
+      slalom-2: 14.4 (off_track); slalom-3: 14.4 (off_track); slalom-4: 14.4 (off_track);
+      slalom-5: 14.4 (off_track); slalom-6: 14.4 (off_track); slalom-7: 14.4 (off_track);
+      slalom-8: 14.4 (off_track); slalom-9: 14.4 (off_track); slalom-10: 14.4 (off_track);
+      slalom-11: 14.4 (off_track); slalom-12: 14.4 (off_track); slalom-13: 14.4 (off_track);
+      slalom-14: 14.4 (off_track); slalom-15: 14.4 (off_track); slalom-16: 14.4 (off_track);
+      slalom-17: 14.4 (off_track); slalom-18: 14.4 (off_track); slalom-19: 14.4 (off_track);
+      slalom-20: 14.4 (off_track).
+
+
+      - [Open this output](iteration-4/entity2/versions/39a4307f745d4e93ae66f86b9a33d2f1/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/f4c75045799f4d97a59db63c88f95e38/payload.json)
+
+
+      Artefacts:
+
+      - [Open development race summary](iteration-4/iteration-summary.svg)
+
+      - [development: oval-1 track view, score 46.3, off_track](iteration-4/trials/oval-1/track-view.svg)
+
+      - [development: oval-2 track view, score 46.3, off_track](iteration-4/trials/oval-2/track-view.svg)
+
+      - [development: s-bend-1 track view, score 16.5, off_track](iteration-4/trials/s-bend-1/track-view.svg)
+
+      - [development: s-bend-2 track view, score 16.5, off_track](iteration-4/trials/s-bend-2/track-view.svg)
+
+      - [development: slalom-1 track view, score 14.4, off_track](iteration-4/trials/slalom-1/track-view.svg)
+
+      - [development: slalom-2 track view, score 14.4, off_track](iteration-4/trials/slalom-2/track-view.svg)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}

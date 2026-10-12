@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.3,
+    "ki": 0.2,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.045,
+        "y": 0.05
+      },
+      {
+        "x": -0.0225,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.0225,
+        "y": 0.05
+      },
+      {
+        "x": 0.045,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "learning": "If line_loss_events is 0 and max_error is below 0.05 m, the sensing reach was the constraint, so keep it and test completion on oval and s-bend. If line_loss_events stays at 1 with max_error near 0.06 m, turn authority is the constraint: try mass 0.6 kg next.",
+  "notes": "Widened sensor span to \u00b10.045 m and narrowed wheel_track to 0.10 m, with controller gains held at baseline so the geometry effect reads cleanly. Expected to cut line-loss exits and lower max_error below 0.05 m.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Baseline evidence (iteration 0, 60 trials, no finishes): every run ended off track after about one line loss. Progress was 0.11 to 0.18, max_error sat at 0.061 to 0.063 m (just past the 0.06 m limit), and rms_error was low (0.021 to 0.030 m). The robot is not wandering; it drifts to the edge of the allowed band and loses the tape. Steering oscillation was low (0.11 to 0.15), so the controller is not over-reacting. The binding constraints are sensing reach (the array only covered about \u00b10.036 m) and turn authority.\n\nGeometry follows the Builder's intent, which I checked against the contract. Sensors move to x = -0.045, -0.0225, 0, 0.0225, 0.045 at y = 0.05. This keeps five sensors with 22.5 mm spacing and extends the reach to about \u00b10.051 m, so the tape stays visible at 0.05 to 0.06 m offset. wheel_track narrows to 0.10 m, which raises yaw rate for the same wheel differential (turn rate = wheel speed difference / wheel_track) by about 20 percent. Footprint, body, mass and wheel radius stay unchanged so the next race reads the two changes cleanly.\n\nController: I keep the iteration 0 gains (kp 4.0, ki 0.2, kd 0.3), base_speed 1.3 and last_direction recovery. Changing gains now would confound the geometry effect, and the evidence does not show a gain problem. Sensor weights stay at [-1, -0.5, 0, 0.5, 1]. Because the signal is a reading-weighted average of the weights, the same weights still map a line offset to a signal of the same sign and similar scale across the wider span. I added controller_errors and noise_robustness to the observation request so exceptions and noise sensitivity are visible.\n\nExpected result: fewer line-loss events, max_error below 0.05 m, and possibly the first completed runs on oval and s-bend. If line_loss_events stays at 1 with max_error near 0.06, turn authority is the constraint and mass should drop to 0.6 kg next."
+}

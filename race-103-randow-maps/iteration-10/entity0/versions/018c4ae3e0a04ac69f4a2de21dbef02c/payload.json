@@ -1,0 +1,67 @@
+{
+  "feedback_request": {
+    "decision_triggers": [
+      "If line_loss_events stays 0 and max_error falls below 0.06 m on all tracks, hold wheel_track at 0.09 m and test wheel_radius 0.035 m only if completion_time exceeds 2.5 s.",
+      "If max_error stays near 0.06 m with no line loss, the bend limit is not turn authority. Report the course position of the peak error.",
+      "If steering_oscillation rises above about 0.25 or line loss returns, the narrower track has raised the effective gain. Lower kp by about 10 percent before any geometry change."
+    ],
+    "integration_questions": [
+      "Does the narrower track make the robot oscillate more at the same kp and kd? Report steering_oscillation against iteration 9.",
+      "Does the oval finish rate rise above 8 of 20?",
+      "Where on the S-bend and slalom does max_error peak, and what is the steering signal there?"
+    ],
+    "race_measurements_wanted": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.04
+      },
+      {
+        "x": -0.035,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.035,
+        "y": 0.04
+      },
+      {
+        "x": 0.05,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.09
+  },
+  "intent": "Narrow wheel_track from 0.10 m to 0.09 m, keeping every other geometry value and the iteration 9 controller direction. Narrowing raises yaw per PWM difference, which the contract's turn-rate formula gives as (wheel speed difference)/wheel_track. Expected result: max_error on the S-bend and slalom falls below 0.06 m with line_loss_events still 0, and the oval finish rate holds or rises. If line loss returns, or steering_oscillation rises sharply, the Integrator should lower kp first.",
+  "learning": "Iteration 9 cleared line loss on all tracks, so the controller side is now the main lever and the span is settled. The earlier feedback described a wider track as adding authority, which conflicts with the contract's turn-rate formula. Record whether narrowing to 0.09 m lowers max_error. If it raises oscillation instead, the earlier direction was a gain effect and not an authority effect, and the next geometry test should be the opposite direction.",
+  "rationale": "Iteration 9 is the first race with line loss cleared on every development track. Its line_loss_events were 0.0 on the oval, S-bend and slalom, against 0.05 to 1.0 before. Oval finished 8 of 20 seeds at a mean time of 1.67 s, so the 2.5 s finish-time trigger for wheel_radius does not apply. The remaining limit is max_error: 0.0552 on the oval, 0.0601 on the S-bend and 0.0624 on the slalom, against the fixed 0.06 m off-track limit. The feedback rule for this case is 'line loss 0 on all three tracks but max_error still near 0.06 m, so widen wheel_track to 0.12 m'. I checked that rule against the contract before applying it. The contract defines turn rate as (right wheel speed minus left) divided by wheel_track. For the same PWM difference, a narrower track therefore gives more yaw, and a wider track gives less. The 0.12 m step would reduce bend authority, so the Integrator's stated direction conflicts with the contract's formula. I follow the physics and narrow the track to 0.09 m, which raises yaw per PWM difference by about 11 percent. I keep the other values unchanged so the effect is isolated. Because the effective steering gain rises about 11 percent, the Integrator should watch steering_oscillation and trim kp down if it climbs. Expected result: S-bend and slalom max_error falls below 0.06 m, and the oval finish rate and progress rise."
+}

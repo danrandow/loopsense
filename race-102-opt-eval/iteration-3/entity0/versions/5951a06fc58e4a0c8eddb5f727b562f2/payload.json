@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.2,
+    "ki": 1.0,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      2,
+      1,
+      0,
+      -1,
+      -2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.045,
+        "y": 0.07
+      },
+      {
+        "x": 0.0225,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": -0.0225,
+        "y": 0.07
+      },
+      {
+        "x": -0.045,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Evidence from iterations 0 to 2 is consistent. Every run (60 per iteration) went off track with no finishes. Each run had exactly one line-loss event, and max_error sat at the 0.06 m off-track limit on every track. Progress was 0.11 to 0.17 and did not improve much with ki (0.4 to 1.0). Steering oscillation stayed low (0.07 to 0.15), so the robot is not jittering. The offset hypothesis is only partly supported: a larger ki helped oval and s-bend slightly but left slalom flat, and rms_error stayed near 0.022 to 0.028. The one-loss-per-run pattern points to the line being lost once, after which the 0.35 throttle and last_direction search carry the robot off the tape. The sensor array is the likely cause. Its outer sensors sit at x = +/-0.03 m, so the tape leaves every footprint once the robot drifts about 0.05 m, and the robot is still turning hard by then. Changes: (1) widen the sensor array from +/-0.03 m to +/-0.045 m, with inner sensors at +/-0.0225 m, to widen the capture range and reduce line loss; (2) keep the weights [2, 1, 0, -1, -2], so outer-sensor errors produce a stronger correcting signal; (3) keep kp 2.5, ki 1.0, kd 0.2 and base_speed 1.4, so the change isolates sensor placement. Geometry otherwise stays unchanged. Expected result: line_loss_events falls to 0 or near 0, max_error stays below 0.06 on at least some seeds, and progress rises above about 0.3. Risk: the wider array gives a larger signal when the line is far off, which could overshoot. If steering_oscillation rises above about 0.15, reduce kp to 2.0. If line_loss_events stays at 1 with progress near 0.17, the failure is at the start of the run, so check the initial alignment."
+}
