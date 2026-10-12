@@ -296,3 +296,100 @@ Rough size: each addition is O(1) numbers per track (3 tracks), so this adds rou
 in both arms today, and far short of anything that tells the agent *what* to change rather than *what
 happened*. Whether this is worth building (and whether it should go in Arm A, Arm B, or the real race template)
 is Dan's call, not run here.
+
+## Gate 3b: Arm B at 100 evals extended to n=10; which seed set "final gain" uses; held-out scoring
+
+No Sonnet, no harness changes. Haiku 5.5 only, same `tools/probe_tool.py` / eval-budget-100 settings as Gate 3
+part 2, extended from 5 to 10 paired replicates, hard cap $0.80 (cost-guard kill-switch on cumulative OpenRouter
+usage, same mechanism as prior gates).
+
+### (2) Which seed set "final gain" is scored on — confirmed in writing
+
+From `tools/probe_tool.py` (`main()`): `seeds = list(range(1, args.evidence_seeds + 1))` → **seeds 1-20** is the
+grid the agent's `evaluate_design` tool actually runs on every call, and is also what `starting_design_evidence`
+is computed on. Separately, `fresh = list(range(5000, 5000 + args.fresh_seeds))` → **seeds 5000-5029**, used
+*only* inside `score()`:
+
+```python
+def score(design: dict) -> float:
+    return evaluate(design, tracks, dev, fresh, config)["mean"] - base["mean"]
+```
+
+`agent_gain = score(result["final_design"])` — so **"final gain" is the submitted design's mean score on the 30
+fresh validation seeds (5000-5029), on the three development tracks (oval, s-bend, slalom), minus the start
+design's mean score on that same fresh block.** The agent's tool never sees seeds 5000+ under any code path —
+every `evaluate_design` call and the upfront `starting_design_evidence` are fixed to seeds 1-20, so there is no
+leakage between what the agent optimised against and what "final gain" reports. This is the same fresh-seed
+convention Arm A (`probe_step.py`) and Phase 0's `baseline_search.py --validation-seeds` (also offset at 5000)
+all use, so the three arms' "gain" numbers are on a consistent basis. Held-out tracks (hairpin, hairpin-b,
+slalom-b) are not involved in "final gain" at all — that is the separate held-out scoring in (3) below.
+
+### (1) 5 more replicates (10 total)
+
+Cost-guard cap $0.80, tracked from the $9.6040923 OpenRouter-usage baseline at the start of this sub-task. These
+5 ran noticeably more expensively than Gate 3's first 5 (similar `N_evals`, but $0.256/replicate here on average
+vs ~$0.08/replicate there, for reasons not investigated — possibly prompt-caching discounts not applying the
+same way across separate process invocations) — flagging this cost variance since it's real and unexplained,
+not because it caused a problem: all 5 completed naturally, total $0.5842, under the $0.80 cap with headroom to
+spare.
+
+| rep | N_evals | agent gain | matched baseline (mean of 2 draws) | margin |
+|---:|---:|---:|---:|---:|
+| 1 | 47 | 229.7 | 132.75 | +97.0 |
+| 2 | 46 | 254.1 | 148.2 | +105.9 |
+| 3 | 26 | 223.2 | 72.85 | +150.4 |
+| 4 | 30 | 265.1 | 235.85 | +29.3 |
+| 5 | 42 | 253.1 | 161.2 | +91.9 |
+| 6 | 47 | 234.4 | 225.05 | **+9.4** |
+| 7 | 53 | 254.7 | 228.75 | +26.0 |
+| 8 | 37 | 250.1 | 191.8 | +58.3 |
+| 9 | 54 | 203.9 | 239.7 | **−35.8** |
+| 10 | 32 | 264.0 | 81.05 | +183.0 |
+| **mean** | **41.4** | **243.2** | **167.7** | **+71.5** |
+
+- **Criterion 1 (learning, final gain > 0): 10/10 → PASS**, unchanged from the n=5 subset.
+- **Criterion 2 (beats matched baseline by >10, mean-of-draws): 8/10 → PASS** (the ≥8/10 pre-registered band),
+  but **not the unanimous 5/5 the first half suggested**. Replicate 6 is a near-miss tie (margin +9.4, just
+  under the 10-point floor) and replicate 9 is an outright loss (−35.8) — both are among the 5 new replicates.
+  The headline verdict is still a pass, exactly at the boundary the pre-registered criterion treats as a clean
+  pass (not the 7/10 "inconclusive" band), but the margin of the pass is thinner than n=5 alone implied: this is
+  a useful reminder that a small, unanimous early sample can overstate how clear-cut a result is.
+- Headroom closed (§4a-ii): mean agent gain 243.2 / 253.6 ≈ **96%**, materially unchanged from the n=5 figure.
+
+### (3) Zero-cost held-out scoring: every Arm B design vs the Phase 0 ES ceiling designs
+
+`tools/score_heldout.py` (new, read-only analysis script — no harness change) scores all 10 agent-submitted
+designs, both matched-baseline draws reconstructed deterministically at each replicate's own `(rng, n_evals)`
+(pure function of already-known seeds, zero tokens), and the 5 Phase 0 ES ceiling designs
+(`phase0/ceiling_rng{1..5}.json`), all on **held-out tracks (hairpin, hairpin-b, slalom-b) and held-out seeds
+101-110** — the same convention `PHASE0_FREEZE.md` §3a uses. As a cross-check, the 5 recomputed ES held-out
+means (794.2, 578.5, 720.7, 265.6, 639.2) reproduce §3a's reported values (794, 579, 721, 266, 639) almost
+exactly; §3a's reported sd of 203.6 only reproduces with *sample* sd (ddof=1), not population sd — a reporting
+convention, not a data discrepancy, now matched in the script.
+
+| kind | n | held-out mean | held-out sample sd |
+|---|---:|---:|---:|
+| Arm B agent (10 submitted designs) | 10 | **545.3** | 155.4 |
+| Matched baseline, pooled both draws | 20 | 517.0 | 143.1 |
+| ‣ draw1 alone | 10 | 576.6 | 169.1 |
+| ‣ draw2 alone | 10 | 457.3 | 81.9 |
+| Phase 0 ES ceiling (5 designs, §3a) | 5 | 599.6 | 203.8 |
+
+**Reading:** on held-out *track shapes* (not just held-out seeds), the agent's advantage over the matched free
+search **does not clearly hold up**. Agent mean (545.3) sits only +28.3 above the pooled matched baseline
+(517.0), well inside one sample sd of either (143-170), and below draw1 alone (576.6). The ES ceiling (599.6)
+is highest of the three but is itself the noisiest (sd 203.8, n=5) — consistent with `PHASE0_FREEZE.md` §3a's
+own warning that held-out-track generalization has roughly 34% CV and depends heavily on search-seed luck, not
+a stable property of any one method. Per-track detail shows why: nearly every design (agent, matched baseline,
+and ES alike) handles `hairpin` well (usually 90-100% finish) but is inconsistent on `hairpin-b` and `slalom-b`
+(many 0% finish rates across all three kinds) — the dev-score win in (1) does not translate into a visibly
+better held-out track-shape generalization, it is still dominated by which specific designs happen to transfer,
+for all three methods alike.
+
+This is the first result in this session that cuts against a clean "the agent wins" reading: dev-score gain
+(in-distribution, same track shapes, unseen seeds) shows a real pass; held-out generalization (unseen track
+shapes) shows no clear separation from the free matched baseline. Both are true at once and answer different
+questions — Dan's mandate's question 1 ("improve a design from feedback... beyond a free... baseline") was
+pre-registered on dev-score gain specifically (`PHASE0_FREEZE.md` §4), so the Gate 3/3b pass stands on its own
+terms, but this held-out comparison is relevant context for any Phase 2 decision about what "winning" should be
+measured on.
