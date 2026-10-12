@@ -11,7 +11,7 @@ from typing import Any, Callable
 
 from .io import atomic_write, digest, read_yaml, write_json
 from .map_package import ActionDefinition, MapPackage
-from .validators import BudgetExhausted, ContractFailure
+from .validators import CUT_OFF_MARKER, BudgetExhausted, ContractFailure
 from .transactions import ScenarioTransaction, recover_transactions
 import yaml
 
@@ -134,13 +134,16 @@ class MapDrivenController:
                 "iteration_plan": plan, "previous_iteration": previous,
                 "instructions": action.instructions,
                 "budget": {
-                    "runs": runs, "maximum": maximum,
+                    # An action run is one call to one role, or the race itself; a review-and-revision round is two runs, the race one.
+                    "action_runs_used_this_iteration": runs, "action_runs_allowed_this_iteration": maximum,
+                    "action_runs_remaining_this_iteration": max(0, maximum - runs),
                     "iteration_tokens_used": iteration_tokens,
                     "iteration_tokens_remaining": remaining_iteration_tokens,
                     "total_tokens_used": prior_total_tokens + iteration_tokens,
                     "total_tokens_remaining": remaining_total_tokens,
                     "iterations_remaining_after_this": plan["iterations_remaining_after_this"],
-                    "model_actions_still_to_run_this_iteration": sum(1 for other_id, other in self.package.actions.items() if other.runtime.get("kind") == "model" and other_id != action_id and not run_counts.get(other_id)),
+                    "your_previous_calls": self._previous_calls(action_id, iteration),
+                    "teammate_calls_not_yet_run_this_iteration": sum(1 for other_id, other in self.package.actions.items() if other.runtime.get("kind") == "model" and other_id != action_id and not run_counts.get(other_id)),
                 },
             }
             try:
@@ -202,6 +205,27 @@ class MapDrivenController:
         self._seed_next_iteration(iteration, scenario, iteration_dir)
         return scenario
 
+    def _previous_calls(self, action_id: str, iteration: int, limit: int = 3) -> list[dict[str, Any]]:
+        """What this role's most recent calls spent, newest first, so the actor can plan its own use of tokens and of the output limit."""
+        calls: list[dict[str, Any]] = []
+        for earlier in range(iteration - 1, -1, -1):
+            events_file = self.package.path(f"iteration-{earlier}", "events.jsonl")
+            if not events_file.is_file():
+                continue
+            for line in events_file.read_text(encoding="utf-8").splitlines():
+                event = json.loads(line)
+                if event.get("action") != action_id or event.get("type") not in ("action_completed", "action_rejected", "budget_exhausted"):
+                    continue
+                call = {"iteration": earlier, "delivered": event["type"] == "action_completed",
+                        "input_tokens": int(event.get("input_tokens", 0)), "output_tokens": int(event.get("output_tokens", 0))}
+                if "attempts" in event:
+                    call["attempts"] = int(event["attempts"])
+                    call["attempts_cut_off_by_output_limit"] = int(event.get("attempts_cut_off", 0))
+                calls.append(call)
+            if len(calls) >= limit:
+                break
+        return calls[:limit]
+
     def _previous_incomplete(self, iteration: int) -> dict[str, Any] | None:
         """What the previous iteration failed to deliver, if anything; shown to the actors so they can learn from it."""
         path = self.package.path(f"iteration-{iteration - 1}", "outcome.json")
@@ -216,10 +240,12 @@ class MapDrivenController:
     def _record_spent(events_path: Path, action_id: str, kind: str, failure: Exception) -> None:
         """Tokens spent on attempts that delivered nothing still count against the budget: log them as an event."""
         spent_in, spent_out = int(getattr(failure, "input_tokens", 0)), int(getattr(failure, "output_tokens", 0))
+        errors = list(getattr(failure, "errors", []) or [])
         if spent_in + spent_out:
             with events_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps({"id": f"{kind}-{action_id}", "timestamp": datetime.now(timezone.utc).isoformat(), "type": kind,
-                                         "action": action_id, "input_tokens": spent_in, "output_tokens": spent_out}) + "\n")
+                                         "action": action_id, "input_tokens": spent_in, "output_tokens": spent_out,
+                                         **({"attempts": len(errors), "attempts_cut_off": sum(CUT_OFF_MARKER in error for error in errors)} if errors else {})}) + "\n")
 
     def _close_incomplete(self, iteration: int, scenario: Path, iteration_dir: Path, available: dict[str, str],
                           invocations: dict[str, tuple[str, ...]], complete: set[str], reason: str, rejected: dict[str, Any] | None = None) -> Path:

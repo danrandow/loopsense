@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -15,9 +16,11 @@ def stamp(offset: float) -> str:
     return datetime.fromtimestamp(T0 + offset, timezone.utc).isoformat()
 
 
-def write(path: Path, data) -> None:
+def write(path: Path, data, mtime: float | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(data if isinstance(data, str) else json.dumps(data), encoding="utf-8")
+    if mtime is not None:  # pin to the frozen clock, not the real wall clock the filesystem would otherwise stamp it with
+        os.utime(path, (mtime, mtime))
 
 
 def make_race(root: Path, status: str = "running", done: int = 2, running: bool = True) -> None:
@@ -35,7 +38,7 @@ def make_race(root: Path, status: str = "running", done: int = 2, running: bool 
         write(d / "events.jsonl", "\n".join(json.dumps(x) for x in lines) + '\n{"truncated"')  # half-written last line must be tolerated
         write(d / "budget-ledger.json", {"action_runs": len(lines), "iteration_tokens": 110, "total_tokens": 110 * (i + 1)})
     if done:
-        write(package / "iteration-0/rejected-attempts/action0-attempt-1.json", {"action": "action0", "attempt": 1, "error": "bad shape"})
+        write(package / "iteration-0/rejected-attempts/action0-attempt-1.json", {"action": "action0", "attempt": 1, "error": "bad shape"}, mtime=T0 + 10)
 
 
 class ProgressTests(unittest.TestCase):

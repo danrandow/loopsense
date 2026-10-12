@@ -14,7 +14,7 @@ from .controller import ActionResult
 from .history import CHARS_PER_TOKEN, build_history
 from .io import digest
 from .map_package import ActionDefinition, MapPackage
-from .validators import BudgetExhausted, ContractFailure, validate_controller, validate_geometry
+from .validators import CUT_OFF_MARKER, BudgetExhausted, ContractFailure, validate_controller, validate_geometry
 
 
 def _design(iteration: int) -> dict[str, Any]:
@@ -40,7 +40,7 @@ SYSTEM_PROMPT_ALLOWANCE = 1500
 MIN_OUTPUT_TOKENS = 500  # a call that cannot leave at least this much for the answer is not made
 SYSTEM_PROMPT = ("Return one JSON object keyed by the entity IDs you update. Every value must match that entity's supplied contract. Every entity in required_outputs MUST be present, or the team cannot be scored. "
     "Your role, your work and your team are described in instructions and your_role; downstream_dependents shows who reads each of your other authorized outputs and what they use it for. Use only supplied inputs. "
-    "You have a token allowance for this (see remaining_budget, which also shows how many teammates' model calls are still to run this iteration, how many iterations follow this one, and the size of this call's own prompt, already spent); a careful rationale is worth spending it on. "
+    "You have a token allowance for this. remaining_budget shows the action runs this iteration has used, is allowed and has left (an action run is one call to one role, or the race itself), how many iterations follow this one, the tokens left in this iteration and in total, the size of this call's own prompt (already spent), output_limit_tokens_this_call (everything you generate in this call counts toward it, and an answer that reaches it is cut off and cannot be used) and your_previous_calls (what your last calls in this role spent, how many attempts they took, and how many were cut off by the limit); a careful rationale is worth spending it on. "
     "The label and notes you give each output in _presentation should name and explain the change your rationale describes; write the notes as a short Markdown summary, because the map shows your full rationale (or feedback and requested changes) verbatim beneath it, so do not repeat it there. "
     "You may also include a top-level '_presentation' object (optional; the orchestrator labels any output you leave out) with one entry per entity you write: {'<entity_id>': {'label': '<=25 chars naming what this output is or what changed, e.g. Wider sensor array; never Updated', 'notes': 'one to three sentences describing what you produced and why, and the evidence it rests on'}}. "
     "The label and notes appear on the team's map for people reviewing the race; links to the artefact itself are added for you. public_contracts give the exact shape of what you must produce, the allowed range (minimum and maximum) or the only allowed options of every field, and a description of what each field does in the simulator; choose concrete values inside them.")
@@ -249,6 +249,7 @@ class PackageExecutor:
             "provider": provider, "request_id": request_id,
             "input_tokens": input_tokens, "output_tokens": output_tokens,
             "history_tokens_estimate": getattr(self, "_history_tokens", 0),
+            **(getattr(self, "_call_summary", None) or {}),
         })
 
     def _apply_release(self, action: ActionDefinition, output: dict[str, dict[str, Any]], inputs: dict[str, dict[str, Any]]) -> dict[str, dict[str, str]]:
@@ -364,12 +365,16 @@ class PackageExecutor:
         if has_telemetry:
             base_prompt["telemetry_format"] = TELEMETRY_FORMAT
         # This call's own input size (estimate, ~3 chars/token): the prompt is spent before the model writes a word.
-        base_prompt["remaining_budget"] = {**base_prompt["remaining_budget"], "this_call_input_tokens_estimate": 0}
+        base_prompt["remaining_budget"] = {**base_prompt["remaining_budget"], "this_call_input_tokens_estimate": 0, "output_limit_tokens_this_call": 0}
         size = -(-(len(SYSTEM_PROMPT) + len(json.dumps(base_prompt, separators=(",", ":")))) // CHARS_PER_TOKEN)
         base_prompt["remaining_budget"]["this_call_input_tokens_estimate"] = size
+        # The most this call can generate: the race's per-call cap, or less when the iteration or total budget is the tighter limit.
+        base_prompt["remaining_budget"]["output_limit_tokens_this_call"] = max(0, min(int(config["max_output_tokens"]), min(int(context["budget"]["iteration_tokens_remaining"]), int(context["budget"]["total_tokens_remaining"])) - size))
         error = ""
         errors: list[str] = []
         spent_in = spent_out = 0  # every attempt is paid for, including the ones the contract rejects
+        cut_off_attempts = 0
+        self._call_summary = {}
         attempts = int(action.runtime.get("repair_attempts", 0)) + 1
         for _ in range(attempts):
             messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": json.dumps({**base_prompt, "previous_validation_error": error}, separators=(",", ":"))}]  # no sort_keys: the model copies the key order it is shown, so contract order (rationale before numbers) must survive
@@ -388,6 +393,11 @@ class PackageExecutor:
             usage = response_data.get("usage", {})
             spent_in += int(usage.get("prompt_tokens", 0))
             spent_out += int(usage.get("completion_tokens", 0))
+            generated = int(usage.get("completion_tokens", 0))
+            finish_reason = ((response_data.get("choices") or [{}])[0] or {}).get("finish_reason")
+            # An answer that ran into the output limit is unreadable JSON; say so, rather than showing the model a bare parse error it
+            # cannot act on (and would repeat). max_tokens is the limit this call actually had: the cap, or less if the budget was tighter.
+            cut_off = finish_reason == "length" or generated >= int(body["max_tokens"])
             content = ""
             try:
                 content = response_data["choices"][0]["message"]["content"].strip()
@@ -412,11 +422,16 @@ class PackageExecutor:
                         if isinstance(payload.get("controller"), dict):  # an out-of-range controller would otherwise only surface as a 0-scoring invalid design
                             validate_controller(payload["controller"], len(payload["geometry"]["sensor_positions"]), self.package.race["design_bounds"])
                 presentation = resolve_presentation(output, presentation, self.package.entities)
+                self._call_summary = {"attempts": _ + 1, "attempts_cut_off": cut_off_attempts}
                 return output, response_data.get("id", "openrouter-unknown"), spent_in, spent_out, presentation
             except Exception as validation_error:
                 error = str(validation_error)
+                if cut_off:
+                    cut_off_attempts += 1
+                    error = (f"Your previous answer was {CUT_OFF_MARKER} ({int(body['max_tokens']):,} tokens; {generated:,} generated) before the JSON was complete, "
+                             f"so none of it could be used. The limit covers everything you generate in one call. Answer again so that the complete JSON fits within it. (Parser: {validation_error})")
                 errors.append(error)
-                self._record_rejected_attempt(action, context, _ + 1, content, error)
+                self._record_rejected_attempt(action, context, _ + 1, content, error, {"finish_reason": finish_reason, "completion_tokens": generated, "max_tokens": int(body["max_tokens"]), "cut_off": cut_off})
         raise ContractFailure(f"model output failed contract after {attempts} attempts: {error}", getattr(action, "id", None), errors, spent_in, spent_out)
 
     def _tidy_shape(self, output: dict[str, Any], targets: Any, presentation: Any) -> Any:
@@ -436,12 +451,12 @@ class PackageExecutor:
                     output[entities[0]][key] = output.pop(key)
         return presentation
 
-    def _record_rejected_attempt(self, action: ActionDefinition, context: dict[str, Any], attempt: int, raw_output: str, error: str) -> None:
+    def _record_rejected_attempt(self, action: ActionDefinition, context: dict[str, Any], attempt: int, raw_output: str, error: str, detail: dict[str, Any] | None = None) -> None:
         """Keep every rejected model output so a failed contract can be diagnosed afterwards (best effort)."""
         try:
             directory = self.package.root / f"iteration-{int(context['iteration'])}" / "rejected-attempts"
             directory.mkdir(parents=True, exist_ok=True)
-            record = {"action": getattr(action, "id", None), "attempt": attempt, "error": error, "raw_output": raw_output}
+            record = {"action": getattr(action, "id", None), "attempt": attempt, "error": error, **(detail or {}), "raw_output": raw_output}
             (directory / f"{record['action']}-attempt-{attempt}.json").write_text(json.dumps(record, indent=2))
         except Exception:
             pass

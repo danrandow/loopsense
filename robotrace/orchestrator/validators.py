@@ -47,6 +47,10 @@ def design_bounds_from_contract(contract: dict[str, Any] | None) -> dict[str, An
         return None
 
 
+# Text every cut-off message contains; the controller counts attempts that carry it so the actor can be told how many were cut off.
+CUT_OFF_MARKER = "cut off at this call's output limit"
+
+
 class ContractFailure(RuntimeError):
     """A model output that never satisfied its contract. A race outcome (fed back to the team), not a harness fault."""
 

@@ -237,7 +237,8 @@ class MockRaceEndToEndTests(unittest.TestCase):
             with mock.patch.object(PackageExecutor, "_history", spy):
                 service.run()
         first = [b for e, a, i, b in seen if e == "randow-maps" and i == 0]
-        self.assertEqual([b["model_actions_still_to_run_this_iteration"] for b in first], [1, 0])
+        self.assertEqual([b["teammate_calls_not_yet_run_this_iteration"] for b in first], [1, 0])
+        self.assertEqual([(b["action_runs_used_this_iteration"], b["action_runs_allowed_this_iteration"], b["action_runs_remaining_this_iteration"]) for b in first], [(0, 6, 6), (1, 6, 5)])
         self.assertEqual({b["iterations_remaining_after_this"] for b in first}, {1})
         self.assertEqual({b["iterations_remaining_after_this"] for e, a, i, b in seen if i == 1}, {0})
 
