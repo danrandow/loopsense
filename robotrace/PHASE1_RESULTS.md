@@ -176,3 +176,123 @@ full 10); (b) accept the single already-run `medium`-reasoning Arm B replicate (
 the only Sonnet-on-Arm-B data point and stop; (c) resolve the dashboard/API discrepancy first in case more
 credit is actually available than either figure suggests; (d) try `reasoning=high` (untested, likely pricier
 still, not run without sign-off).
+
+## Gate 3, part 1: what the agent sees after each evaluation (zero cost)
+
+Both arms draw on the exact same function, `tools/probe_step.py`'s `evidence_for` → `orchestrator/evidence.py`'s
+`summarise_trials`, for every piece of evidence shown to the model: Arm A's per-iteration evidence block, Arm
+B's `starting_design_evidence` and every `evaluate_design` tool result. **There is no granularity difference
+between the two arms** — only how often and when the agent sees a fresh evaluation differs, not what one
+evaluation's result looks like. This also matches the real race templates exactly: both
+`package-templates/randow-maps/config/race.yaml` and `.../opt-eval/config/race.yaml` set
+`evaluation.evidence_to_agents: summary`, the same mode these probe tools use unconditionally — so this is not a
+simplified stand-in, it is what a real race shows.
+
+A real example (start design, oval/s-bend/slalom, seeds 1-20):
+
+```json
+{"n_trials": 60, "per_track": {
+  "oval":    {"trials": 20, "finished": 20, "finish_rate": 1.0, "ended_by": {"finished": 20},
+              "mean_score": 947.3, "min_score": 940.21, "max_score": 955.49, "mean_finish_time_s": 2.109,
+              "mean_metrics": {"progress": 0.9982, "rms_error": 0.0039, "max_error": 0.0088,
+                               "line_loss_events": 0.55, "steering_oscillation": 0.2479, "control_effort": 5.8223}},
+  "s-bend":  {"trials": 20, "finished": 19, "finish_rate": 0.95, "ended_by": {"finished": 19, "off_track": 1}, ...},
+  "slalom":  {"trials": 20, "finished": 0,  "finish_rate": 0.0,  "ended_by": {"off_track": 20},
+              "mean_score": 179.1, "mean_finish_time_s": null, "mean_metrics": {"progress": 0.4322, ...}}}}
+```
+
+**Fields present, per track, per evaluation:** `trials` (count), `finished` (count), `finish_rate`, `ended_by`
+(a histogram of termination reasons across the group, e.g. `{"finished": 19, "off_track": 1}` — reasons are
+`finished` / `off_track` / `stalled` / `timeout` / `controller_error` / `invalid_design`), `mean_score`,
+`min_score`, `max_score`, `mean_finish_time_s` (finished trials only, `null` if none finished), and
+`mean_metrics` with exactly six keys: `progress`, `rms_error`, `max_error`, `line_loss_events`,
+`steering_oscillation`, `control_effort` — each a mean across every trial in the group (not just finished ones),
+so a bad run still pulls the mean down rather than being excluded.
+
+**Dropped vs the raw per-trial record** (what `simulator/adapter/headless.py`'s `run_trial` actually returns, and
+what the real race stores for replay — `orchestrator/evidence.py`'s own docstring: "the stored entity payload,
+the published trial artefacts, the replay and the scores still hold every trial in full"):
+- **All per-step telemetry**, for every trial: `x`, `y`, `heading`, `speed`, per-step `sensors[]` readings,
+  per-step `error`/`progress`, and `line_lost` — none of it reaches the agent in either arm. The agent cannot
+  see *where on the track* a run failed, only that it did and by what aggregate margin.
+- **Per-trial/per-seed identity.** The agent sees "1 of 20 went off_track" but not *which* seed, nor that
+  seed's individual score — only the pooled `ended_by` counts and `min`/`max_score` across the group hint that
+  variance exists.
+- **Two metrics fields computed by the adapter but never summarised at all:** `controller_errors` (a per-trial
+  exception counter) and `noise_robustness` (`1 − noise − max_error`, already computed per trial) are both
+  present on every raw trial record but are not in `summarise_trials`'s `METRICS` tuple, so they never appear in
+  any evidence block in either arm, by any route.
+- **The raw `completion` boolean, `run_id`, `adapter_version`.** Redundant with `finish_rate`/`ended_by` or
+  irrelevant to a design decision, so not a meaningful loss, but confirmed dropped for completeness.
+
+## Gate 3, part 2: Arm B at 100 evaluations, 5 paired replicates, Haiku 5.5 only
+
+Same harness as Gate 2's Arm B (`tools/probe_tool.py`), eval budget raised from 25 to 100, Sonnet excluded per
+instruction (credit on hold). Baseline OpenRouter usage at the start of this sub-task: $9.204928. Single-
+replicate price check (required before scaling): **$0.1081** (N_evals=47, well under the 100 cap) → projected
+5-replicate cost ≈ $0.54, comfortably inside the $1.20 cap, so all 5 ran. **Actual total spend: $0.3992** — the
+agent used fewer evaluations on average than projected from replicate 1 (see below), so this undershot even the
+linear projection.
+
+| rep | N_evals (of 100) | agent gain | matched baseline (mean of 2 draws) | margin |
+|---:|---:|---:|---:|---:|
+| 1 | 47 | 229.7 | 132.75 | +97.0 |
+| 2 | 46 | 254.1 | 148.2 | +105.9 |
+| 3 | 26 | 223.2 | 72.85 | +150.4 |
+| 4 | 30 | 265.1 | 235.85 | +29.3 |
+| 5 | 42 | 253.1 | 161.2 | +91.9 |
+| **mean** | **38.2** | **245.0** | **150.2** | **+94.9** |
+
+- **Criterion 1 (learning, final gain > 0): 5/5 → PASS.**
+- **Criterion 2 (beats matched-N baseline by >10, mean-of-draws): 5/5 → PASS** (every margin is at least ~3x
+  the 10-point floor; even the weakest replicate, #4, clears it by +29.3).
+- Headroom closed (§4a-ii): mean agent gain 245.0 / ES ceiling headroom 253.6 ≈ **97%** — essentially the full
+  headroom available to the large-scale search in `PHASE0_FREEZE.md` §3a, reached with a budget two orders of
+  magnitude smaller (mean 38 evaluations here vs 300 evaluations × 10 train seeds there).
+
+**This reverses Gate 2's Arm B result (25-eval budget: learning 10/10, win-margin 4/10 fail).** At a larger
+evaluation budget, Haiku 5.5 with direct simulator-tool access clears both pre-registered criteria cleanly, 5/5,
+at n=5. Two things to flag about reading this as a clean answer to the mandate's question 1:
+- **n=5, not the pre-registered n=10** — this is the first required pricing/confirmation step of a design meant
+  to scale to 10; it was not extended to 10 in this instruction. The result is unanimous at n=5, which is itself
+  informative (5/5 both ways, including the ES ceiling comparison, is a stronger signal than 7-8/10 would be),
+  but it is a smaller sample than the pre-registered design calls for.
+- **The agent did not use its full budget.** Mean N_evals was 38.2 of 100 — nowhere near the cap, unlike the
+  25-eval-budget runs in Gate 2 which averaged ~23/25 (agent routinely wanted more room than it had). Given more
+  room, Haiku stopped well short of using it, submitting once it judged the design good enough rather than
+  continuing to search. Whether 100 specifically vs some other number in between (e.g. 50) would hold the same
+  result is untested — this run shows that the 25-cap in Gate 2 was a binding constraint that mattered, not
+  that 100 is some special value.
+
+## Gate 3, part 3: proposed richer-diagnostics evidence variant (NOT run)
+
+A proposal only — nothing below is implemented or tested. Scoped to stay inside `CLAUDE.md`'s charter: every
+addition is a *fact about how a run failed* (where, how consistently, how close to a threshold), never a
+suggestion about what to change. None of it is design advice, and none of it exposes per-step telemetry (which
+would blow the prompt up by orders of magnitude for little gain, per `orchestrator/evidence.py`'s own rationale
+for having a `summary` mode at all).
+
+1. **Stop silently dropping metrics the adapter already computes.** `controller_errors` and `noise_robustness`
+   are on every raw trial record today and cost nothing extra to summarise — add them to `summarise_trials`'s
+   `METRICS` tuple. This is closer to a bug fix than a new feature (the loss looks incidental, not deliberate),
+   but it's listed here because it changes what agents see, so it belongs at a gate, not quietly patched.
+2. **Failure-location, not just failure-count.** For non-finished trials, report the *progress fraction reached
+   at termination* (already computed, just not surfaced: `telemetry[-1]["progress"]` at the moment of
+   `off_track`/`stalled`/`timeout`) as a per-track distribution — e.g. `"failure_progress": {"mean": 0.41,
+   "min": 0.12, "max": 0.78}`. This says *how far around the track* a design typically gets before failing,
+   without saying why or what to change about the sensors/gains causing it.
+3. **Spread, not just min/mean/max.** Add `score_sd` and `progress_sd` per track. Today an agent sees
+   `min_score`/`max_score` but has to infer consistency; a design that is "always mediocre" and one that is
+   "usually great, occasionally catastrophic" can share a mean and be indistinguishable without this.
+4. **A worst-trial snapshot, not full telemetry.** One compact record per track for the single worst trial by
+   score — `{"seed": 7, "termination_reason": "off_track", "progress": 0.34, "error_at_termination": 0.063}` —
+   four numbers, not the ~300-row per-step trace. Lets the agent see a concrete worst case to reason about
+   (e.g. "even my worst case is 85% progress" vs "my worst case died at 12%") without per-step positions.
+5. **Finish-time spread for finished trials**, not just the mean: `min`/`max` alongside `mean_finish_time_s`,
+   since the score's time term rewards consistency as well as mean speed.
+
+Rough size: each addition is O(1) numbers per track (3 tracks), so this adds roughly 15-20 extra fields to a
+~40-field evidence block — nowhere near the per-step telemetry this session confirmed is categorically excluded
+in both arms today, and far short of anything that tells the agent *what* to change rather than *what
+happened*. Whether this is worth building (and whether it should go in Arm A, Arm B, or the real race template)
+is Dan's call, not run here.
