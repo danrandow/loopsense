@@ -93,3 +93,40 @@ at matched effort.
   before concluding.
 - As things stand, this is not a pass of G2 under the pre-registered criteria, which argues against proceeding
   to Phase 2 (G3) on the current evidence.
+
+## Gate 2b: Sonnet 5.5 single-replicate cost check — STOPPED, did not reach 10/arm
+
+Approved: replicate both arms on `anthropic/claude-sonnet-5.5`, `--reasoning medium`, identical frozen setup and
+unchanged pass criterion. Required steps before scaling: check remaining OpenRouter credit, cap new spend at
+`min(remaining_credit, $3)`, run one replicate per arm, report cost, confirm 10/arm fits before continuing.
+
+Remaining credit at the time of this check: $13.19 (limit $20, spend $6.805136) → cap = **$3.00**.
+
+| | N_evals / iters | agent gain (best-so-far / final) | matched baseline | margin | tokens | **cost** |
+|---|---|---:|---:|---:|---:|---:|
+| Arm A rep 1 (12 iters, K=1) | 12 | +3.7 | +70.1 (paired random) | **−66.4** | 232,641 | **$0.4059** |
+| Arm B rep 1 (sim-as-tool) | 14 of 25 | +263.2 | +44.7 (mean of 2 draws) | **+218.5** | 294,826 | **$0.7921** |
+
+Total spent on this cost check: **$1.198** (new spend since the $6.805136 baseline recorded at the start of
+Gate 2b). Per-replicate cost is **~17x Haiku's** for Arm A ($0.406 vs $0.0235) and **~16x** for Arm B ($0.792 vs
+$0.0478) — Sonnet 5.5 is a substantially larger model and `--reasoning medium` adds billable reasoning tokens on
+top of that.
+
+**10/arm does not fit under the $3 cap.** Projected at the measured per-replicate rate: Arm A alone ≈ **$4.06**,
+Arm B alone ≈ **$7.92**, combined ≈ **$11.98** — roughly 4x the cap for Arm A alone, ~8x for Arm B alone. Only
+about 1-2 more replicate-pairs (one Arm A + one Arm B rep ≈ $1.20 combined) fit in the $1.80 left under the cap,
+nowhere near enough for an 8-of-10-style read in either arm.
+
+**Stopped here per the approval's own condition** ("confirm 10 per arm fit before continuing") rather than
+unilaterally reducing the replicate count or the model/reasoning settings, since this approval (unlike the
+original Phase 1 one) did not pre-authorize a reduction — that choice is left to Dan. The two single replicates
+are directionally interesting but are single data points, not evidence at the pre-registered N:
+- Arm A: Sonnet did markedly *worse* than Haiku's typical pattern — mostly negative gains for 7 of 12
+  iterations, ending at a best-so-far of only +3.7 against a paired random baseline of +70.1.
+- Arm B: Sonnet did markedly *better* than Haiku's typical pattern — a clear win (+218.5 margin), and used
+  only 14 of its 25-evaluation budget (vs Haiku's ~23/25 average), suggesting more decisive use of the tool.
+
+Options for Dan to choose between (none actioned): (a) raise the Sonnet cap to let 10/arm run at the measured
+rate (~$12 all-in for both arms, or ~$4 for Arm A only / ~$8 for Arm B only); (b) drop `--reasoning` to cut cost
+and re-check; (c) run a smaller N (e.g. 3-5/arm) as an exploratory read rather than the full pre-registered
+design; (d) stop here and treat the single replicates as directional only.
