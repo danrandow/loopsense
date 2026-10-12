@@ -130,3 +130,49 @@ Options for Dan to choose between (none actioned): (a) raise the Sonnet cap to l
 rate (~$12 all-in for both arms, or ~$4 for Arm A only / ~$8 for Arm B only); (b) drop `--reasoning` to cut cost
 and re-check; (c) run a smaller N (e.g. 3-5/arm) as an exploratory read rather than the full pre-registered
 design; (d) stop here and treat the single replicates as directional only.
+
+## Gate 2b-2: Arm B only, Sonnet 5.5, budget re-capped at $2.80 — STOPPED, no setting reaches minimum 6
+
+Approved: Arm B only (no more Arm A runs), reasoning ladder low → off → "as many as fit, minimum 6,
+labelled exploratory" if 10 doesn't fit. Dan's OpenRouter dashboard showed $3.13 remaining against this key, not
+the $11.997 the `/auth/key` API reported at the same moment (API: limit $20, spend $8.003102) — **this
+discrepancy is unresolved and worth checking** (possibly a different budget scope, e.g. a workspace or
+per-model sub-limit, than the key-level `limit`/`usage` fields this session has been reading). Per instruction,
+used the dashboard figure: cap = min($3.13, $2.80) = **$2.80**, tracked as incremental API-usage spend from the
+$8.003102 baseline at the start of this sub-task (the API's absolute "remaining" is not trusted per Dan's
+correction, but a *diff* of its usage field across two calls seconds apart is still an accurate $ meter
+regardless of which total is right).
+
+| reasoning | N_evals | agent gain | matched baseline (mean of 2 draws) | margin | tokens | cost/rep | 10-rep cost | min-6 cost |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| low | 0 (both tries) | −11.8 | +0.0 (trivial — 0 search steps) | n/a, degenerate | 12,719 | ~$0.00 | ~$0.00 | ~$0.00 |
+| off (no `--reasoning` flag) | 22 | +249.6 | +140.95 | +108.65 | 529,367 | $1.2018 | $12.02 | $7.21 |
+| medium (for reference, priced in Gate 2b above) | 14 | +263.2 | +44.7 | +218.5 | 294,826 | $0.7921 | $7.92 | $4.75 |
+
+**`low` is free but behaviorally degenerate**, not just cheap: tested twice (different rng), both times the
+model called `submit_design` immediately with zero `evaluate_design` calls, so the matched baseline is also
+forced to 0 steps (always the unmodified start design, gain +0.0) — the comparison measures nothing about
+search ability. This is a genuine finding about `reasoning=low`'s effect on tool-use propensity in this
+harness, not a cost result, and 10 (or 6) replicates at this setting would not be valid data regardless of how
+cheap they are.
+
+**`off` priced more expensive than `medium`**, not less — the reasoning ladder's implicit assumption (lower
+effort → lower cost) did not hold here; omitting the `reasoning` parameter entirely apparently lets the model
+use more extended thinking than `effort: medium` explicitly caps it to (22 evals / 529k tokens vs 14 evals /
+295k tokens). `medium` remains the cheapest *valid* (non-degenerate) setting found across both Gate 2b and
+2b-2.
+
+**Spent this sub-task: $1.2018** (the `off` pricing replicate; the two `low` replicates cost $0.00 at this
+precision). Remaining under the $2.80 cap: **$1.60**.
+
+**Stopped per the approval's own minimum-6 floor**, not the cumulative-spend stop (not yet reached): neither
+tested valid setting reaches 6 replicates within budget — `off` needs $7.21 for 6, `medium` needs $4.75 for 6,
+and only $1.60 is left (or $2.80 if starting fresh with `medium` instead of pricing `off` first, still short of
+$4.75). No reasoning setting tested lets "minimum 6" happen under this cap, so no batch was run — running 1-2
+replicates would undershoot the floor Dan set rather than fit it.
+
+Options for Dan (none actioned): (a) raise the cap to ≥$4.75 (the `medium`, minimum-6 cost) or ≥$7.92 (`medium`,
+full 10); (b) accept the single already-run `medium`-reasoning Arm B replicate (margin +218.5, from Gate 2b) as
+the only Sonnet-on-Arm-B data point and stop; (c) resolve the dashboard/API discrepancy first in case more
+credit is actually available than either figure suggests; (d) try `reasoning=high` (untested, likely pricier
+still, not run without sign-off).
