@@ -8,8 +8,30 @@ from pathlib import Path
 from typing import Any
 
 from . import canonical
-from .io import read_yaml, safe_child
+from .io import digest, read_yaml, safe_child
 from .validators import design_bounds_from_contract
+
+# Shared with orchestrator/controller.py (a forced release on budget exhaustion) and orchestrator/executors.py
+# (an agent's own approval) so both apply a release identically; kept here since controller.py cannot import
+# from executors.py (executors.py already imports ActionResult from controller.py).
+DESIGN_FIELDS = ("geometry", "controller", "observation_request")
+MIN_OUTPUT_TOKENS = 500  # a model call that cannot leave at least this much for the answer is not made
+
+
+def project_design(entity: dict[str, Any]) -> dict[str, Any]:
+    """Return only the fields validate_package accepts; entity metadata (notes, learning, approval) is dropped."""
+    return {key: entity[key] for key in DESIGN_FIELDS if key in entity}
+
+
+def apply_release(release: dict[str, Any], candidate: dict[str, Any], release_contract_required: list[str]) -> dict[str, Any]:
+    """Build a release entity's payload from the candidate it releases: an unchanged copy (plus an approval
+    stamp), whether the release was an agent's own decision or a harness fallback (controller.py's forced
+    release when the action-run budget would otherwise be exhausted before any decision was made)."""
+    payload = {**project_design(candidate), "approval": {"decision": "ship", "candidate_id": digest(project_design(candidate))[:16]}}
+    for key in ("rationale", "learning", "notes"):
+        if key in release_contract_required and key in candidate:
+            payload[key] = candidate[key]
+    return payload
 
 try:
     from jsonschema import Draft202012Validator

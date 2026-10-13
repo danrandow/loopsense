@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .io import atomic_write, digest, read_yaml, write_json
-from .map_package import ActionDefinition, MapPackage
+from .map_package import MIN_OUTPUT_TOKENS, ActionDefinition, MapPackage, apply_release
 from .validators import CUT_OFF_MARKER, BudgetExhausted, ContractFailure
 from .transactions import ScenarioTransaction, recover_transactions
 import yaml
@@ -91,6 +91,12 @@ class MapDrivenController:
         maximum = budget_config["max_action_runs"]
         iteration_token_limit = budget_config["max_tokens_per_iteration"]
         total_token_limit = budget_config["total_tokens_per_condition"]
+        # The race's own run (the component action that scores a design) is reserved out of max_action_runs,
+        # not an extra run on top of it: model actions may use at most maximum - reserved_for_race runs this
+        # iteration, guaranteeing a run is always left for the race itself. Generalises to however many
+        # component actions a topology has (both current templates have exactly one).
+        reserved_for_race = sum(1 for a in self.package.actions.values() if a.runtime.get("kind") == "component")
+        model_action_cap = max(0, maximum - reserved_for_race)
         prior_total_tokens = 0
         for prior_events in self.package.root.glob("iteration-*/events.jsonl"):
             if prior_events == events_path:
@@ -115,6 +121,17 @@ class MapDrivenController:
             iteration_tokens = input_tokens + output_tokens
             remaining_iteration_tokens = iteration_token_limit - iteration_tokens
             remaining_total_tokens = total_token_limit - prior_total_tokens - iteration_tokens
+            if action.runtime.get("kind") == "model" and runs >= model_action_cap:
+                # The runs set aside for model actions are used up with the race's own run still reserved. Addition
+                # to the Gate 4 proposals: release whatever candidate exists rather than end the iteration with
+                # nothing delivered (race-40's logs showed iterations that burned the whole budget negotiating and
+                # never approved anything, scoring zero) -- but only for an action that actually has a release rule;
+                # a topology with no such rule (e.g. randow-maps) falls through to the unchanged behaviour below.
+                if self._force_pending_releases(scenario, iteration, iteration_dir, available):
+                    continue
+                return self._close_incomplete(iteration, scenario, iteration_dir, available, invocations, complete,
+                                              f"action-run budget exhausted: {runs} of {model_action_cap} runs available for model actions used "
+                                              f"before an approved design existed ({reserved_for_race} of {maximum} reserved for the race itself)")
             if action.runtime.get("kind") == "model" and min(remaining_iteration_tokens, remaining_total_tokens) < 1:
                 # Say which limit bound: the per-iteration cap can stop an iteration while most of the total budget remains.
                 if remaining_iteration_tokens < 1 <= remaining_total_tokens:
@@ -137,6 +154,17 @@ class MapDrivenController:
                     # An action run is one call to one role, or the race itself; a review-and-revision round is two runs, the race one.
                     "action_runs_used_this_iteration": runs, "action_runs_allowed_this_iteration": maximum,
                     "action_runs_remaining_this_iteration": max(0, maximum - runs),
+                    # One run is always reserved for the race itself (the design that is going to be scored this
+                    # iteration); these two are computed by the harness from the same numbers above, not left for
+                    # you to work out: how many of the remaining runs are actually available for review and
+                    # revision, and whether a full round (a revision plus the review of it, two runs) still fits
+                    # in both the runs and the tokens left this iteration.
+                    "action_runs_available_for_review_and_revision": max(0, model_action_cap - runs),
+                    "another_revise_round_fits_in_budget": (
+                        max(0, model_action_cap - runs) >= 2
+                        and remaining_iteration_tokens >= 2 * MIN_OUTPUT_TOKENS
+                        and remaining_total_tokens >= 2 * MIN_OUTPUT_TOKENS
+                    ),
                     "iteration_tokens_used": iteration_tokens,
                     "iteration_tokens_remaining": remaining_iteration_tokens,
                     "total_tokens_used": prior_total_tokens + iteration_tokens,
@@ -225,6 +253,39 @@ class MapDrivenController:
             if len(calls) >= limit:
                 break
         return calls[:limit]
+
+    def _force_pending_releases(self, scenario: Path, iteration: int, iteration_dir: Path, available: dict[str, str]) -> bool:
+        """Release any candidate whose decision never came, because the runs set aside for model actions ran out
+        first: the most recently proposed candidate races unchanged, exactly as an agent's own approval would
+        release it (orchestrator/map_package.py's apply_release), except the harness does it instead of the
+        Evaluator. Mutates `available` in place. Returns whether anything was released (false for a topology
+        with no release rule at all, e.g. randow-maps, which has nothing to force and falls through unchanged)."""
+        released_any = False
+        for action_id, action in self.package.actions.items():
+            release = action.runtime.get("release")
+            if not release:
+                continue
+            from_entity, release_entity = release["from_entity"], release["release_entity"]
+            if from_entity not in available or release_entity in available:
+                continue
+            candidate_version = available[from_entity]
+            candidate = json.loads((iteration_dir / from_entity / "versions" / candidate_version / "payload.json").read_text(encoding="utf-8"))
+            required = (self.package.contract(release_entity) or {}).get("required", [])
+            payload = apply_release(release, candidate, required)
+            ledger_path = iteration_dir / "budget-ledger.json"
+            existing_ledger = json.loads(ledger_path.read_text(encoding="utf-8")) if ledger_path.is_file() else {}
+            transaction = ScenarioTransaction(self.package, scenario, iteration_dir, action_id)
+            transaction.write_entity(release_entity, payload)
+            transaction.update("entities", release_entity, label="Released (budget exhausted)",
+                               notes=f"Released by the harness, not {action_id}: the runs set aside for model actions were used up before a "
+                                     "decision was reached. The most recently proposed candidate races unchanged.")
+            transaction.append_event("forced_release", {"from_entity": from_entity, "release_entity": release_entity,
+                                                         "reason": "action-run budget for model actions exhausted before an approval"})
+            transaction.update_budget(existing_ledger)  # unchanged: a forced release spends no model-action run and no tokens
+            transaction.commit()
+            available[release_entity] = (iteration_dir / release_entity / "current").read_text(encoding="utf-8").strip()
+            released_any = True
+        return released_any
 
     def _previous_incomplete(self, iteration: int) -> dict[str, Any] | None:
         """What the previous iteration failed to deliver, if anything; shown to the actors so they can learn from it."""

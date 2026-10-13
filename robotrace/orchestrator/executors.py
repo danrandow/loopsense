@@ -13,7 +13,7 @@ from orchestrator.evidence import keep_telemetry, mode_of, summarise_payload
 from .controller import ActionResult
 from .history import CHARS_PER_TOKEN, build_history
 from .io import digest
-from .map_package import ActionDefinition, MapPackage
+from .map_package import MIN_OUTPUT_TOKENS, ActionDefinition, MapPackage, apply_release, project_design
 from .validators import CUT_OFF_MARKER, BudgetExhausted, ContractFailure, validate_controller, validate_geometry
 
 
@@ -33,14 +33,11 @@ def _design(iteration: int) -> dict[str, Any]:
     }
 
 
-DESIGN_FIELDS = ("geometry", "controller", "observation_request")
-
 # Room reserved for the fixed system message when sizing a history pack from the remaining token budget.
 SYSTEM_PROMPT_ALLOWANCE = 1500
-MIN_OUTPUT_TOKENS = 500  # a call that cannot leave at least this much for the answer is not made
 SYSTEM_PROMPT = ("Return one JSON object keyed by the entity IDs you update. Every value must match that entity's supplied contract. Every entity in required_outputs MUST be present, or the team cannot be scored. "
     "Your role, your work and your team are described in instructions and your_role; downstream_dependents shows who reads each of your other authorized outputs and what they use it for. Use only supplied inputs. "
-    "You have a token allowance for this. remaining_budget shows the action runs this iteration has used, is allowed and has left (an action run is one call to one role, or the race itself), how many iterations follow this one, the tokens left in this iteration and in total, the size of this call's own prompt (already spent), output_limit_tokens_this_call (everything you generate in this call counts toward it, and an answer that reaches it is cut off and cannot be used) and your_previous_calls (what your last calls in this role spent, how many attempts they took, and how many were cut off by the limit); a careful rationale is worth spending it on. "
+    "You have a token allowance for this. remaining_budget shows the action runs this iteration has used, is allowed and has left (an action run is one call to one role, or the race itself), how many iterations follow this one, the tokens left in this iteration and in total, the size of this call's own prompt (already spent), output_limit_tokens_this_call (everything you generate in this call counts toward it, and an answer that reaches it is cut off and cannot be used) and your_previous_calls (what your last calls in this role spent, how many attempts they took, and how many were cut off by the limit); a careful rationale is worth spending it on. One run is always reserved for the race itself; action_runs_available_for_review_and_revision and another_revise_round_fits_in_budget are computed from the same numbers for exactly that question, so you do not have to work it out yourself. Tokens and action runs not used by the end of a race are not banked or carried to another race; action runs not used in one iteration do not carry to a later iteration, but tokens not used against this iteration's cap remain in the race's total budget for later iterations. "
     "The label and notes you give each output in _presentation should name and explain the change your rationale describes; write the notes as a short Markdown summary, because the map shows your full rationale (or feedback and requested changes) verbatim beneath it, so do not repeat it there. "
     "You may also include a top-level '_presentation' object (optional; the orchestrator labels any output you leave out) with one entry per entity you write: {'<entity_id>': {'label': '<=25 chars naming what this output is or what changed, e.g. Wider sensor array; never Updated', 'notes': 'one to three sentences describing what you produced and why, and the evidence it rests on'}}. "
     "The label and notes appear on the team's map for people reviewing the race; links to the artefact itself are added for you. public_contracts give the exact shape of what you must produce, the allowed range (minimum and maximum) or the only allowed options of every field, and a description of what each field does in the simulator; choose concrete values inside them.")
@@ -187,16 +184,12 @@ def iteration_guidance(plan: dict[str, Any] | None, completes_when: list[str]) -
         return None
     guidance = {
         **plan, "iteration_completes_when_present": completes_when,
+        "one_design_races": "Exactly one design races each iteration: the one written to the race's output entity by the time this iteration's actions finish.",
         "if_incomplete": "An iteration that ends without every required output is not scored; its development race is not run. Later iterations still run.",
     }
     if plan["final_iteration"]:
         guidance["final_iteration_warning"] = "This is the final iteration. If it ends without a delivered design, the final unseen-track race is scored 0, and you will not see that score. Watch remaining_budget."
     return guidance
-
-
-def project_design(entity: dict[str, Any]) -> dict[str, Any]:
-    """Return only the fields validate_package accepts; entity metadata (notes, learning, approval) is dropped."""
-    return {key: entity[key] for key in DESIGN_FIELDS if key in entity}
 
 
 class PackageExecutor:
@@ -264,10 +257,7 @@ class PackageExecutor:
         if decision != release["approve_value"] or not candidate:
             return {}
         entity = release["release_entity"]
-        output[entity] = {**project_design(candidate), "approval": {"decision": "ship", "candidate_id": digest(project_design(candidate))[:16]}}
-        for key in ("rationale", "learning", "notes"):  # keep the candidate's own reasoning if the release contract asks for it
-            if key in (self.package.contract(entity) or {}).get("required", []) and key in candidate:
-                output[entity][key] = candidate[key]
+        output[entity] = apply_release(release, candidate, (self.package.contract(entity) or {}).get("required", []))
         return fallback_presentation({entity: output[entity]}, self.package.entities)
 
     def _history(self, action: ActionDefinition, inputs: dict[str, dict[str, Any]], context: dict[str, Any], base_tokens: int) -> dict[str, Any] | None:

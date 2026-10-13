@@ -203,3 +203,37 @@ unilaterally.
 in above). This amendment and the rest of this document are committed in later commits on `sim-validity-fixes`;
 `git log -- robotrace/PHASE0_FREEZE.md` is authoritative for exactly when each part was written, which matters
 here only insofar as every part of §4/§4a predates any Phase 1 run.
+
+## §4b. Primary metric reversed (2026-10-14, approved by Dan, before any new race result is seen)
+
+**Reason.** `PHASE1_RESULTS.md`'s Gate 3b held-out comparison: the agent's held-out mean (545.3) was not
+clearly separated from the matched free-search baseline's (517.0) -- well inside one sample sd of either side
+(agent sd 155.4, pooled matched-baseline sd 143.1, the full-search ES ceiling sd 203.8 on n=5). Held-out
+per-design sd is on the order of **143-204** against means in the 500-600 range (CV roughly 25-40%), while the
+same designs' dev-validation score sd was 19.8 -- an order of magnitude tighter. Ranking on a metric with this
+much noise relative to signal risks measuring which design happened to transfer to three fixed unseen track
+shapes, not which design (or team) is actually better; this was flagged as a reversal needing explicit sign-off
+in `PHASE2_DESIGN.md` §3 and has now been approved.
+
+**What changes.** The **primary** comparison metric is now: mean score over the three fresh validation seeds
+(5000-5029) run against (a) the three literal development tracks (oval, s-bend, slalom, as before) and (b)
+freshly generated tracks from the same three families, at a fixed generator seed. The fixed held-out tracks
+(hairpin, hairpin-b, slalom-b) become a **secondary**, reported-but-not-gating transfer metric -- still computed
+and shown in every result, just no longer what a pass/fail or a team-vs-team ranking is decided on.
+
+**Evaluation path (implemented, zero token cost).** `tools/fresh_tracks.py`:
+- `generate_fresh_tracks(seed=777)` samples `{difficulty, length}` per dev family (oval, s-bend, slalom) around
+  that family's own existing dev-track values (`DEV_TRACK_CENTRE`), spread `difficulty ± 0.20`, `length ± 3.0`
+  -- the same scale of difference already seen between a dev track and its held-out counterpart (e.g. dev
+  `slalom` difficulty 0.25 vs held-out `slalom-b` difficulty 0.45). **`FRESH_TRACK_SEED = 777`, fixed and
+  recorded here; do not change without a new freeze entry.** 3 fresh tracks per family (9 total), deterministic
+  (same seed always returns the same tracks -- checked directly: calling it twice returns identical output).
+- `primary_metric(design, dev_tracks, config, seeds, fresh_tracks=None)` scores a design on the 3 dev tracks
+  plus the 9 fresh tracks (12 tracks total), on the given seeds, and returns the mean -- the same `run_trial`
+  / scoring code every other tool in this session uses, so this is additive to the existing dev-score
+  machinery, not a new scoring path. Tracks are a pure function of `{family, difficulty, length}`
+  (`simulator/adapter/headless.py`'s `_track_polyline`), confirmed by construction, not just by inspection: the
+  module generates them directly from those three fields.
+- Sanity-checked against the frozen starting design (seeds 5000-5009): mean 653.6 across all 12 tracks,
+  individual fresh-track scores (e.g. `oval-fresh-1` 940.5, `slalom-fresh-2` 187.9) falling in between their
+  family's dev and held-out scores as expected, not off in some unrelated range.

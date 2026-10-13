@@ -277,6 +277,84 @@ class TemplateCanonicalKeyTests(unittest.TestCase):
             self.assertNotIn("{", text)
 
 
+class ForcedReleaseTests(unittest.TestCase):
+    """opt-eval's revise/approve negotiation used to be able to burn the whole action-run budget without ever
+    approving anything (observed in race-40's logs: 8 of 18 iterations ended with entity1 undelivered, scored
+    zero). The harness now reserves one run for the race itself and force-releases the last candidate if the
+    runs set aside for model actions run out first, so this should no longer happen."""
+
+    TEMPLATES = Path(__file__).resolve().parents[1] / "package-templates"
+
+    def _always_revise_executor(self, calls: list[str]):
+        from orchestrator.controller import ActionResult
+
+        def executor(action, inputs, context):
+            calls.append(action.id)
+            if action.id == "action0":
+                design = {"rationale": f"draft {len(calls)}", "geometry": {"g": len(calls)}, "controller": {"c": 1}, "observation_request": {}}
+                return ActionResult({"entity0": design}, {"entity0": "draft"}, {"entity0": "a draft"}, {"provider": "mock", "input_tokens": 10, "output_tokens": 10})
+            if action.id == "action1":
+                feedback = {"feedback": "not yet", "requested_changes": ["x"], "decision": "revise"}
+                return ActionResult({"entityR1": feedback}, {"entityR1": "feedback"}, {"entityR1": "critique"}, {"provider": "mock", "input_tokens": 10, "output_tokens": 10})
+            if action.id == "action2":
+                trial = {"score": 1, "trials": []}
+                return ActionResult({"entity2": trial, "entityR2A": {**trial, "summary": "s"}, "entityR2B": {**trial, "summary": "s"}},
+                                    {"entity2": "race", "entityR2A": "race", "entityR2B": "race"}, {}, {"provider": "component"})
+            raise AssertionError(action.id)
+        return executor
+
+    def test_last_candidate_races_instead_of_the_iteration_ending_undelivered(self) -> None:
+        from orchestrator.controller import MapDrivenController, clone_package
+        from orchestrator.map_package import MapPackage
+        with tempfile.TemporaryDirectory() as directory:
+            clone = clone_package(self.TEMPLATES / "opt-eval", Path(directory) / "race-forced-release-opt-eval", "race-forced-release")
+            package = MapPackage(clone).validate()
+            calls: list[str] = []
+            controller = MapDrivenController(package, self._always_revise_executor(calls), package.race["simulator"]["version"])
+            controller.run_iteration(0)
+            outcome = json.loads((clone / "iteration-0" / "outcome.json").read_text())
+            self.assertTrue(outcome["complete"], outcome)
+            entity1_current = (clone / "iteration-0" / "entity1" / "current").read_text().strip()
+            entity1 = json.loads((clone / "iteration-0" / "entity1" / "versions" / entity1_current / "payload.json").read_text())
+            self.assertEqual(entity1["approval"]["decision"], "ship")
+            events = [json.loads(line) for line in (clone / "iteration-0" / "events.jsonl").read_text().splitlines()]
+            self.assertTrue(any(e["type"] == "forced_release" for e in events))
+            # action1 never once said "approve" -- every entity1 came from the forced release, not a decision.
+            self.assertFalse(any(e.get("type") == "action_completed" and e.get("action") == "action1" and
+                                 json.loads((clone / "iteration-0" / "entityR1" / "versions" / e["id"] / "payload.json").read_text()).get("decision") == "approve"
+                                 for e in events))
+            # the race's own run was reserved: action2 ran exactly once, using the run set aside for it.
+            self.assertEqual(sum(1 for e in events if e.get("action") == "action2"), 1)
+
+    def test_budget_fields_reflect_the_run_reserved_for_the_race(self) -> None:
+        """action_runs_remaining_this_iteration still counts every run (unchanged); the two new fields are the
+        ones that already subtract the reserved run, so a role does not have to work that out itself."""
+        from orchestrator.controller import MapDrivenController, clone_package
+        from orchestrator.map_package import MapPackage
+        seen_budgets: list[dict] = []
+        with tempfile.TemporaryDirectory() as directory:
+            clone = clone_package(self.TEMPLATES / "opt-eval", Path(directory) / "race-budget-fields-opt-eval", "race-budget-fields")
+            package = MapPackage(clone).validate()
+            calls: list[str] = []
+            base_executor = self._always_revise_executor(calls)
+
+            def spying_executor(action, inputs, context):
+                seen_budgets.append(context["budget"])
+                return base_executor(action, inputs, context)
+
+            controller = MapDrivenController(package, spying_executor, package.race["simulator"]["version"])
+            controller.run_iteration(0)
+            maximum = package.race["budget"]["max_action_runs"]
+            first_action1_budget = next(b for b in seen_budgets if b["action_runs_used_this_iteration"] == 1)
+            self.assertEqual(first_action1_budget["action_runs_remaining_this_iteration"], maximum - 1)
+            self.assertEqual(first_action1_budget["action_runs_available_for_review_and_revision"], maximum - 2)
+            self.assertTrue(first_action1_budget["another_revise_round_fits_in_budget"])
+            last_model_budget = max((b for b in seen_budgets if "action_runs_available_for_review_and_revision" in b),
+                                    key=lambda b: b["action_runs_used_this_iteration"])
+            self.assertLessEqual(last_model_budget["action_runs_available_for_review_and_revision"], 1)
+            self.assertFalse(last_model_budget["another_revise_round_fits_in_budget"])
+
+
 class FailedRunTests(unittest.TestCase):
     SETTINGS = {"iterations": "1", "provider": "mock", "model_id": "deterministic-mock-v1", "max_output_tokens": "700", "max_action_runs": "5", "total_tokens_per_condition": "12000", "max_tokens_per_iteration": "4000"}
 
