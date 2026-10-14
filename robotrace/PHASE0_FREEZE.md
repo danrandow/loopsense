@@ -237,3 +237,64 @@ and shown in every result, just no longer what a pass/fail or a team-vs-team ran
 - Sanity-checked against the frozen starting design (seeds 5000-5009): mean 653.6 across all 12 tracks,
   individual fresh-track scores (e.g. `oval-fresh-1` 940.5, `slalom-fresh-2` 187.9) falling in between their
   family's dev and held-out scores as expected, not off in some unrelated range.
+
+## §4c. Gate 6 pre-registration (2026-10-14, written and committed before any Gate 6 race starts)
+
+The real topology comparison: `opt-eval` vs `randow-maps`, both current templates, both Haiku 5.5 via
+OpenRouter, both the harness as it stands after the Part C changes (`1930a7dc`) and the Gate 5 priced test
+(`69141ad5`). Every number below is fixed now, in advance, per the mandate's charter.
+
+**Design.** N=16 races per arm, 12 iterations per race (the current template default), 32 races total,
+**executed in interleaved order** (opt-eval, randow-maps, opt-eval, randow-maps, ...) specifically to spread any
+time-of-day or upstream-model drift evenly across both arms rather than letting one arm's batch fall in a
+different window than the other's.
+
+**Primary metric.** `tools/fresh_tracks.py`'s `primary_metric`, applied to each race's **final delivered
+design** (the `entity1` payload present at the end of the race's last completed iteration) — fresh validation
+seeds 5000-5029, the three development tracks plus the nine fresh same-family tracks at the fixed generator
+seed 777 (§4b). If a race's final iteration ends with no `entity1` delivered at all (every topology's own
+instructed rule, and now also the Part C forced-release guard for `opt-eval`, make this expected to be rare),
+the harness's own existing convention applies: primary-metric score 0 for that race, per
+`orchestrator/race_service.py`'s `_execute()` ("the held-out score is 0 and nothing is raced").
+
+**Secondary metric.** Each race's own final held-out evaluation (`final-evaluation.json`, the harness's
+existing once-per-race computation on `hairpin`/`hairpin-b`/`slalom-b` over `held_out_seeds` 101-120) — read
+directly from what the harness already computes, not recomputed. Reported alongside every result, never used
+to gate the decision rule (§4b's reversal stands).
+
+**Reference baselines, same primary metric, same evaluation count (12), N=16 each:**
+- **(i) Random hill-climb.** The established (1+1) rule (`tools/baseline_search.py`'s `mutate`, full design
+  space), 12 steps, K=1 — the free, zero-token structure Arm A (`probe_step.py --loop 12`) has used throughout
+  this project, matched here on *step count* (12), the same unit a race's iteration count is. 16 independent
+  replicates, RNG seeds 1-16. **The baseline's score is its design after the 12th step, not the best-so-far** —
+  a real race does not get to go back and resubmit an earlier, better iteration either, so the fair comparison
+  is "where did 12 rounds of search end up," not "what was the best moment passed through."
+- **(ii) Untouched start design.** `tools/baseline_search.py`'s `starting_design(None)`, scored once (every
+  input to `primary_metric` is already fixed — seeds, tracks, design — so this number is deterministic; no
+  replicates to average, reported as a single reference line, not a distribution).
+
+**Decision rule.** Let Δ = mean(opt-eval primary scores, n=16) − mean(randow-maps primary scores, n=16).
+Compute the 95% CI for Δ (Welch two-sample, unequal variances assumed). **Declare a winner only if the CI
+excludes 0 AND |Δ| ≥ 15 points.** Otherwise, report "no detectable difference at this power" and compute, from
+the *observed* sds, the N (and, from Gate 5's measured $/race, the $ cost) that a 15-point gap would need to
+clear both conditions, using the same two-sample formula PHASE2_DESIGN.md §4 used (n per arm ≈ 2·(1.96+0.84)²·
+σ²/Δ²). Separately, and regardless of the topology-vs-topology result: **each arm is also compared the same
+way against both baselines** — opt-eval vs hill-climb, randow-maps vs hill-climb (two-sample CIs, n=16 each
+side), and each arm's mean plotted against the start design's single fixed number (does the arm's own 95% CI
+exclude the start-design score — a one-sample framing, since the start design has no variance to build a
+two-sample CI from).
+
+**Failed-race rule, decided before any race runs, so it cannot be chosen after seeing which races had trouble:**
+- **Harness fault** (the race-driving process crashes or is killed before all 12 iterations run for a reason
+  outside the normal per-iteration accounting — an uncaught exception, a network/API read timeout, a process
+  kill; e.g. the "race 104 died on a read timeout" entry in this project's own history) → **rerun once** under
+  the same race id's slot, and **log which races this happened to and why**, in the Gate 6 report.
+- **A race that completes all 12 iterations and delivers a bad design** (low score, an iteration or two ending
+  "incomplete" under the harness's own normal per-iteration budget accounting, anything short of an actual
+  process crash) → **counts as scored, exactly as delivered.** A bad result is a result, not a fault; this
+  mandate's whole premise is diagnosing team-design and incentive problems before harness mechanics, and a
+  quietly-discarded bad race would be exactly the kind of result this rule exists to stop happening after the
+  fact.
+
+This section is committed before any Gate 6 race is run; any deviation found necessary once races are underway
+is logged as an amendment here, not silently applied.
