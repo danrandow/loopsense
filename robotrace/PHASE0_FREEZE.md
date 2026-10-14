@@ -298,3 +298,58 @@ two-sample CI from).
 
 This section is committed before any Gate 6 race is run; any deviation found necessary once races are underway
 is logged as an amendment here, not silently applied.
+
+## §4d. Gate 8 pre-registration: solo-agent control + randow-maps top-up (2026-10-15, committed before any race starts)
+
+**Arms.**
+- **opt-solo**: 16 new races, 12 iterations each, Haiku 5.5, the new `package-templates/opt-solo` template
+  (opt-eval with the Evaluator removed — the Optimizer's design goes straight to the simulator each iteration;
+  instructions diff shown separately, no advice or information added).
+- **randow-maps**: 5 or more new races, 12 iterations each, Haiku 5.5, to bring the completed-12-iteration
+  total to **N=16**, combining with the 11 already completed in Gates 6-7. Per-race cap raised to **$0.80**
+  (up from $0.50) specifically to stop the truncation-before-iteration-12 problem that cost Gate 6 four of its
+  16 target races. **The 4 races truncated early in Gate 6 (113, 117, 119, 135) are reported separately, in
+  their own row, and are not mixed into this N=16** — they remain what they were, a cost-governance artefact
+  of a cap that was too tight, not data for this comparison.
+- **opt-eval**: no new races. The 16 already completed in Gates 6-7 are reused as-is for the opt-eval-vs-opt-solo
+  comparison below, at zero additional cost.
+
+**Metric (same corrected method Gate 7 introduced, pre-registered as primary from the start this time, not
+found after the fact):** paired improvement on `primary_metric`, `final − iteration 0`, per race. Secondary:
+margin over a matched random hill-climb **started from that same race's own iteration-0 design** (not a
+generic reference design), 3 replicates per race, final (step 12) score, matching Gate 7's method exactly.
+
+**Comparisons, each a Welch two-sample 95% CI:**
+1. **opt-eval vs opt-solo** (the second-agent question) — on paired improvement.
+2. **opt-solo vs its own matched hill-climb** — on paired improvement vs hill-climb improvement, same race.
+3. **randow-maps (N=16) vs its own matched hill-climb** — same, now at full N.
+
+**Decision rule.** A winner is declared only if the CI excludes 0 **and** |gap| ≥ 15 points. Otherwise: "no
+detectable difference at this power," plus the N (and, from measured $/race, the $ cost) a 15-point gap would
+need at the observed sd, exactly as §4c and the Gate 7 erratum did.
+
+**Stated plainly, before any data exists:** using Gate 7's opt-eval paired-improvement sd (184.27, n=16) as the
+planning assumption for both opt-eval and opt-solo, the standard error of their mean difference at N=16 each is
+`sqrt(2) × 190 / sqrt(16) ≈ 67 points` — so the 95% CI half-width on that comparison is roughly ±132 points.
+**N=16 can only reliably detect a gap larger than roughly 130-150 points; it cannot resolve anything near the
+15-point decision threshold** (that would need ~2,500 races per arm, per the same power formula §4c and the
+Gate 7 erratum used). This is stated now, before seeing any opt-solo data, specifically so a null result here
+is read as "underpowered for a small effect," not quietly implied to be "no effect."
+
+**Cost handling.**
+- **Per-call cost is read directly from each OpenRouter API response** (`usage: {include: true}` in the
+  request, `usage.cost` in the response — implemented in `orchestrator/executors.py`'s `_openrouter`, summed
+  across repair attempts the same way token counts already were, and carried into `events.jsonl` as
+  `cost_usd` on every `action_completed` event), **not inferred from polling the shared account balance.**
+  Gate 6's own log showed balance-polling misattributes cost between races running concurrently; reading cost
+  from the response that was already being parsed for tokens has no such problem, since it is intrinsically
+  tied to the one call that produced it, regardless of what else is running at the same time.
+- **The gate-wide balance check remains the hard cap mechanism** — $2.50 for this gate, checked against the
+  OpenRouter account balance directly (not reconstructed from summed per-call costs), since that is the one
+  number that is always true regardless of any bug in per-call attribution.
+- **Stop immediately if the dashboard balance falls below $4.00.** Starting balance reported at the start of
+  the run.
+- Arms interleaved in submission order (opt-solo, randow-maps, opt-solo, ...), same reasoning as §4c. Harness
+  faults rerun once, as before; a rerun that also faults is not retried again.
+
+This section, the opt-solo template, and the cost-tracking change are committed before any Gate 8 race runs.

@@ -224,9 +224,10 @@ class PackageExecutor:
             packed_inputs, _ = compact_telemetry(self._shown(inputs))
             packed_history = compact_telemetry(history)[0] if history else {}
             input_tokens, output_tokens = max(1, (len(json.dumps(packed_inputs, separators=(",", ":"))) + len(json.dumps(packed_history, separators=(",", ":")))) // CHARS_PER_TOKEN), max(1, len(json.dumps(output)) // 4)
+            cost_usd = 0.0  # the mock provider spends no real money
         elif provider == "openrouter":
             self._history_tokens = 0
-            output, request_id, input_tokens, output_tokens, presentation = self._openrouter(action, targets, inputs, context)
+            output, request_id, input_tokens, output_tokens, presentation, cost_usd = self._openrouter(action, targets, inputs, context)
             presentation = {**presentation, **self._apply_release(action, output, inputs)}
         else:
             raise RuntimeError(f"unsupported model provider: {provider}")
@@ -240,7 +241,7 @@ class PackageExecutor:
                 raise ContractFailure(f"{entity_id} failed its contract: {error}", action.id, [str(error)], input_tokens, output_tokens) from error
         return ActionResult(output, {entity: presentation[entity]["label"] for entity in output}, {entity: full_notes(presentation[entity]["notes"], output[entity]) for entity in output}, {
             "provider": provider, "request_id": request_id,
-            "input_tokens": input_tokens, "output_tokens": output_tokens,
+            "input_tokens": input_tokens, "output_tokens": output_tokens, "cost_usd": cost_usd,
             "history_tokens_estimate": getattr(self, "_history_tokens", 0),
             **(getattr(self, "_call_summary", None) or {}),
         })
@@ -322,7 +323,7 @@ class PackageExecutor:
                 outputs[target] = {key: "mock" for key in required}
         return outputs
 
-    def _openrouter(self, action: ActionDefinition, targets: list[str], inputs: dict[str, dict[str, Any]], context: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], str, int, int, dict[str, dict[str, str]]]:
+    def _openrouter(self, action: ActionDefinition, targets: list[str], inputs: dict[str, dict[str, Any]], context: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], str, int, int, dict[str, dict[str, str]], float]:
         key = os.environ.get("OPENROUTER_API_KEY", "").strip()
         if not key:
             raise RuntimeError("OPENROUTER_API_KEY is not set")
@@ -363,6 +364,7 @@ class PackageExecutor:
         error = ""
         errors: list[str] = []
         spent_in = spent_out = 0  # every attempt is paid for, including the ones the contract rejects
+        spent_cost = 0.0  # $ cost as reported by OpenRouter itself (usage.include=true), not inferred from token counts or balance polling
         cut_off_attempts = 0
         self._call_summary = {}
         attempts = int(action.runtime.get("repair_attempts", 0)) + 1
@@ -376,13 +378,14 @@ class PackageExecutor:
             room = available_tokens - prompt_estimate  # what is left for the model's answer once the prompt is paid for
             if room < MIN_OUTPUT_TOKENS:
                 raise BudgetExhausted(f"{action.id} needs about {prompt_estimate} input tokens plus at least {MIN_OUTPUT_TOKENS} to answer, but {max(0, available_tokens)} remain", getattr(action, "id", None), spent_in, spent_out)
-            body = {"model": config["id"], "messages": messages, "temperature": config.get("temperature", 0), "max_tokens": min(config["max_output_tokens"], room), "response_format": {"type": "json_object"}}
+            body = {"model": config["id"], "messages": messages, "temperature": config.get("temperature", 0), "max_tokens": min(config["max_output_tokens"], room), "response_format": {"type": "json_object"}, "usage": {"include": True}}
             request = Request(config.get("base_url", "https://openrouter.ai/api/v1").rstrip("/") + "/chat/completions", data=json.dumps(body).encode(), headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}, method="POST")
             with urlopen(request, timeout=config.get("timeout_seconds", 120)) as response:
                 response_data = json.loads(response.read())
             usage = response_data.get("usage", {})
             spent_in += int(usage.get("prompt_tokens", 0))
             spent_out += int(usage.get("completion_tokens", 0))
+            spent_cost += float(usage.get("cost", 0) or 0)
             generated = int(usage.get("completion_tokens", 0))
             finish_reason = ((response_data.get("choices") or [{}])[0] or {}).get("finish_reason")
             # An answer that ran into the output limit is unreadable JSON; say so, rather than showing the model a bare parse error it
@@ -413,7 +416,7 @@ class PackageExecutor:
                             validate_controller(payload["controller"], len(payload["geometry"]["sensor_positions"]), self.package.race["design_bounds"])
                 presentation = resolve_presentation(output, presentation, self.package.entities)
                 self._call_summary = {"attempts": _ + 1, "attempts_cut_off": cut_off_attempts}
-                return output, response_data.get("id", "openrouter-unknown"), spent_in, spent_out, presentation
+                return output, response_data.get("id", "openrouter-unknown"), spent_in, spent_out, presentation, spent_cost
             except Exception as validation_error:
                 error = str(validation_error)
                 if cut_off:
