@@ -353,3 +353,25 @@ is read as "underpowered for a small effect," not quietly implied to be "no effe
   faults rerun once, as before; a rerun that also faults is not retried again.
 
 This section, the opt-solo template, and the cost-tracking change are committed before any Gate 8 race runs.
+
+## §4d amendment (i): a second pre-registered test, win/loss counts (2026-10-15, before any Gate 8 race runs)
+
+**Added to §4d's comparisons, not replacing the mean-difference CI — both are reported.** For each arm, per
+race, classify the paired margin over its matched hill-climb (that race's own improvement minus its own
+matched-hill-climb improvement) as a **win** (margin > +10), a **loss** (margin < −10), or neither (a tie,
+inside ±10) — the same thresholds §4c and the Gate 7 erratum already used. **Opt-eval vs opt-solo: a two-sided
+Fisher's exact test on win counts**, 2×2 table of wins vs. non-wins by arm. Opt-eval's side of the table is
+already known and fixed from Gates 6-7: **15 wins, 1 tie, 0 losses out of 16** (race-128's margin was +9.8,
+just under the +10 win line — the only non-win). Reported alongside, not instead of, the mean-difference CI.
+
+**Stated now, before any opt-solo data exists, why this is expected to be the more sensitive test:** the
+mean-difference CI is a function of the raw improvement *magnitudes*, which in this data range from single
+digits to 500+ points in the same arm (Gate 7's opt-eval margins: 0 losses, but a spread from +9.8 to +516.3) —
+a few huge-magnitude races dominate the variance and widen the CI enormously, which is exactly why §4d's
+own power calculation found the mean-difference test needs ~2,500 races per arm to resolve a 15-point gap. A
+win/loss count is an ordinal, bounded outcome (did this race clear the +10 line or not) that does not care how
+far past +10 or −10 a given race landed — it is far less exposed to a few extreme races inflating the
+apparent noise, so at the same N=16 it should have more power to detect a real difference in *how reliably*
+an arm beats matched search, even where the mean-difference test cannot. This is a prediction, not a
+guarantee: it is being written down before the comparison is run specifically so it can be checked against
+what actually happens, not fitted to it afterward.
