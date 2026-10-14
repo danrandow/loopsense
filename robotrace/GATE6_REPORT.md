@@ -164,3 +164,128 @@ per arm needed for a 15-point gap) — but that question is secondary to the hea
 answer the same way: neither clears the free baseline, and both likely only *appear* to learn because the
 metric they're scored against during the race is the same one their proposals are implicitly tuned against,
 every iteration.
+
+---
+
+# Erratum (2026-10-15, Gate 7, zero spend)
+
+**Everything above this line is unchanged from the original report.** The comparisons below correct a flaw in
+how the decision rule's baselines were paired, found after the fact. The headline conclusion above —
+"neither team beats the free baseline, both likely overfit" — **does not survive this correction.** Read
+this section as the current read of what Gate 6's data actually shows.
+
+## What was wrong
+
+§4c's baselines (the random hill-climb and the "untouched start design") both started from
+`tools/baseline_search.py`'s `starting_design(None)` — a hand-tuned design that already scores ~658 on the
+primary metric. **No race agent ever sees that design, or any design at all, at iteration 0.** Confirmed two
+ways:
+
+1. **Structurally**, in both templates' `config/workflow.yaml`: `required_inputs: {action0: []}` and
+   `initial_entities: []`. Action0 (the Optimizer / the Geometry Builder) is the entry action and is called
+   with zero authorized input entities — there is no entity it could read a starting design from even if one
+   existed in the package, which it doesn't.
+2. **By enumerating the exact iteration-0 prompt** (`orchestrator/executors.py`'s `_openrouter`, the
+   `base_prompt` dict): `instructions` (the role/team text, quoted below), `authorized_inputs` (`{}` — empty,
+   since `inputs` is empty), `authorized_output_contracts` (entity0's JSON schema), `your_role` (actor/action
+   labels and purposes), `required_outputs`, `response_shape` (formatting rules), `downstream_dependents`
+   (who reads entity0 and why), `iteration_plan` (iteration count, the "exactly one design races" line,
+   scarcity text), `objective` (the scoring formula), and `remaining_budget`. **Nowhere in this list is a
+   specific design, example, or baseline of any kind.** The only numeric content is `design_bounds` — ranges
+   only (e.g. `kp: [0, 20]`, `sensor_x: [-0.08, 0.08]`), confirmed read directly from
+   `package.race["design_bounds"]`, never a concrete value. Both action0 roles' full instructions text was
+   re-read for this erratum and contains no reference to any "starting," "baseline," or "default" design
+   either — e.g. opt-eval's Optimizer is told only "Deliver one complete, improved line-following robot
+   candidate (geometry and controller) every iteration," with no seed to improve *from* on iteration 0.
+
+This is corroborated by every iteration-0 rationale already quoted across Gates 4-6: *"there is no earlier
+race data... the critique rests on the contract and the candidate's own contents"* — the agents' own stated
+understanding matches the structural fact. **Each race's iteration-0 design is synthesized by the Optimizer
+or Builder from the contract's ranges alone, independently per race** — not from the 658-scoring reference
+design, which is why every race's own iteration-0 primary-metric score (range: 26.8-300.5, mean well under
+100 for most races) looks nothing like 658. Comparing a team's *final* design against a baseline that started
+58-600+ points ahead of where the team itself started was comparing two different races, not scoring the same
+contest from the same starting line.
+
+**The "overfitting" explanation was also wrong, independently of the baseline problem** — checked directly
+per race below: the gap between each race's own final *dev* score (what the live race scores every iteration)
+and its final *primary-metric* score (fresh seeds + fresh tracks) is small (mean +14 for opt-eval, +36 for
+randow-maps, against improvements of 150-250+) — nothing like the dramatic generalization collapse the
+original text implied.
+
+## Corrected, zero-cost analysis
+
+For every one of the 27 completed races, scored `primary_metric` at **every** iteration 0-11 (not just the
+final one), and ran 3 matched random-hill-climb replicates **starting from that race's own iteration-0
+design** (not the generic 658-point reference) — the fair baseline §4c should have specified.
+
+### Paired improvement (final − iteration 0), per arm
+
+| arm | n | mean | sd | 95% CI |
+|---|---:|---:|---:|---|
+| opt-eval | 16 | **+242.46** | 184.27 | [+152.17, +332.75] |
+| randow-maps | 11 | **+158.47** | 201.39 | [+39.45, +277.48] |
+
+**Both CIs exclude 0 by a wide margin — both teams show real, statistically clear learning** across the race,
+confirmed now on the out-of-sample primary metric, not just the live dev score.
+
+### Dev-to-primary gap, per race (the direct overfitting check)
+
+| arm | mean gap (dev − primary) | sd | range |
+|---|---:|---:|---|
+| opt-eval | +14.19 | 19.28 | −26.4 to +57.3 |
+| randow-maps | +36.10 | 31.38 | +1.3 to +86.1 |
+
+Small relative to the improvements above. Some generalization loss, more for randow-maps than opt-eval, but
+not the dramatic collapse the original "likely only appear to learn" language suggested.
+
+### Invalid or near-zero final designs
+
+**Zero, either arm.** Lowest final primary-metric scores were 53.8 (opt-eval race-128) and 41.8 (randow-maps
+race-129) — both well above a true near-zero/invalid-design floor, and both still represent a positive
+improvement or a small, ordinary loss from that race's own start, not a broken design.
+
+### Matched hill-climb (started from each race's own iteration-0 design, 3 replicates/race)
+
+| arm | hill-climb improvement, mean (sd) | hill-climb final, mean (sd) |
+|---|---:|---:|
+| opt-eval | +33.87 (41.35), n=48 | 101.27 (97.96) |
+| randow-maps | +81.38 (125.01), n=33 | 152.95 (158.75) |
+
+### Paired margin: team's own improvement minus that race's own matched-hillclimb improvement
+
+| arm | n | mean margin | sd | 95% CI | wins (>+10) | losses (<−10) |
+|---|---:|---:|---:|---|---:|---:|
+| **opt-eval** | 16 | **+208.59** | 168.51 | **[+126.02, +291.16]** | **15/16** | **0/16** |
+| **randow-maps** | 11 | **+77.08** | 200.58 | **[−41.45, +195.62]** | 4/11 | 4/11 |
+
+**Opt-eval clearly, decisively beats matched free search** — every single race but one, CI nowhere near 0,
+margin far past the 15-point floor. **Randow-maps does not** — as many clear losses as clear wins, CI
+comfortably includes 0.
+
+### Opt-eval vs randow-maps, recomputed on paired improvement
+
+Δ = 242.46 − 158.47 = **+83.99**. 95% CI: **[−65.40, +233.38]** — still includes 0, **still no detectable
+difference between the topologies**, the one piece of Gate 6's original conclusion that survives the
+correction, though now for the right reason rather than a baseline artefact. Pooled sd of the *improvement*
+is 193.02 — smaller than the 222.4 pooled sd of the raw final scores Gate 6 used, but **not "much smaller"**:
+pairing removed only a modest fraction of the noise here, not most of it. N needed for a 15-point gap at this
+sd: **~2,596 races/arm** — smaller than Gate 6's ~3,450 estimate, but still not a realistic next step at any
+budget this project has used.
+
+## Revised plain-language answers
+
+- **Do the agents learn?** Yes, clearly — both teams' final designs score significantly higher than their own
+  iteration-0 design on the out-of-sample primary metric, not just on the live dev score.
+- **Do they generalize?** Reasonably well. There is some gap between the live dev score and the primary
+  metric (more for randow-maps), but it is small relative to the size of the improvement, not the dominant
+  effect.
+- **Do they beat matched free search (same starting point, same evaluation count)?** **Opt-eval: yes,
+  decisively (15/16 races, CI excludes 0 by a wide margin). Randow-maps: no — statistically indistinguishable
+  from free search**, with roughly as many clear losses as clear wins.
+- **Do the topologies differ?** Not detectably on the direct opt-eval-vs-randow-maps comparison (CI includes
+  0, as in the original report) — but the two arms differ sharply in *how reliably they clear the free-search
+  bar*, which the direct comparison alone does not capture. Opt-eval's edge over matched search is consistent
+  and large; randow-maps's is a coin flip. Whether that distinction matters more than the raw score
+  comparison is a judgement call, not something this analysis resolves by itself.
+
