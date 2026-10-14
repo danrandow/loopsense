@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 0.9,
+    "kd": 0.5,
+    "ki": 0.0,
+    "kp": 1.4,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.07
+      },
+      {
+        "x": -0.02,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.02,
+        "y": 0.07
+      },
+      {
+        "x": 0.04,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 6 (base 0.9, kd 0.5, kp 1.4, y 0.07, x \u00b10.032) is still the best raced design at 683.7. Its oval and s-bend both finished 20/20, but the slalom ended off_track in all 20 runs at mean progress 0.392. Iteration 9 (kd 0.6, otherwise identical) scored 676.8: the s-bend improved to oscillation 0.273 with 20/20 finishes, but slalom progress fell to 0.351. So kd 0.6 does not lift the slalom, and the entityR1 rule for kd 0.6 (keep it only if slalom rises above 0.39) is not met. Iteration 7 (base 0.85) and iteration 8 (y 0.075) also lowered slalom progress, so base 0.9 and y 0.07 sit near a local optimum for the slalom. The off-track limit is max(0.06, 0.0125 + 0.12/4) = 0.06 m, so body width cannot help.\n\nChange. I revert kd to 0.5 and keep base 0.9, kp 1.4, ki 0, y 0.07, and line_loss last_direction. The one change is to widen the outer sensor span from x \u00b10.032 to \u00b10.040 m, with the middle three at -0.02, 0, +0.02. Iteration 8 showed that moving the sensors forward does not move the slalom, so the untested variable is lateral reach. Wider outer sensors should see the tape earlier when the robot drifts at the sharpest slalom bend, which is the failure mode (max_error pinned at the 0.06 m limit). The sensor weights stay [-2,-1,0,1,2] and the footprint stays 16 mm.\n\nExpected result. Oval and s-bend stay at 20/20 near 2.0 s and 2.25 s, and slalom progress rises above 0.39, with a chance of some finishes if max_error stays under 0.06 at the sharpest bend. Risk: the wider span may reduce line-loss events less than hoped, or lower the s-bend margin if the outer sensors see the tape more often on curves.\n\nHypotheses and reads. (1) If slalom progress rises above 0.40 with the oval and s-bend still at 20/20, keep the wider span and consider kd 0.55. (2) If s-bend finishes fall below 18 of 20 or oscillation exceeds about 0.35, return x to \u00b10.032. (3) If slalom progress stays near 0.39 with no change, the slalom's limit is its sharpest turn geometry, and no further single-variable gain or sensor change is likely to move it much, so the final iteration should lock the best design.\n\nMeasurements wanted per track: completion, progress, completion_time, rms_error, max_error, line_loss_events, steering_oscillation, control_effort, controller_errors and noise_robustness."
+}

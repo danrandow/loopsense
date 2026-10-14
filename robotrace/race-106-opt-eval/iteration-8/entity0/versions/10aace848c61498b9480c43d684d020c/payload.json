@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.4,
+    "ki": 0.5,
+    "kp": 1.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.07
+      },
+      {
+        "x": -0.025,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.025,
+        "y": 0.07
+      },
+      {
+        "x": 0.05,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 7 (search_right) returned exactly the iteration 5 scores on every track: score 417.2455, slalom progress 0.1859 and 1.0 line-loss events, oval 20/20 and s-bend 0.564. Changing the line-loss recovery direction therefore had no measurable effect. The slalom fails at the same point with the same single loss whichever recovery mode is used, so recovery direction is not the lever. Iteration 6 showed the larger 0.016 footprint hurt (oval finish 0.9, slalom 0.12), so the footprint stays at 0.012. Iteration 4 showed the wider x spread (\u00b10.07) hurt, and iteration 5 showed forward sensors (y 0.07) doubled s-bend progress (0.28 to 0.56), so the iteration 5 geometry is the baseline.\n\nChange. I revert controller.line_loss to last_direction, the iteration 5 baseline, since search_right was neutral and the identical numbers give no reason to keep it. I then change one controller field: base_speed from 1.2 to 1.0. The slalom loss happens at a fixed bend point with progress stuck near 0.19. That pattern fits a bend-entry overshoot, where the robot carries too much momentum off the tape and then drifts past 0.06 m. Slowing the robot should reduce the centrifugal drift and give the kd 0.4 damping more time to act. The oval finished at 1.88 s with the 3.0 s limit, so a lower speed still leaves time margin. kp, ki, kd and the geometry are unchanged, so the speed effect is isolated.\n\nExpected result. Slalom progress rises above 0.22 with line_loss_events at or near 1, and s-bend progress holds near 0.5 or better. The oval still finishes, though with a longer completion time. Risk: a slower robot might lose the tape on straights or have lower progress through the stall window. If slalom progress is unchanged or lower, the next test is kp 1.8 at base_speed 1.2 to check whether turn authority is limiting. If the oval finish falls below 0.8, return to base_speed 1.2.\n\nHypotheses. (a) The slalom loss is a speed-limited overshoot at the first sharp bend. (b) Lower speed improves the slalom without breaking the oval. Measurements wanted: per-track progress, finish rate, line_loss_events, max_error, steering_oscillation, and completion_time to confirm the oval margin."
+}

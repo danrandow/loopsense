@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.5,
+    "ki": 0.0,
+    "kp": 1.4,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.032,
+        "y": 0.07
+      },
+      {
+        "x": -0.016,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.016,
+        "y": 0.07
+      },
+      {
+        "x": 0.032,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 4 (kd 0.5, kp 1.4, base 1.0) scored 624.6, essentially tied with iteration 2 (kd 0.4, 625.2). The oval stayed at 20/20 at 1.96 s. s-bend steering_oscillation fell only slightly, from 0.42 to 0.38, but finishes dropped from 17 to 15 of 20. Slalom progress rose from 0.17 to 0.31, the first real movement on that track, but it still ended off_track in all 20 runs with max_error at the 0.0666 m mean. kd alone is therefore not the limit for the slalom, and it has not cleanly fixed s-bend damping. The Evaluator's stale note about kd 0.5 being untested is superseded by this race.\n\nThe off-track limit is max(0.06, 0.0125 + body_width/4). Widening the body cannot reach a limit above 0.0575 m, so the body is not a lever. The Evaluator's second suggestion is the next lever: move the sensors forward for more lead. This change is geometry only, so it does not change the controller that was just measured. Changing the sensors' forward position alone tests whether the slalom's sharp direction changes are being met too late.\n\nChange. Keep kp 1.4, kd 0.5, base_speed 1.0, line_loss 'last_direction' and sensor weights [-2,-1,0,1,2] unchanged. Move all five sensors from y 0.05 to y 0.07 (x positions unchanged, 16 mm footprints). Base speed stays at 1.0, because the s-bend completion time is about 2.3 to 2.6 s and a lower speed risks breaching the 3 s limit.\n\nExpected result. Slalom progress should rise above 0.31, and some slalom runs should finish or at least reach further before going off_track. The oval should still finish 20/20. Risk: moving the sensors forward adds effective lead, so steering_oscillation may rise on the s-bend and oval. If the oval stops finishing or s-bend oscillation exceeds about 0.5, return the sensors to y 0.05 and keep kd 0.5.\n\nHypotheses to check next. (1) If slalom progress rises and max_error falls below 0.06 with the oval still finishing, lead was the limit; next try y 0.075. (2) If slalom progress is unchanged at about 0.3 with low oscillation, the limit is speed through the slalom's sharp turns; next lower base_speed to about 0.9, provided the s-bend completion time stays under 3 s. (3) If s-bend finishes fall below 15 of 20, the lead has added too much turn gain; return to y 0.05.\n\nMeasurements requested: per track, completion, progress, completion_time, rms_error, max_error, line_loss_events, steering_oscillation, control_effort, controller_errors and noise_robustness."
+}

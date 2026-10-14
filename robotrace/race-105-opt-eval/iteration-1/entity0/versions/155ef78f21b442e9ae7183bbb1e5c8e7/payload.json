@@ -1,0 +1,58 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.3,
+    "ki": 0.0,
+    "kp": 1.2,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.032,
+        "y": 0.05
+      },
+      {
+        "x": -0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.032,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation"
+    ]
+  },
+  "rationale": "Evidence from the development simulator (entityR2A, 60 trials): every trial on every track ended off_track, with finish_rate 0.0 and progress only 0.105 to 0.145. max_error sat at about 0.06 m, which is exactly the off-track limit max(0.06, 0.0125 + 0.12/4) = 0.06 m. Each run logged one line-loss event, and the robot left the line early and never recovered. The failure is therefore an early loss of tracking, not slow speed. Likely causes: (1) kp 2.0 at base_speed 1.4 gives large, fast turn commands (up to about 1400 PWM difference), which probably overshoot and push the robot off the tape; (2) kd 0.1 is too weak to damp that; (3) the 5 sensors span only \u00b10.024 m with 12 mm footprints, so the robot has little warning when the line drifts sideways. Changes in this candidate: kp 2.0 to 1.2 to soften the steering response; kd 0.1 to 0.3 to damp the turn command; base_speed 1.4 to 1.2 so the robot has time to correct on bends (this gives up some completion-time margin, which is an accepted trade-off because finishing matters more than speed at this stage); sensors widened to \u00b10.032 m with 16 mm footprints so the tape stays under at least one sensor during larger deviations, following the Evaluator's advice on line loss. Sensor weights stay [-2, -1, 0, 1, 2] to match the sensor order, and line_loss stays 'last_direction' so the only changes are the ones aimed at the observed failure. Expected result: fewer or no off-track ends, max_error below 0.06 on the oval and s-bend, and line_loss_events reduced toward zero. Hypotheses to check next: if the robot still drifts with low oscillation, kp is too low (raise toward 1.5); if steering_oscillation is high, kd is too low or kp too high; if it finishes with completion_time above 3 s, raise base_speed to about 1.5 to 1.6. Measurements requested: completion, progress, completion_time, rms_error, max_error, line_loss_events, steering_oscillation."
+}

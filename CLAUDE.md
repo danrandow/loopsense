@@ -33,6 +33,6 @@ Also stop for: budget exhaustion; anything that changes what agents see or how s
 - Mechanics fixes (timeouts, retries, accounting, crashes) you may make without asking; log each in robotrace/CHANGELOG-autonomous.md.
 
 ## Budget and ops
-- OpenRouter key is in env OPENROUTER_API_KEY (never write it to a file, log or commit). Hard credit limit ~$5: track spend per run, stop at $4. A race costs ~$0.30 with Haiku.
+- OpenRouter key is in env OPENROUTER_API_KEY (never write it to a file, log or commit). Hard credit limit ~$5: track spend per run, stop at $4. A 12-iteration race with Haiku 5.5 measured at $0.089-0.116 (races 105/106 opt-eval, race 107 randow-maps, 2026-10-14) -- the old "~$0.30" figure was a safe overestimate, not wrong in direction; corrected here from measured OpenRouter balance drops, not from published pricing. Observed rate ~$0.11-0.13 per million tokens charged.
 - There are uncommitted changes in robotrace/orchestrator/*, validators, race.yaml templates and tests/test_history.py: review them first and run the test suite before building on them. Commit your work on a branch, not main.
 - Report once per gate, concisely. No per-race check-ins.

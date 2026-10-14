@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.5,
+    "ki": 0.0,
+    "kp": 1.4,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.032,
+        "y": 0.05
+      },
+      {
+        "x": -0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.032,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 3 (kp 1.6) scored 541.7, below the iteration 2 best (kp 1.4, 625.2). The oval stayed at 20/20 finishes with a mean of 1.99 s. The s-bend got worse: 9/20 finished, up from 17/20, with line_loss_events 0.6 and off_track in 11 trials, while steering_oscillation barely changed (0.41 vs 0.42). The slalom moved only from progress 0.17 to 0.20, still off_track on every trial, with max_error pinned at the 0.06 m limit. So raising kp did not fix the slalom and hurt the s-bend. The off-track limit is max(0.06, 0.0125 + body_width/4), so widening the body cannot help: even at the maximum body_width of 0.18 the limit is 0.0575, which is below 0.06. The entityR1 feedback describing kp 1.6 as unraced is stale; the race data shows it already raced.\n\nChange: return to the iteration 2 design (kp 1.4, base_speed 1.0, geometry unchanged) and raise kd from 0.4 to 0.5. The s-bend jitter (0.42) is well above the 0.15 threshold, and the earlier feedback named kd as the missing damping term. I am not lowering base_speed, because the s-bend already takes about 2.56 s at base_speed 1.0 and a lower speed risks pushing it past the 3 s limit. I am not moving the sensors, since that would confound the test.\n\nExpected result: s-bend steering_oscillation falls toward 0.3 or below and s-bend finishes rise to about 18 to 20 of 20, while the oval remains a full finish. The slalom may stay near 0.17 to 0.20 progress, since kp and kd do not appear to be its limit.\n\nHypotheses to check next: (1) if s-bend oscillation drops and finishes rise, kd is the right damping lever; (2) if the slalom still fails at max_error near 0.06 with low oscillation, the limit is the sensor geometry or speed through the slalom's sharp turns, so the next test should move the sensors forward (y about 0.07) for more lead, or lower base_speed to about 0.9 only if the s-bend completion time stays under 3 s; (3) if kd 0.5 causes the oval to slow or fail, return kd to 0.4.\n\nMeasurements requested: completion, progress, completion_time, rms_error, max_error, line_loss_events, steering_oscillation, control_effort, controller_errors and noise_robustness, all per track."
+}

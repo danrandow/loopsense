@@ -1,0 +1,227 @@
+map:
+  id: race-107-randow-maps
+  schema: v0.2
+  scenario: Iteration 5
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 4.
+dimensions:
+  time_horizon: prepared
+  iteration: '5'
+overrides:
+  entities:
+  - id: entity0
+    label: Narrow track to 0.10 m
+    notes: 'Keeps the confirmed five-sensor baseline (iteration 4 score 96.843) and
+      narrows wheel_track from 0.12 to 0.10 m, following the Integrator''s contingency
+      for s-bend max_error above 0.06 m. The contract''s yaw relation (turn rate =
+      speed difference / track) and the iteration 2 drop at 0.14 m support this.
+
+
+      ### Rationale
+
+
+      Iteration 4 restored the iteration 0 geometry and reproduced its score exactly
+      (96.843), so the five-sensor, 12 mm, y = 0.04 m, 0.12 m track, 0.6 kg baseline
+      is confirmed as the best-supported platform. Its max_error is still above the
+      0.06 m off-track floor on the s-bend (0.0703 m, with 2 line-loss events per
+      run), and the oval and slalom sit near 0.063 m. Iterations 2 and 3 show that
+      widening the track to 0.14 m lowered the score, and the contract relation (turn
+      rate = wheel speed difference / wheel_track) means a narrower track gives more
+      yaw per unit of turn command. The Integrator''s contingency for exactly this
+      case (score near 96.8 with s-bend max_error above 0.06 m) therefore applies:
+      narrow wheel_track from 0.12 m to 0.10 m and keep mass at 0.6 kg and the five-sensor
+      layout unchanged. I expect the s-bend max_error to fall toward the floor, with
+      line-loss events on the s-bend reduced from 2 toward 1. Risk: a 20 percent increase
+      in yaw gain at the same controller could cause more oscillation, so the Integrator
+      should check steering_oscillation against its iteration 0 range of about 0.13
+      to 0.25.
+
+
+      - [Open this output](iteration-5/entity0/versions/50d3b95563704d9c959a90922f9c6176/payload.json)
+
+      - Based on: [entityR1](iteration-5/entityR1/versions/carried-c3c68d29263edf3d/payload.json),
+      [entityR2A](iteration-5/entityR2A/versions/carried-8b1aa49440c3f167/payload.json)'
+  - id: entity1
+    label: Baseline restore (iter 0)
+    notes: 'Restores iteration 0''s five-sensor geometry and its controller exactly,
+      to test whether the 96.84 baseline reproduces. Supported by four iterations
+      where wider spans, a wider track, a lighter mass, and footprint and look-ahead
+      changes all lowered the score.
+
+
+      ### Rationale
+
+
+      Iteration 0 is the best-scoring design (96.84), and this iteration restores
+      its geometry exactly: five 12 mm sensors at x = -0.024 to +0.024 m and y = 0.04
+      m, wheel_track 0.12 m, mass 0.6 kg, wheel_radius 0.03 m, body 0.18 x 0.12 m.
+      The evidence does not justify changing the controller. Iteration 0''s controller
+      is the one that produced that score, and the iteration 1 to 3 gain changes (kp
+      6 and 7, wider arrays, wheel_track 0.14, mass 0.5, 16 mm footprints, y = 0.03
+      m) all lowered the score. The controller is therefore kept identical to iteration
+      0 (kp 4.0, ki 0.2, kd 0.3, base_speed 1.8, weights [-2, -1, 0, 1, 2] following
+      sensor x/0.012, line_loss last_direction), so this race is a clean reproduction
+      test. Sensor weights map to sensors in order: index 0 is x = -0.024 (right,
+      weight -2) and index 4 is x = +0.024 (left, weight +2), so a positive signal
+      steers left as the contract requires. Every run in iterations 0 to 3 ended off
+      track with max_error at or just above 0.06 m, so the observation request asks
+      for max_error, line_loss_events, steering_oscillation and control_effort per
+      track, plus controller_errors to rule out a silent fault. Expected result: a
+      score near 96.8, max_error near 0.063 m, and line_loss_events near 1 on oval
+      and slalom and near 2 on the s-bend. If the score differs materially from 96.84,
+      the difference comes from the controller or the seed, not from the geometry,
+      because the geometry is unchanged.
+
+
+      - [Open this output](iteration-4/entity1/versions/95df143b12c446e381140b781a97f437/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/aebb1fb01405439a97f99fa237330c6f/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-4c9fe8514d0cc0e1/payload.json)'
+  - id: entityR1
+    label: Narrow track or edge test
+    notes: 'Gives conditional next steps tied to this race: narrow wheel_track to
+      0.10 m if max_error stays above 0.06 m with the baseline score intact, or change
+      sensor_size alone if line loss persists. Based on iteration 2''s score drop
+      at 0.14 m and the contract''s yaw relation.
+
+
+      ### Feedback
+
+
+      Written before this candidate has raced, so it states no outcome for it. Evidence:
+      iteration 0 (five 12 mm sensors, x ±0.024 m, y 0.04 m, wheel_track 0.12 m, mass
+      0.6 kg, kp 4.0) scored 96.84 with max_error 0.063 to 0.070 m and line loss 1
+      (oval, slalom) and 2 (s-bend). Iteration 1 (seven sensors, x ±0.036 m) scored
+      91.28, with max_error still 0.062 to 0.068 m and line loss about 1. Iteration
+      2 (wheel_track 0.14 m, mass 0.5 kg, kp 7.0) scored 74.95, with slalom line loss
+      rising to 1.9. Iteration 3 (16 mm footprints, y = 0.03 m, plus the iteration
+      2 drivetrain) scored 48.12, the lowest so far, with line loss 1.25 on the s-bend.
+      Because iteration 3 changed the sensor size, the forward row and the drivetrain
+      together, its result cannot be attributed to any single change. Per the contract,
+      turn rate is the wheel speed difference divided by wheel_track, so a narrower
+      track gives more yaw per unit of turn command. The wider 0.14 m track therefore
+      reduced turn authority, consistent with the lower scores of iterations 2 and
+      3. Next race (this geometry is iteration 0''s): if the score is at or above
+      about 96.8 and max_error is still above 0.06 m on the s-bend, the limit is turn
+      authority, so narrow wheel_track to 0.10 m with mass 0.6 kg. If line_loss_events
+      stay at 2 on the s-bend, change sensor_size to 0.016 m at the same five x positions
+      and y 0.04 m, so the change is sensing-only. If the score falls below about
+      96, the controller rather than the geometry is the cause, so report the controller
+      settings you used.
+
+
+      ### Requested changes
+
+
+      - If the score is near 96.8 and max_error stays above 0.06 m on the s-bend:
+      narrow wheel_track from 0.12 m to 0.10 m, keeping mass 0.6 kg and the five-sensor
+      layout. Cite iteration 2, where widening to 0.14 m dropped the score from 96.84
+      to 74.95, and the contract relation that a narrower track gives more yaw per
+      command.
+
+      - If line_loss_events stay at 2 on the s-bend with the five sensors: set sensor_size
+      to 0.016 m, keeping x = -0.024 to +0.024 m and y = 0.04 m and changing nothing
+      else. This isolates the footprint effect, which was confounded with the look-ahead
+      and drivetrain changes in iteration 3.
+
+      - If the score drops below about 96 on this baseline: do not change the geometry.
+      Report the controller settings and telemetry so the Integrator can separate
+      controller from geometry effects, rather than moving wheel_track or mass again.
+
+
+      - [Open this output](iteration-4/entityR1/versions/95df143b12c446e381140b781a97f437/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/aebb1fb01405439a97f99fa237330c6f/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-4c9fe8514d0cc0e1/payload.json)'
+  - id: entityR2B
+    label: Score 96.84
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 96.84.
+      Per trial — oval-1: 178.3 (off_track); oval-2: 178.3 (off_track); oval-3: 172.1
+      (off_track); oval-4: 177.3 (off_track); oval-5: 170.2 (off_track); oval-6: 180.3
+      (off_track); oval-7: 172.1 (off_track); oval-8: 178.3 (off_track); oval-9: 178.3
+      (off_track); oval-10: 172.1 (off_track); oval-11: 172.1 (off_track); oval-12:
+      180.3 (off_track); oval-13: 180.3 (off_track); oval-14: 180.3 (off_track); oval-15:
+      180.3 (off_track); oval-16: 180.3 (off_track); oval-17: 180.3 (off_track); oval-18:
+      180.3 (off_track); oval-19: 172.2 (off_track); oval-20: 180.3 (off_track); s-bend-1:
+      72.3 (off_track); s-bend-2: 72.2 (off_track); s-bend-3: 72.2 (off_track); s-bend-4:
+      72.2 (off_track); s-bend-5: 72.2 (off_track); s-bend-6: 72.2 (off_track); s-bend-7:
+      72.2 (off_track); s-bend-8: 72.2 (off_track); s-bend-9: 72.2 (off_track); s-bend-10:
+      72.2 (off_track); s-bend-11: 72.2 (off_track); s-bend-12: 72.2 (off_track);
+      s-bend-13: 73.4 (off_track); s-bend-14: 72.3 (off_track); s-bend-15: 72.2 (off_track);
+      s-bend-16: 72.2 (off_track); s-bend-17: 72.2 (off_track); s-bend-18: 72.2 (off_track);
+      s-bend-19: 72.2 (off_track); s-bend-20: 72.2 (off_track); slalom-1: 41.2 (off_track);
+      slalom-2: 38.2 (off_track); slalom-3: 41.2 (off_track); slalom-4: 41.2 (off_track);
+      slalom-5: 41.2 (off_track); slalom-6: 41.2 (off_track); slalom-7: 41.2 (off_track);
+      slalom-8: 41.2 (off_track); slalom-9: 41.2 (off_track); slalom-10: 41.2 (off_track);
+      slalom-11: 41.2 (off_track); slalom-12: 41.2 (off_track); slalom-13: 41.2 (off_track);
+      slalom-14: 41.2 (off_track); slalom-15: 41.2 (off_track); slalom-16: 41.2 (off_track);
+      slalom-17: 41.2 (off_track); slalom-18: 41.2 (off_track); slalom-19: 41.2 (off_track);
+      slalom-20: 41.2 (off_track).
+
+
+      - [Open this output](iteration-4/entityR2B/versions/d1addd5ae3ca4b2d8c798a28a11978b8/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/95df143b12c446e381140b781a97f437/payload.json)'
+  - id: entity2
+    label: Score 96.84
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 96.84.
+      Per trial — oval-1: 178.3 (off_track); oval-2: 178.3 (off_track); oval-3: 172.1
+      (off_track); oval-4: 177.3 (off_track); oval-5: 170.2 (off_track); oval-6: 180.3
+      (off_track); oval-7: 172.1 (off_track); oval-8: 178.3 (off_track); oval-9: 178.3
+      (off_track); oval-10: 172.1 (off_track); oval-11: 172.1 (off_track); oval-12:
+      180.3 (off_track); oval-13: 180.3 (off_track); oval-14: 180.3 (off_track); oval-15:
+      180.3 (off_track); oval-16: 180.3 (off_track); oval-17: 180.3 (off_track); oval-18:
+      180.3 (off_track); oval-19: 172.2 (off_track); oval-20: 180.3 (off_track); s-bend-1:
+      72.3 (off_track); s-bend-2: 72.2 (off_track); s-bend-3: 72.2 (off_track); s-bend-4:
+      72.2 (off_track); s-bend-5: 72.2 (off_track); s-bend-6: 72.2 (off_track); s-bend-7:
+      72.2 (off_track); s-bend-8: 72.2 (off_track); s-bend-9: 72.2 (off_track); s-bend-10:
+      72.2 (off_track); s-bend-11: 72.2 (off_track); s-bend-12: 72.2 (off_track);
+      s-bend-13: 73.4 (off_track); s-bend-14: 72.3 (off_track); s-bend-15: 72.2 (off_track);
+      s-bend-16: 72.2 (off_track); s-bend-17: 72.2 (off_track); s-bend-18: 72.2 (off_track);
+      s-bend-19: 72.2 (off_track); s-bend-20: 72.2 (off_track); slalom-1: 41.2 (off_track);
+      slalom-2: 38.2 (off_track); slalom-3: 41.2 (off_track); slalom-4: 41.2 (off_track);
+      slalom-5: 41.2 (off_track); slalom-6: 41.2 (off_track); slalom-7: 41.2 (off_track);
+      slalom-8: 41.2 (off_track); slalom-9: 41.2 (off_track); slalom-10: 41.2 (off_track);
+      slalom-11: 41.2 (off_track); slalom-12: 41.2 (off_track); slalom-13: 41.2 (off_track);
+      slalom-14: 41.2 (off_track); slalom-15: 41.2 (off_track); slalom-16: 41.2 (off_track);
+      slalom-17: 41.2 (off_track); slalom-18: 41.2 (off_track); slalom-19: 41.2 (off_track);
+      slalom-20: 41.2 (off_track).
+
+
+      - [Open this output](iteration-4/entity2/versions/d1addd5ae3ca4b2d8c798a28a11978b8/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/95df143b12c446e381140b781a97f437/payload.json)'
+  - id: entityR2A
+    label: Score 96.84
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 96.84.
+      Per trial — oval-1: 178.3 (off_track); oval-2: 178.3 (off_track); oval-3: 172.1
+      (off_track); oval-4: 177.3 (off_track); oval-5: 170.2 (off_track); oval-6: 180.3
+      (off_track); oval-7: 172.1 (off_track); oval-8: 178.3 (off_track); oval-9: 178.3
+      (off_track); oval-10: 172.1 (off_track); oval-11: 172.1 (off_track); oval-12:
+      180.3 (off_track); oval-13: 180.3 (off_track); oval-14: 180.3 (off_track); oval-15:
+      180.3 (off_track); oval-16: 180.3 (off_track); oval-17: 180.3 (off_track); oval-18:
+      180.3 (off_track); oval-19: 172.2 (off_track); oval-20: 180.3 (off_track); s-bend-1:
+      72.3 (off_track); s-bend-2: 72.2 (off_track); s-bend-3: 72.2 (off_track); s-bend-4:
+      72.2 (off_track); s-bend-5: 72.2 (off_track); s-bend-6: 72.2 (off_track); s-bend-7:
+      72.2 (off_track); s-bend-8: 72.2 (off_track); s-bend-9: 72.2 (off_track); s-bend-10:
+      72.2 (off_track); s-bend-11: 72.2 (off_track); s-bend-12: 72.2 (off_track);
+      s-bend-13: 73.4 (off_track); s-bend-14: 72.3 (off_track); s-bend-15: 72.2 (off_track);
+      s-bend-16: 72.2 (off_track); s-bend-17: 72.2 (off_track); s-bend-18: 72.2 (off_track);
+      s-bend-19: 72.2 (off_track); s-bend-20: 72.2 (off_track); slalom-1: 41.2 (off_track);
+      slalom-2: 38.2 (off_track); slalom-3: 41.2 (off_track); slalom-4: 41.2 (off_track);
+      slalom-5: 41.2 (off_track); slalom-6: 41.2 (off_track); slalom-7: 41.2 (off_track);
+      slalom-8: 41.2 (off_track); slalom-9: 41.2 (off_track); slalom-10: 41.2 (off_track);
+      slalom-11: 41.2 (off_track); slalom-12: 41.2 (off_track); slalom-13: 41.2 (off_track);
+      slalom-14: 41.2 (off_track); slalom-15: 41.2 (off_track); slalom-16: 41.2 (off_track);
+      slalom-17: 41.2 (off_track); slalom-18: 41.2 (off_track); slalom-19: 41.2 (off_track);
+      slalom-20: 41.2 (off_track).
+
+
+      - [Open this output](iteration-4/entityR2A/versions/d1addd5ae3ca4b2d8c798a28a11978b8/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/95df143b12c446e381140b781a97f437/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}
