@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 1.1,
+    "ki": 0.01,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.035,
+        "y": 0.04
+      },
+      {
+        "x": -0.0175,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.0175,
+        "y": 0.04
+      },
+      {
+        "x": 0.035,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Evidence from iteration 2 (score 372.5, up from 206.6): the robot is still leaving the line on bends rather than oscillating. Oval finishes 13 of 20 (mean progress 0.90). The s-bend reaches progress 0.59 and ends off track in 19 of 20 runs. The slalom ends off track in all 20 runs at progress 0.30, with 1.0 line-loss events per run. max_error sits at 0.049 to 0.063, against the 0.06 m off-track limit. Body width cannot widen that limit: max(0.06, 0.0125 + 0.12/4) is still 0.06, and a 0.18 m body only gives 0.0575. So the fix must come from steering authority, damping and sensor coverage. Steering oscillation is moderate (0.38 on oval and s-bend), so there is room to add authority before damping becomes the limit.\n\nChanges: (1) kp 4.0 to 5.0, for a firmer pull back to the line on the sharpest bends, where the iteration-2 trend shows the error reaching the limit before it is corrected. (2) kd 0.9 to 1.1, to damp the overshoot that the higher kp adds. (3) sensor_size 0.012 to 0.016, so each footprint covers more of the 25 mm tape. The edge sensors should keep a reading when the robot is offset, which should cut the slalom line-loss events. Sensor spacing stays at 0.0175 m. (4) mass 0.7 to 0.6 kg, to reduce yaw inertia so the robot turns more readily. base_speed stays at 1.3, because the oval finish time of about 2.1 s still leaves headroom and the failures are on bends, not straights. ki stays at 0.01 and line_loss stays at last_direction.\n\nExpected result: fewer off-track ends on the s-bend and slalom, slalom line-loss events below 1, and s-bend progress above 0.7. Oscillation may rise toward 0.5 with the higher kp.\n\nHypotheses to test: (a) if steering_oscillation rises above about 0.5 and max_error stays near 0.06, kp is too high relative to kd and kd should go to about 1.4. (b) If the s-bend still leaves the line at similar progress, the limit is speed on the tight bends, so base_speed should drop to about 1.1. (c) If slalom line-loss events stay at 1 or more despite the larger sensor footprint, the spread needs widening beyond 0.035 m. Next measurements: progress, completion, completion_time, max_error, rms_error, line_loss_events, steering_oscillation and control_effort per track, to separate the effect of the gain change from the sensor change."
+}

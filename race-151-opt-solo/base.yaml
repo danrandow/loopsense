@@ -1,0 +1,199 @@
+map:
+  id: race-151-opt-solo
+  schema: v0.2
+  title: Robot Race 151 — Optimizer Solo
+  scenario: Moving Parts
+  is_moo: true
+  notes: 'The solo-optimizer control: one agent''s complete candidate races unchanged
+    every iteration, with no second agent and no gate.'
+  dimension_axes:
+  - time_horizon
+  - iteration
+actors:
+- id: actor0
+  label: Robot Optimizer
+  notes: Produces complete candidates and revises them from race evidence.
+- id: actor2
+  label: Race Simulator
+  notes: Deterministic software actor that races and records evidence.
+actions:
+- id: action0
+  label: Optimize Robot
+  actor: actor0
+  notes: 'Produces or revises a complete geometry-controller candidate.
+
+
+    ## Common to every agent
+
+    You are competing with other teams to race a line-following robot on a held-back
+    track. Do everything you can to maximise your team''s score on that track. Learn
+    and improve as much as you can with each iteration, within your budget.
+
+
+    ## This team: Robot Optimizer
+
+    Candidates are complete robots (geometry and controller). The design produced
+    each iteration races unchanged. Each iteration''s proposal uses one of the iteration''s
+    limited action runs, and the race itself needs one.
+
+
+    ## Your role: Robot Optimizer
+
+    Deliver one complete, improved line-following robot candidate (geometry and controller)
+    every iteration. Read the Optimizer Race Data (telemetry from the last race).
+    Work out what is going wrong and change the values that address it. In your rationale
+    say what you changed, why, and what result you expect. Include your hypotheses
+    and the measurements you want to see next.'
+  measures:
+  - id: input_tokens
+    name: Model input tokens
+    unit: tokens
+  - id: output_tokens
+    name: Model output tokens
+    unit: tokens
+  - id: repair_calls
+    name: Format repair calls
+    unit: calls
+    better: lower
+  - id: invalid_artifacts
+    name: Invalid model artifacts
+    unit: artifacts
+    better: lower
+- id: action2
+  label: Race and Measure
+  actor: actor2
+  notes: Runs development trials and produces an outcome and addressed evidence.
+entities:
+- id: entity0
+  label: Robot Candidate
+  system_boundary: internal
+  notes: Complete geometry, controller, rationale, hypotheses, and measurement request.
+  measures:
+  - id: requested_measurements
+    name: Requested measurements
+    unit: measurements
+- id: entity2
+  label: Race Outcome
+  system_boundary: internal
+  notes: Human-facing result; upstream learning uses addressed returns.
+  measures:
+  - id: score
+    name: Composite race score
+    unit: points
+    better: higher
+  - id: completion
+    name: Completed trial proportion
+    unit: proportion
+    better: higher
+  - id: progress
+    name: Normalized track progress
+    unit: proportion
+    better: higher
+  - id: completion_time
+    name: Completion time
+    unit: seconds
+    better: lower
+  - id: rms_error
+    name: RMS centre-line error
+    unit: metres
+    better: lower
+  - id: max_error
+    name: Maximum centre-line error
+    unit: metres
+    better: lower
+  - id: line_loss_events
+    name: Line-loss events
+    unit: events
+    better: lower
+  - id: steering_oscillation
+    name: Steering oscillation
+    unit: index
+    better: lower
+  - id: control_effort
+    name: Controller effort
+    unit: index
+    better: lower
+  - id: controller_errors
+    name: Controller errors
+    unit: errors
+    better: lower
+  - id: noise_robustness
+    name: Noise robustness
+    unit: proportion
+    better: higher
+  - id: held_out_gap
+    name: Development held-out gap
+    unit: points
+    better: lower
+- id: entityR2A
+  label: Optimizer Race Data
+  notes: Measurement-only evidence addressed to the Robot Optimizer.
+  measures:
+  - id: supplied_requests
+    name: Supplied requested measures
+    unit: measurements
+    better: higher
+- id: entityPub0
+  label: Design Constraints
+  system_boundary: public
+  notes: 'The single description of what a design is and the world it races in. Its
+    contract is the exact shape of a design (geometry, controller, observation request)
+    and carries the allowed range or options of every field, the units, and how the
+    simulator uses each one (sensing, control loop, drivetrain physics, race rules).
+    Agents receive this contract in full; the scoring rule and goal arrive separately
+    as the objective.
+
+
+    Files, for a human to follow:
+
+    - Contract (the source of truth for limits): entities/entityPub0/contract.schema.json
+
+    - Race settings (tracks, seeds, noise, score weights, run limits): config/race.yaml
+
+    - Limits enforced from the contract: https://github.com/danrandow/loopsense/blob/main/robotrace/orchestrator/validators.py
+    (design_bounds_from_contract, validate_package, validate_controller)
+
+    - Where limits are derived at package load: https://github.com/danrandow/loopsense/blob/main/robotrace/orchestrator/map_package.py
+
+    - What the agent is shown: https://github.com/danrandow/loopsense/blob/main/robotrace/orchestrator/executors.py
+
+    - Simulation and scoring: https://github.com/danrandow/loopsense/blob/main/robotrace/simulator/adapter/headless.py
+
+    - Native motor and sensor model: https://github.com/danrandow/loopsense/blob/main/robotrace/simulator/upstream/robotrace_Sim/utills_c/linesim.c
+
+    - Tracks: https://github.com/danrandow/loopsense/blob/main/robotrace/tracks/'
+- id: entityPub2
+  label: Track Conditions
+  system_boundary: public
+  notes: Tracks, seeds, noise, trial order, and held-out configuration.
+edges:
+- id: edge0G
+  type: generates
+  from: action0
+  to: entity0
+- id: edge0U
+  type: used by
+  from: entity0
+  to: action2
+- id: edge2G
+  type: generates
+  from: action2
+  to: entity2
+- id: edge2R2AG
+  type: generates
+  from: action2
+  to: entityR2A
+  direction: return
+- id: edge2R2AU
+  type: used by
+  from: entityR2A
+  to: action0
+  direction: return
+- id: edgePub0U0
+  type: used by
+  from: entityPub0
+  to: action0
+- id: edgePub2U
+  type: used by
+  from: entityPub2
+  to: action2

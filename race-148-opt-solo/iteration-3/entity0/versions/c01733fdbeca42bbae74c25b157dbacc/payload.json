@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 0.9,
+    "kd": 0.8,
+    "ki": 0.05,
+    "kp": 4.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 2 (score 759.6, best so far). Oval finishes 19/20 with progress 0.99, rms 0.005, and max_error 0.013. S-bend finishes 19/20, with one off-track end. Slalom is the failure: only 5/20 finish, 14 end off track, and mean progress is 0.75. Finished slalom runs take about 2.94 s, so the robot has little time margin there. Off-track is the main loss, and steering oscillation (0.37) and control effort (10.3) are highest on the slalom, which points to over-correction on sharp alternating bends rather than a speed-only problem.\n\nHypothesis: the outer sensors at x = +/-0.03 m fall off the 25 mm tape when the line swings sharply, so the signal goes weak or saturates just before the robot leaves the line. Iteration 0 to 1 showed that moving the array forward and narrowing it helped, but the spread was narrowed a lot. The next most likely limit is the outer reach of the array.\n\nChange (one variable, to keep the effect attributable): widen the sensor spread from +/-0.03 m to +/-0.04 m (x = -0.04, -0.02, 0, 0.02, 0.04 at y = 0.06). Everything else stays the same: weights, gains, base_speed, body, wheels, mass and line_loss. The wider spread should give the controller earlier warning on sharp bends, which should reduce off-track endings on the slalom and max_error. The risk is a weaker signal on straights, so oval completion must hold.\n\nExpected result: slalom finish rate rising from 25% toward 50% or more, max_error on slalom below 0.06, and oval and s-bend completion unchanged. Next steps depend on this result. If the slalom still goes off track with a wider array, try sensor_size 0.016 or raise kd to damp oscillation. If the robot finishes reliably but time is close to 3 s, raise base_speed back toward 1.0."
+}

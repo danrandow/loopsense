@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.8,
+    "ki": 0.5,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.03
+      },
+      {
+        "x": -0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.04,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 1 is still the best design (score 351.8). Its oval finishes 15 of 20 runs in about 1.97 s with rms 0.012 m. The s-bend (progress 0.49) and slalom (progress 0.12) both end off-track after about one line-loss event per run, and max_error reaches the 0.06 m limit. Steering oscillation is low (0.15 on the slalom), so the robot is not jittering. It drifts steadily to one side and fails to recover. Since iteration 1, every change has made things worse or no better: slower speed (1.1) cut s-bend progress, wider sensors with a narrower track lowered oval finish rate, and a larger 16 mm footprint lowered it slightly. So speed, sensor spacing and footprint are not the fix. The contract says the motors have a fixed left/right mismatch and there is sensor noise. A pure proportional controller leaves a steady-state offset from the centre line under a constant mismatch, and that offset is what pushes the robot to the 0.06 m limit on bends. Change: add a small integral term (ki 0 to 0.5), keeping all geometry, kp, kd, base_speed and sensor weights as in iteration 1, so the result isolates the integral action. The integral is capped at \u00b12 by the contract, so windup is limited. Expected result: lower rms and max_error on the oval, and higher s-bend and slalom progress with fewer line-loss events. Hypotheses to check: (a) a constant lateral offset appears on straights and is removed by ki; (b) if steering_oscillation rises above about 0.4, ki is too high and should drop to about 0.2; (c) if progress does not move, the limit is the steering response (kp/kd), not the bias. Next measurements: progress, line_loss_events and max_error per track, and steering_oscillation and completion_time on the oval."
+}

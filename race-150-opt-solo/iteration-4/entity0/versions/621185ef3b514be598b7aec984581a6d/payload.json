@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.8,
+    "ki": 0.02,
+    "kp": 1.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.06
+      },
+      {
+        "x": -0.025,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.025,
+        "y": 0.06
+      },
+      {
+        "x": 0.05,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 3 (score 680.6, best so far): the oval (1.998 s) and s-bend (2.387 s) both finish 20/20 at 0.13 rms error or less. The slalom still fails in every trial: progress 0.35, one line-loss event per run, and max_error 0.063 m, just past the fixed 0.06 m off-track limit. Body width cannot widen that limit below 0.19 m, so the robot must keep tighter tracking on the slalom. The trend across iterations 0 to 3 is consistent: lower kp, higher kd and wider sensor reach each improved the sharp bends, and the slalom line losses fell from 1.0 to 1.0 with the progress rising from 0.21 to 0.35.\n\nChanges:\n(1) Sensor lateral spread widened from +/-0.04 to +/-0.05 m (positions -0.05, -0.025, 0, 0.025, 0.05). The outer sensors see the tape earlier on sharp bends, so the robot should see the line before it drifts past the limit. Because the signal is a weighted average of the sensor weights, the wider spread also raises the effective steering gain per metre of offset.\n(2) kp reduced from 1.1 to 1.0 to offset that higher effective gain and limit overshoot.\n(3) base_speed reduced from 1.1 to 1.0 so the robot has more time to correct through the slalom corners. The oval has margin (about 2.0 s at 1.1, so roughly 2.2 s at 1.0, under 3 s).\nkd (0.8), ki (0.02), sensor size (0.012), sensor height (y=0.06), line_loss and geometry are held fixed.\n\nExpected result: slalom progress rises above 0.35 and line_loss_events fall, with the oval and s-bend still completing. Risks: a slower speed may push the oval finish time up, and the wider spread may increase steering oscillation on the straight sections. Hypotheses: (a) slalom failures come from late line detection on sharp bends, so wider reach helps; (b) the slalom loss is set by the sharpest bend, not by steady drift. Measurements wanted next: per-track progress, max_error, line_loss_events and completion_time to check whether the slalom now gets past the first failing bend, and steering_oscillation to see whether the wider spread adds jitter. If the slalom still loses the line, the next step is to test line_loss 'search_left' or 'search_right'."
+}

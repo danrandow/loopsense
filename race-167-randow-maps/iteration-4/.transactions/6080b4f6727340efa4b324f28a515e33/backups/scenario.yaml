@@ -1,0 +1,221 @@
+map:
+  id: race-167-randow-maps
+  schema: v0.2
+  scenario: Iteration 4
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 3.
+dimensions:
+  time_horizon: prepared
+  iteration: '4'
+overrides:
+  entities:
+  - id: entity0
+    label: Lookahead y 0.07 test
+    notes: 'Reverts to the best iteration-1 geometry and moves the sensor lookahead
+      from y 0.06 to y 0.07. Iteration 3 showed that y 0.04 dropped the score from
+      454.6 to 131.9 with the oval finish rate at 0 of 20, so the test goes the other
+      way along that trend.
+
+
+      ### Rationale
+
+
+      Iteration 3 is the clearest evidence in the history. Moving every sensor from
+      y 0.06 to y 0.04 cut the score from 454.6 to 131.9. The oval finish rate fell
+      from 18/20 to 0/20, with all 20 runs ending off track and max_error rising to
+      0.065. The s-bend and slalom also got worse. The Integrator''s feedback (entityR1)
+      proposes keeping y 0.04 for this candidate, but it was written before this race
+      and does not account for iteration 3''s result, so I am not following that plan.
+      The shorter lookahead is the wrong direction. The score rises from y 0.04 to
+      y 0.06, so the gradient points toward a longer lookahead. Span (iteration 2)
+      and footprint (iteration 1) are already ruled out or near their useful limit.
+      I am reverting to the best known geometry from iteration 1 (16 mm footprints,
+      x = ±0.024 m at 12 mm pitch, 0.12 m track, 0.8 kg) and changing one variable:
+      sensor lookahead from y 0.06 to y 0.07. The hypothesis is that a longer lookahead
+      gives the controller more time to react before the robot reaches a bend, which
+      should reduce the off-track exits on the s-bend (16 of 20 at y 0.06) and the
+      slalom line loss (about 1.05). Expected result: oval finish rate near 0.9 and
+      s-bend max_error below 0.056. If the oval finish rate falls or steering_oscillation
+      exceeds about 0.4, the lookahead has passed its optimum, so the next step is
+      to return to y 0.06 and test wheel_track 0.14 as the single change.
+
+
+      - [Open this output](iteration-4/entity0/versions/74903d9f596b40eab8ab7bae250c3c59/payload.json)
+
+      - Based on: [entityR1](iteration-4/entityR1/versions/carried-71d150400ae28212/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-9dec104ac6f6b2c4/payload.json)'
+  - id: entity1
+    label: Iter 1 geometry, y 0.07
+    notes: 'Reverts to the best iteration 1 geometry (score 454.6) and sets sensor
+      y to 0.07 with the iteration 1 controller unchanged. Iteration 3 showed y 0.04
+      cut the score to 131.9, so the trend favours a longer lookahead.
+
+
+      ### Rationale
+
+
+      Iteration 3 (y 0.04) scored 131.9, far below iteration 1 (y 0.06, 454.6). The
+      oval finish rate fell from 18/20 to 0/20 and max_error rose to 0.065, so a shorter
+      lookahead is clearly harmful. The Builder''s candidate moves the sensors to
+      y 0.07 on the iteration 1 geometry (16 mm footprints, x = ±0.024 m at 12 mm
+      pitch, 0.12 m track, 0.8 kg). I am keeping the iteration 1 controller (kp 4.0,
+      ki 0.1, kd 0.5, base_speed 1.6, last_direction, weights [2,1,0,-1,-2]) and changing
+      nothing else. The sensor x positions and weights are unchanged, so signal scale
+      per unit error is the same as in iteration 1. Only the timing of the signal
+      changes, so any difference is attributable to lookahead. Iteration 2 showed
+      that changing the signal scale through span without retuning kp caused harm,
+      so I am not retuning kp here. The main risk is phase lag from a longer lookahead,
+      which could raise steering_oscillation (0.36 on the s-bend at y 0.06). The Builder''s
+      own feedback request asks whether this lag appears, so all measurements are
+      requested to test it.
+
+
+      - [Open this output](iteration-4/entity1/versions/2fbfc05612ce4d9e94a33961f734cc14/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/74903d9f596b40eab8ab7bae250c3c59/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-9dec104ac6f6b2c4/payload.json)'
+  - id: entityR1
+    label: 'Feedback: y 0.07'
+    notes: 'Feedback written before the race, based on iterations 1 to 3. It sets
+      out the next change depending on whether s-bend exits fall and whether oscillation
+      stays below about 0.4. It also rules out the stale advice to keep y 0.04.
+
+
+      ### Feedback
+
+
+      Written before this candidate has raced; no outcome is claimed for it. Evidence
+      from iteration 1 (y 0.06, 16 mm footprints, span ±0.024 m, kp 4.0, score 454.6):
+      the oval finished 18 of 20 with max_error 0.026 and steering_oscillation 0.21,
+      but the s-bend finished only 4 of 20 (16 off-track exits, max_error 0.056, oscillation
+      0.36) and the slalom finished 0 of 20 with 1.05 line-loss events at low rms_error
+      (0.022). Iteration 3 showed that moving to y 0.04 (score 131.9, oval finish
+      0 of 20, max_error 0.065) is strongly harmful, so the trend favours a longer
+      lookahead. Iteration 2 showed that widening the span with kp 4.5 is also harmful,
+      so keep span ±0.024 and kp 4.0 unless evidence says otherwise. The Integrator''s
+      controller has needed no fixes beyond kp for this geometry, with no controller
+      errors so far. Next race: if the s-bend off-track exits fall and max_error drops
+      below about 0.056 while the oval finish stays near 0.9, keep y 0.07 and try
+      the first requested change. If steering_oscillation rises above about 0.4 or
+      the oval finish falls below about 0.85, the longer lookahead is adding phase
+      lag, so step back to y 0.065 and try the second change. If slalom line_loss
+      stays above about 1.0 with lookahead fixed, try the third change.
+
+
+      ### Requested changes
+
+
+      - If the s-bend off-track rate falls at y 0.07 but slalom line_loss stays above
+      about 1.0, try wheel_track 0.14 (from 0.12) at the same sensor layout. Evidence:
+      iteration 1 s-bend control_effort was 11.07, the highest of any track, so the
+      wheels are working hard to turn and a wider track adds turn authority without
+      changing the signal scale.
+
+      - If steering_oscillation rises above about 0.4 or the oval finish rate falls
+      below 0.85 at y 0.07, try y 0.065 with the same span and footprint. Evidence:
+      iteration 1 oscillation was 0.21 on the oval at y 0.06, and iteration 3 showed
+      the response to lookahead is strong, so move in small steps.
+
+      - If the bends still leave the track with lookahead fixed and wheel_track 0.14
+      does not help, try sensor_size 0.012 with x = ±0.024, 0 at 12 mm pitch and y
+      0.07, keeping kp 4.0. Evidence: iteration 0 (12 mm footprints, y 0.06) had oval
+      finish 16 of 20 with higher line loss than iteration 1, so the footprint size
+      is a trade-off and should be tested only after lookahead is settled.
+
+
+      - [Open this output](iteration-4/entityR1/versions/2fbfc05612ce4d9e94a33961f734cc14/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/74903d9f596b40eab8ab7bae250c3c59/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-9dec104ac6f6b2c4/payload.json)'
+  - id: entityR2B
+    label: Score 131.94
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 131.94.
+      Per trial — oval-1: 114.8 (off_track); oval-2: 154.2 (off_track); oval-3: 234.5
+      (off_track); oval-4: 253.6 (off_track); oval-5: 329.8 (off_track); oval-6: 332.0
+      (off_track); oval-7: 236.1 (off_track); oval-8: 192.7 (off_track); oval-9: 296.7
+      (off_track); oval-10: 199.9 (off_track); oval-11: 319.1 (off_track); oval-12:
+      253.6 (off_track); oval-13: 225.4 (off_track); oval-14: 236.7 (off_track); oval-15:
+      211.8 (off_track); oval-16: 195.7 (off_track); oval-17: 269.4 (off_track); oval-18:
+      184.5 (off_track); oval-19: 161.3 (off_track); oval-20: 158.3 (off_track); s-bend-1:
+      132.3 (off_track); s-bend-2: 109.8 (off_track); s-bend-3: 120.6 (off_track);
+      s-bend-4: 118.6 (off_track); s-bend-5: 116.4 (off_track); s-bend-6: 187.9 (off_track);
+      s-bend-7: 120.4 (off_track); s-bend-8: 119.6 (off_track); s-bend-9: 121.6 (off_track);
+      s-bend-10: 117.5 (off_track); s-bend-11: 124.6 (off_track); s-bend-12: 118.5
+      (off_track); s-bend-13: 116.5 (off_track); s-bend-14: 121.6 (off_track); s-bend-15:
+      114.3 (off_track); s-bend-16: 110.8 (off_track); s-bend-17: 116.5 (off_track);
+      s-bend-18: 110.8 (off_track); s-bend-19: 124.7 (off_track); s-bend-20: 112.2
+      (off_track); slalom-1: 45.5 (off_track); slalom-2: 36.2 (off_track); slalom-3:
+      46.7 (off_track); slalom-4: 48.6 (off_track); slalom-5: 43.5 (off_track); slalom-6:
+      46.7 (off_track); slalom-7: 46.7 (off_track); slalom-8: 46.7 (off_track); slalom-9:
+      46.7 (off_track); slalom-10: 46.7 (off_track); slalom-11: 46.7 (off_track);
+      slalom-12: 46.7 (off_track); slalom-13: 47.8 (off_track); slalom-14: 46.7 (off_track);
+      slalom-15: 47.7 (off_track); slalom-16: 46.5 (off_track); slalom-17: 46.7 (off_track);
+      slalom-18: 45.6 (off_track); slalom-19: 45.7 (off_track); slalom-20: 46.6 (off_track).
+
+
+      - [Open this output](iteration-3/entityR2B/versions/594dd8f4e79e428cbf9ac05f5cfd1aef/payload.json)
+
+      - Based on: [entity1](iteration-3/entity1/versions/05f55bffed434c01a496f9fcde11a367/payload.json)'
+  - id: entityR2A
+    label: Score 131.94
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 131.94.
+      Per trial — oval-1: 114.8 (off_track); oval-2: 154.2 (off_track); oval-3: 234.5
+      (off_track); oval-4: 253.6 (off_track); oval-5: 329.8 (off_track); oval-6: 332.0
+      (off_track); oval-7: 236.1 (off_track); oval-8: 192.7 (off_track); oval-9: 296.7
+      (off_track); oval-10: 199.9 (off_track); oval-11: 319.1 (off_track); oval-12:
+      253.6 (off_track); oval-13: 225.4 (off_track); oval-14: 236.7 (off_track); oval-15:
+      211.8 (off_track); oval-16: 195.7 (off_track); oval-17: 269.4 (off_track); oval-18:
+      184.5 (off_track); oval-19: 161.3 (off_track); oval-20: 158.3 (off_track); s-bend-1:
+      132.3 (off_track); s-bend-2: 109.8 (off_track); s-bend-3: 120.6 (off_track);
+      s-bend-4: 118.6 (off_track); s-bend-5: 116.4 (off_track); s-bend-6: 187.9 (off_track);
+      s-bend-7: 120.4 (off_track); s-bend-8: 119.6 (off_track); s-bend-9: 121.6 (off_track);
+      s-bend-10: 117.5 (off_track); s-bend-11: 124.6 (off_track); s-bend-12: 118.5
+      (off_track); s-bend-13: 116.5 (off_track); s-bend-14: 121.6 (off_track); s-bend-15:
+      114.3 (off_track); s-bend-16: 110.8 (off_track); s-bend-17: 116.5 (off_track);
+      s-bend-18: 110.8 (off_track); s-bend-19: 124.7 (off_track); s-bend-20: 112.2
+      (off_track); slalom-1: 45.5 (off_track); slalom-2: 36.2 (off_track); slalom-3:
+      46.7 (off_track); slalom-4: 48.6 (off_track); slalom-5: 43.5 (off_track); slalom-6:
+      46.7 (off_track); slalom-7: 46.7 (off_track); slalom-8: 46.7 (off_track); slalom-9:
+      46.7 (off_track); slalom-10: 46.7 (off_track); slalom-11: 46.7 (off_track);
+      slalom-12: 46.7 (off_track); slalom-13: 47.8 (off_track); slalom-14: 46.7 (off_track);
+      slalom-15: 47.7 (off_track); slalom-16: 46.5 (off_track); slalom-17: 46.7 (off_track);
+      slalom-18: 45.6 (off_track); slalom-19: 45.7 (off_track); slalom-20: 46.6 (off_track).
+
+
+      - [Open this output](iteration-3/entityR2A/versions/594dd8f4e79e428cbf9ac05f5cfd1aef/payload.json)
+
+      - Based on: [entity1](iteration-3/entity1/versions/05f55bffed434c01a496f9fcde11a367/payload.json)'
+  - id: entity2
+    label: Score 131.94
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 131.94.
+      Per trial — oval-1: 114.8 (off_track); oval-2: 154.2 (off_track); oval-3: 234.5
+      (off_track); oval-4: 253.6 (off_track); oval-5: 329.8 (off_track); oval-6: 332.0
+      (off_track); oval-7: 236.1 (off_track); oval-8: 192.7 (off_track); oval-9: 296.7
+      (off_track); oval-10: 199.9 (off_track); oval-11: 319.1 (off_track); oval-12:
+      253.6 (off_track); oval-13: 225.4 (off_track); oval-14: 236.7 (off_track); oval-15:
+      211.8 (off_track); oval-16: 195.7 (off_track); oval-17: 269.4 (off_track); oval-18:
+      184.5 (off_track); oval-19: 161.3 (off_track); oval-20: 158.3 (off_track); s-bend-1:
+      132.3 (off_track); s-bend-2: 109.8 (off_track); s-bend-3: 120.6 (off_track);
+      s-bend-4: 118.6 (off_track); s-bend-5: 116.4 (off_track); s-bend-6: 187.9 (off_track);
+      s-bend-7: 120.4 (off_track); s-bend-8: 119.6 (off_track); s-bend-9: 121.6 (off_track);
+      s-bend-10: 117.5 (off_track); s-bend-11: 124.6 (off_track); s-bend-12: 118.5
+      (off_track); s-bend-13: 116.5 (off_track); s-bend-14: 121.6 (off_track); s-bend-15:
+      114.3 (off_track); s-bend-16: 110.8 (off_track); s-bend-17: 116.5 (off_track);
+      s-bend-18: 110.8 (off_track); s-bend-19: 124.7 (off_track); s-bend-20: 112.2
+      (off_track); slalom-1: 45.5 (off_track); slalom-2: 36.2 (off_track); slalom-3:
+      46.7 (off_track); slalom-4: 48.6 (off_track); slalom-5: 43.5 (off_track); slalom-6:
+      46.7 (off_track); slalom-7: 46.7 (off_track); slalom-8: 46.7 (off_track); slalom-9:
+      46.7 (off_track); slalom-10: 46.7 (off_track); slalom-11: 46.7 (off_track);
+      slalom-12: 46.7 (off_track); slalom-13: 47.8 (off_track); slalom-14: 46.7 (off_track);
+      slalom-15: 47.7 (off_track); slalom-16: 46.5 (off_track); slalom-17: 46.7 (off_track);
+      slalom-18: 45.6 (off_track); slalom-19: 45.7 (off_track); slalom-20: 46.6 (off_track).
+
+
+      - [Open this output](iteration-3/entity2/versions/594dd8f4e79e428cbf9ac05f5cfd1aef/payload.json)
+
+      - Based on: [entity1](iteration-3/entity1/versions/05f55bffed434c01a496f9fcde11a367/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}

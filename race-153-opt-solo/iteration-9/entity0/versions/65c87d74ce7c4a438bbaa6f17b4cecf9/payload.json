@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 0.75,
+    "kd": 0.8,
+    "ki": 0.6,
+    "kp": 5.3,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      1.0,
+      0.667,
+      0.333,
+      0.0,
+      -0.333,
+      -0.667,
+      -1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.4,
+    "sensor_positions": [
+      {
+        "x": 0.08,
+        "y": 0.08
+      },
+      {
+        "x": 0.053,
+        "y": 0.08
+      },
+      {
+        "x": 0.027,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": -0.027,
+        "y": 0.08
+      },
+      {
+        "x": -0.053,
+        "y": 0.08
+      },
+      {
+        "x": -0.08,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.08
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 6 is the best design so far (619.4). Oval finishes 20/20 and s-bend finishes 18/20 at base_speed 0.75, kp 5.3, kd 0.8, ki 1.0, 7 sensors at x=+/-0.08 with 0.012 m footprints. Slalom has been flat at progress 0.16-0.17 with 0/20 finishes across iterations 5-8, despite changes to speed, kp, kd and sensor size. Iteration 8 shows that raising sensor_size to 0.016 hurt badly (s-bend fell to 1/20, score 447), so that change is reverted. Iteration 7 shows that kp 6.5 overcorrects the s-bend and does not help slalom. So neither sensor size nor steering gain is the slalom limit. Hypothesis: the integral term (ki 1.0, capped at +/-2, which is up to about 2 turn units of bias) builds up a steering bias on alternating weaves and pushes the robot off at each change of direction. Change: set the geometry back to iteration 6 (sensor_size 0.012, all else unchanged) and reduce ki from 1.0 to 0.6. That still gives enough integral action to cancel the fixed motor mismatch on the oval, which iteration 2 showed was needed, but removes some of the windup on slalom. Everything else stays as in iteration 6, so the result isolates the ki effect. Expected result: oval and s-bend stay near iteration 6 levels (oval about 2.1 s, s-bend finish rate 0.8 or more), with slalom progress above 0.25 if the windup hypothesis holds. Risks: rms_error on the oval may rise slightly if the mismatch is not fully cancelled. If slalom is still flat at about 0.16, the next step is to test line_loss 'search_left' or 'search_right' and a lower base_speed (0.6) on slalom only. If the oval rms rises above 0.02, restore ki to 0.8. Measurements needed: per-track completion, progress, completion_time, rms_error, max_error, line_loss_events and steering_oscillation, with slalom progress and line_loss_events as the key signals."
+}

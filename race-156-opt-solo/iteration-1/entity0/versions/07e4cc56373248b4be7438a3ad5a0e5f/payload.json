@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.4,
+    "ki": 0.05,
+    "kp": 1.6,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.045,
+        "y": 0.04
+      },
+      {
+        "x": -0.0225,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.0225,
+        "y": 0.04
+      },
+      {
+        "x": 0.045,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials went off track (0 finishes). Progress was only 0.11 to 0.15, with one line-loss event per run and max_error about 0.062 m, just above the 0.06 m off-track limit. The body-width term cannot raise that limit above 0.0575 m within the allowed body range, so the fix has to come from tracking error, not from a wider body. The robot is losing the line early and drifting out. Likely causes: kp 2.5 with base_speed 1.6 is too aggressive (large PWM swings on each unit of signal, so it overshoots and oscillates); the sensor array spans only +/-0.03 m, so once the line moves past the outer sensors the robot is blind; and kd 0.15 gives little damping. Changes: (1) kp 2.5 to 1.6 to reduce overshoot; (2) kd 0.15 to 0.4 to damp oscillation; (3) base_speed 1.6 to 1.4 so there is more time to correct on bends, at some cost to finish time; (4) sensor spread widened to +/-0.045 m (five sensors at x = -0.045, -0.0225, 0, 0.0225, 0.045, y = 0.04) so the line stays visible at larger lateral error; (5) mass 0.8 to 0.6 kg to lower yaw inertia and speed up correction; (6) ki kept at 0.05. Expected result: fewer line-loss events and max_error below 0.06 m on the oval and s-bend, with completion possible on at least some seeds. Hypotheses: H1, the line is lost from the sensor edge during the first bends, not from noise; H2, kp is the main source of oscillation. Measurements wanted next: completion_time and progress to see whether speed or steering limits the finish, max_error and line_loss_events to see whether the sensor spread fixed the blind spot, and steering_oscillation to test H2."
+}

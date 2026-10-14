@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 0.9,
+    "kd": 1.0,
+    "ki": 0.05,
+    "kp": 4.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.11,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 4 (kd 1.0) is the best design at 770.9. Oval (943) and s-bend (939) finish 20/20 each. Slalom is the only weak track: 4/20 finish, 15 go off_track, mean progress 0.79, and finished runs take about 2.9 s, so there is almost no time margin. Slalom also has the highest steering_oscillation (0.35) and control_effort (9.9), which suggests the robot overshoots and corrects late on alternating bends.\n\nWhat has moved the score so far: the sensor layout at y=0.06 with spread +/-0.03 m (iteration 1 to 2), and shortening body_length from 0.18 to 0.14 (iteration 1 to 2, +313 points with speed and gain changes). Widening the array to +/-0.04 m hurt (iteration 3). Raising kd from 0.8 to 1.0 changed little (+11 points). Kd is therefore not the main limit. Yaw inertia, which the body_length reduction improved, is the remaining lever I can test cleanly.\n\nChange: body_length 0.14 to 0.11 m and mass 0.8 to 0.6 kg. Yaw inertia is mass*(L^2+W^2)/12, so it falls from about 0.0029 to about 0.0017 (about 40 percent less). This should let the robot turn back onto the line faster when it drifts on slalom bends, and reduce the overshoot that drives the high control effort. The lower mass also helps acceleration, which matters because slalom finishes are close to the 3 s limit. Sensors, sensor_size, wheel geometry, base_speed, kp, ki, kd and line_loss stay unchanged, so the effect is attributable to inertia and mass. body_length 0.11 is within the 0.10 to 0.24 range.\n\nHypotheses: (H1) Lower yaw inertia reduces slalom off_track endings and max_error (currently about 0.05 to 0.06). (H2) Lower mass raises average speed enough to bring slalom completion_time well under 2.9 s. (H3) If slalom still goes off track with max_error near 0.06 and oscillation unchanged, the limit is the sensor footprint on sharp bends, so the next test is sensor_size 0.016.\n\nExpected result: slalom finish rate rising from 20 percent toward 50 percent or more, slalom completion_time falling, and oval and s-bend completion holding near 95 percent or better. Risk: lighter, shorter robot may oscillate more on straights, so steering_oscillation on oval is the watch item."
+}

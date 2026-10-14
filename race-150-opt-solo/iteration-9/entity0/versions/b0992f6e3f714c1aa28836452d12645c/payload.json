@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 0.8,
+    "ki": 0.08,
+    "kp": 1.1,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 3 (score 680.6) is still the best design. Oval and s-bend finish 20/20, but the slalom goes off track in every trial (progress 0.35, about one line loss per run, max_error about 0.063 m, just past the fixed 0.06 m limit). Every later change has been a regression or confounded: the wider spread (iter 4, 669.9), 7 sensors with 16 mm (iter 5, 673), speed 0.9 with kd 1.0 (iter 6, 610), mass 0.7 (iter 7, 650) and sensor lead y=0.08 (iter 8, 667). The off-track limit is fixed at 0.06 m, because body width 0.12 to 0.18 cannot widen it enough, so the robot has to track tighter.\n\nChange: I am returning to the iteration 3 geometry and controller and changing one variable, ki 0.02 to 0.08. The fixed left/right motor mismatch in the disturbance produces a steady bias toward one side, and the integral term is the only part of the loop that cancels it. The bias may be the slow part of the slalom max_error, and the iteration 3 ki of 0.02 may be too small to remove it. The integral is capped at +/-2, so windup is bounded.\n\nExpected result: lower rms_error and max_error on the oval and s-bend, and slalom progress above 0.40 with fewer off-track exits. Risk: a larger ki could add overshoot on the sharp slalom bends, which would show as higher steering_oscillation and a worse slalom. Hypotheses: (a) part of the slalom drift is a steady bias from the motor mismatch; (b) ki is a cheap lever that has not yet been tested. Measurements wanted: per-track max_error, rms_error and line_loss_events on the slalom, steering_oscillation to see if ki adds jitter, and completion_time to confirm the 3 s budget. If the slalom still leaves at the same bend, the next test is line_loss 'search_left' or 'search_right'."
+}

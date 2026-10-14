@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 0.95,
+    "kd": 0.7,
+    "ki": 0.0,
+    "kp": 5.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.12,
+    "mass": 0.5,
+    "sensor_positions": [
+      {
+        "x": -0.07,
+        "y": 0.07
+      },
+      {
+        "x": -0.035,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.035,
+        "y": 0.07
+      },
+      {
+        "x": 0.07,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.09
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 2 (score 391.8) is the best design so far. It finishes the oval 20/20 at 1.98 s, but leaves the line on the s-bend (progress 0.37) and slalom (progress 0.19). Every failure is off_track with max_error about 0.063 m, just past the 0.06 m limit. Steering oscillation is low (0.19 to 0.22 on failing tracks), so the robot lags behind the bends rather than jittering.\n\nIteration 3 regressed. Oval finishes fell from 20/20 to 9/20 and oval oscillation rose from 0.146 to 0.228. It changed kp, kd and ki together, so the ki = 0.3 addition and the stiffer loop cannot be separated. The likely cause is that integral action and a stiffer loop overshoot on the oval. I am reverting ki to 0 and keeping the iteration 2 sensor array and geometry, so the result isolates the controller changes.\n\nChanges from iteration 2: (1) base_speed 1.1 -> 0.95. Lower speed gives the steering more time to correct at bends. The oval finished at 1.98 s, so the 3 s limit still leaves room (expect about 2.3 s). (2) kp 5.0 -> 5.5, a modest stiffening for the lagging s-bend and slalom corners. (3) kd 0.6 -> 0.7 to damp the larger correction, with oscillation still well below the level seen in iteration 3. (4) ki stays 0. Geometry and line_loss are unchanged.\n\nExpected result: oval completion holds at 20/20 with completion_time about 2.2 to 2.4 s. s-bend and slalom progress rises above 0.5, and max_error falls below 0.055 on those tracks.\n\nHypotheses: H1, the lag on bends is partly a speed effect, so lower base_speed raises s-bend and slalom progress. H2, kp 5.5 with kd 0.7 keeps oscillation under 0.2 on the oval. H3, ki was the cause of the iteration 3 oval regression, not kp.\n\nNext measurements: completion and progress per track (did s-bend and slalom finish), completion_time (cost of slower speed), max_error and line_loss_events (where the line is still lost), and steering_oscillation (whether kp 5.5 with kd 0.7 is too stiff on the oval)."
+}

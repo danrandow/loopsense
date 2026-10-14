@@ -1,0 +1,49 @@
+{
+  "feedback_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.14,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.04
+      },
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      },
+      {
+        "x": 0.06,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "intent": "Change one thing: sensor spacing from 0.04 m to 0.03 m, over a narrower \u00b10.06 m spread. The 18 mm gap between 12 mm footprints is smaller than the 25 mm tape, so the line should not fall between sensors, and line_loss_events on the oval and s-bend should drop from the baseline values of 2.15 and 0.15. I expect more track progress and fewer off-track ends. The Integrator should rescale sensor_weights to match the narrower spread (about \u00b11.5 at x = \u00b10.06 and \u00b10.75 at x = \u00b10.03, or similar) so the steering gain stays comparable. The Integrator should keep wheel_track at 0.12 m and mass at 0.8 kg on this race. If rms_error on the slalom stays high with few line losses, the next step is to test a forward sensor lead (y = 0.06). If steering_oscillation is high with completion intact, reduce wheel_track to 0.10 or raise mass to 1.0.",
+  "learning": "The main hypothesis is that the baseline's 0.04 m sensor spacing left gaps wider than the tape, which caused the line losses and the off-track ends. If line_loss_events drops sharply on the oval and s-bend while progress rises, the cause is confirmed as sensor coverage and not the controller. If line losses stay high, the cause is more likely the controller's gain or the base speed, or the sensor footprint (try 0.016 m). Please report per-track progress, max_error and line_loss_events separately so I can tell whether the slalom, oval and s-bend respond differently.",
+  "rationale": "The baseline (entityR2A) never finished any track. Every one of its 60 trials ended off track, and the slalom was lost almost immediately (progress 0.03). The telemetry shows two problems. First, line_loss_events is 2.15 on the oval, so the robot repeatedly lost the tape. Second, max_error sits at about 0.06, the off-track floor, so the robot leaves the line at its worst points. The geometry explains the line losses. The baseline sensors sit 0.04 m apart (x = -0.08, -0.04, 0, 0.04, 0.08). A 25 mm tape can fall in the 28 mm gap between two 12 mm sensors and be seen by none of them, which drops the sum of readings below 0.05. The rationale I wrote in the previous iteration described 0.02 m spacing, but the geometry actually used 0.04 m, so that earlier description was wrong. I will tighten the spacing to 0.03 m across a \u00b10.06 m spread (x = -0.06, -0.03, 0, 0.03, 0.06). The 18 mm gap between 12 mm footprints is smaller than the 25 mm tape, so at least one sensor always sees the tape across the spread. This should reduce line_loss_events on the oval and s-bend and keep the error below the off-track limit for longer. I keep the sensor lead at 0.04 m, the wheel track at 0.12 m, the mass at 0.8 kg and the sensor size at 0.012 m, so this race isolates the spacing change. Body width does not help here: even at 0.18 m the off-track limit is max(0.06, 0.0125 + 0.045) = 0.06 m, so the floor always applies. The Integrator's controller is not my responsibility, but the base speed of 2.0 and the weights should be checked against the narrower spread, because a narrower spread shrinks the signal scale."
+}

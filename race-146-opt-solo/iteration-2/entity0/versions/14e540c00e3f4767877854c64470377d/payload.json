@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 0.9,
+    "kd": 2.0,
+    "ki": 0.0,
+    "kp": 4.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from the development race (entityR2A, iteration 1 design): the oval now finishes 20/20 (mean 2.07 s, rms 0.006), and the s-bend finishes 15/20 (mean 2.43 s), so the kp 4 / kd 1 / base 1.0 change helped on bends. The slalom still fails in every trial (0/20, off track, mean progress 0.45, 1.1 line-loss events, control_effort 10.8). Progress improved from 0.17 to 0.45 there, so the direction is right but the slalom still overshoots during its fast left-right alternations. Its high control_effort and roughly one line loss per run point to overshoot and oscillation at direction changes, not to too little steering authority. The oval's steering_oscillation (0.23) is low, so there is room to add damping without hurting the oval.\n\nChanges: (1) kd 1.0 -> 2.0, to damp the swing when the signal changes quickly at slalom reversals and the s-bend exits. (2) kp 4.0 -> 4.5, to keep the bend-tracking gain that worked on the s-bend, with the extra kd limiting overshoot. (3) base_speed 1.0 -> 0.9, to give the controller more time at each reversal. The oval has margin: 2.07 s at base 1.0 should become about 2.3 s, still under the 3 s limit. Geometry is unchanged, so this iteration isolates the controller response.\n\nExpected result: the slalom progress should rise above 0.45, and the s-bend off-track count should fall. The oval should still finish with rms_error under 0.01. Hypotheses to check next: (1) if steering_oscillation rises above about 0.5 on the oval, kd is too high and should come back toward 1.5. (2) If the slalom still leaves at about the same progress, the limit is sensor geometry: the 0.04 m outer sensors see the tape too late, so widen to about 0.05 m. (3) If completion_time on the oval exceeds about 2.6 s, base_speed is too low and should go back to about 1.0. Measurements requested: all metrics per track, so the slalom progress, line_loss_events and steering_oscillation can be compared directly with iteration 1."
+}

@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.9,
+    "ki": 4.0,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.18,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: 240 development trials across iterations 0 to 4 have ended off_track. Oval is the only track that finishes at all (2 of 20 in iteration 4), and its progress rose from 0.12 to 0.21 to 0.27 to 0.76 as the integral gain grew from 0 to 1 to 2 to 3. On the s-bend and slalom, progress is still only 0.15 and 0.09, with one line-loss event per run and max_error pinned at the 0.06 m off-track limit. Steering oscillation is low (about 0.15 on those tracks), so the robot is not jittering. It is failing to hold the line through bends. Iteration 4 raised the score by 75.7, the largest gain so far, which supports continuing in the same direction on the integral term (H1: the fixed motor mismatch and sensor-to-axle offset produce a steady bias that only integral action removes). The oval finish time of 1.9 s leaves some margin, but the s-bend and slalom fail early, so speed is probably not the first limit there. Their tighter curvature needs more proportional authority to turn in before the line drifts out of the sensor array (H2). Changes, all on the controller with geometry held fixed for a clean read: ki 3.0 to 4.0 (integral still clamped at +/-2, so the maximum contribution rises from 6 to 8) to keep removing the bias; kp 4.5 to 5.0 for stronger turn-in on the tighter bends; kd 0.7 to 0.9 to damp the larger proportional gain and limit overshoot (H3); base_speed 1.3 to 1.2 to reduce centrifugal slide on the s-bend and slalom. Expected result: lower RMS and fewer off-track endings on s-bend and slalom, with the oval finish rate holding or improving. Risks: higher ki may overshoot on sustained curves; higher kp with kd may amplify sensor noise; slower speed could push oval completion past 3 s, since the oval is finished in about 1.9 s at speed 1.3. If the oval completion time rises above 3 s, base_speed should move back toward 1.3. If s-bend and slalom still end off track with low RMS, the next test is ki 5 or a wider sensor span (plus or minus 0.06 m) with the same controller. Measurements requested: all metrics, including completion, completion_time, line_loss_events, max_error, and control_effort, to separate bias, turn-in, and speed effects."
+}

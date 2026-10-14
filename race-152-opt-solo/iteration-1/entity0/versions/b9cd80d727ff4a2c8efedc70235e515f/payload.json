@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.4,
+    "ki": 0.0,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.18,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.06
+      },
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.06,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials ended off_track, with progress only 0.10 to 0.15, about one line-loss event per run, and max_error near 0.06 m. The off-track limit is max(0.06, 0.0125 + body_width/4), which is 0.06 m at body_width 0.12, so the robot leaves the tape almost as soon as it drifts that far. Steering oscillation is low (0.07 to 0.15), so the failure is not jitter. The robot loses the line early and then runs off. Likely causes: (1) the sensor span of +/-0.03 m is narrower than the line's excursions on bends, so the outer sensors read nothing and the line is lost; (2) base_speed 1.8 is too fast to recover once the line is lost or the tape is at the edge of the sensor array; (3) kp 3.0 with kd 0.2 gives too little correction gain at the edge of the array. Changes: widen the sensor array to +/-0.06 m, which is inside the allowed +/-0.08 m, so that a bend pushes the tape into the sensors before it leaves the array. Use a 16 mm footprint for a smoother reading that covers the 25 mm tape at larger offsets. Move the sensors to y=0.06 so they see the line slightly earlier. Keep the weights antisymmetric with the same shape. Raise kp to 4.0 and kd to 0.4 for stronger correction and damping. Lower base_speed to 1.4 so recovery is possible; this trades some completion time for survival, which matters more because an off-track run scores almost nothing. Use body_width 0.18 (the maximum), which raises the off-track limit to about 0.0575 m. Expected result: fewer line-loss events and a longer progress on all three tracks, with completion becoming possible on the oval and s-bend. Hypotheses to test next: (H1) the early line loss comes from sensor span, so line_loss_events should drop sharply; (H2) at base_speed 1.4 the robot still overshoots on the slalom, which would show as max_error near 0.06 with oscillation rising; (H3) completion time may be too slow for the 3 s limit, so if progress is high but completion is zero, base_speed should rise again. Measurements requested: completion, progress, completion_time, rms_error, max_error, line_loss_events, steering_oscillation, and noise_robustness."
+}

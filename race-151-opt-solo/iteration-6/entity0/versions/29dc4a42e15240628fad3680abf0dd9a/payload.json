@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 1.2,
+    "ki": 0.0,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.08,
+        "y": 0.08
+      },
+      {
+        "x": -0.04,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.04,
+        "y": 0.08
+      },
+      {
+        "x": 0.08,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 5 (score 417.0, best so far): the oval finishes 20/20 with rms_error 0.0155 and steering_oscillation 0.13, so gentle curves are handled. The s-bend (progress 0.57, 0 finishes) and slalom (progress 0.18, 0 finishes) still end off track, with max_error at about 0.061 to 0.064 m. That is the off-track limit, max(0.06, 0.0125 + 0.12/4) = 0.06 m, and body width cannot widen it. Line loss is rare (0.35 on the s-bend, 1.0 on the slalom), so the failure is the robot drifting too far from the line on bends, not losing the tape. Earlier runs suggest that raising kp beyond about 5 causes overshoot on the oval, so I will not push steering gain further.\n\nChanges:\n(1) Sensor span widened from x = \u00b10.07 to \u00b10.08 m (the contract maximum). The tape stays under an outer sensor for longer on tight bends, and the slalom's alternating curves are the most likely place for it to leave the array.\n(2) base_speed lowered from 1.1 to 1.0. At a fixed turn command the robot's turn radius is tighter relative to its speed, so the distance travelled per correction shrinks. This gives the loop more time per metre on bends. The oval should still finish in about 2.3 s, well under the 3 s limit.\n(3) kp held at 5.0 and kd at 1.2, the settings that gave the clean oval, so the change in bend behaviour comes from span and speed. ki stays at 0. Mass, wheel_track, body, sensor size, sensor_weights and line_loss are unchanged.\n\nExpected result: slalom progress rising above about 0.3 and s-bend progress above 0.7, with the oval still completing at 100 percent and steering_oscillation at or below about 0.2. The score gain should come mainly from the bend tracks.\n\nHypotheses to test next: (H1) the slalom is limited by sensor coverage, so the wider span should lower its line_loss_events and max_error; (H2) lower base_speed reduces max_error on bends at the same gain; (H3) if the oval completion drops below 100 percent, the speed reduction is too costly and base_speed should return to 1.1 with the wider span kept. Measurements requested: per-track completion, progress, max_error, rms_error, line_loss_events and steering_oscillation, to separate coverage loss from lag."
+}

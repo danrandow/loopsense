@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 0.9,
+    "kd": 1.0,
+    "ki": 0.02,
+    "kp": 0.9,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.06
+      },
+      {
+        "x": -0.025,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.025,
+        "y": 0.06
+      },
+      {
+        "x": 0.05,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. The best race so far is iteration 3 (680.6): oval and s-bend both finish 20/20, but the slalom goes off track in every trial (progress 0.35, about one line loss per run, max_error 0.063). Iteration 4 (669.9) raised slalom progress to 0.42 with a wider spread (+/-0.05 m) and kp 1.0. Iteration 5 (7 sensors, 16 mm footprint) cut slalom line losses to 0.45 but dropped slalom progress to 0.29, so the larger footprint and denser spread hurt the sharp bends. The off-track limit is max(0.06, 0.0125 + body_width/4). Body width 0.18 gives only 0.0575, so the limit stays at 0.06 m and the robot has to track tighter. Changes from iteration 4: (1) Revert to 5 sensors at 12 mm, keeping the +/-0.05 m spread, which had the best slalom progress. (2) base_speed 1.0 -> 0.9. Less speed gives the controller more time to correct through slalom corners. Oval and s-bend times should rise from about 2.06 and 2.36 s to roughly 2.3 and 2.6 s, still under 3 s. (3) kp 1.0 -> 0.9 to reduce overshoot at the sharp bends. (4) kd 0.8 -> 1.0 to damp the faster swings. Hypothesis: the slalom failure is lag and overshoot at the sharpest bend, not missing sensor reach, so slower speed plus more damping should carry the slalom past the first failing bend. Expected result: slalom progress above 0.5, fewer slalom off-track exits, and oval and s-bend still completing. Risk: a higher kd can raise steering jitter on straights, and the slower speed lowers the completion-time term. Measurements wanted next: per-track progress, max_error and line_loss_events on the slalom, steering_oscillation on all tracks to check the kd cost, and completion_time to confirm the 3 s budget. If the slalom still fails at the same bend, the next test is line_loss 'search_left' or 'search_right'."
+}

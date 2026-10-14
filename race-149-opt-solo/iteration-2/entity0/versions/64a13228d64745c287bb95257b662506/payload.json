@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.25,
+    "kd": 0.5,
+    "ki": 0.02,
+    "kp": 5.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.025,
+        "y": 0.06
+      },
+      {
+        "x": -0.0125,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.0125,
+        "y": 0.06
+      },
+      {
+        "x": 0.025,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Evidence from iteration 1 (293.7 score, the best so far): the oval finished 6 of 20 trials and the s-bend 1 of 20, but the slalom finished 0 of 20 with progress of only 0.17. Every failure was off_track, and max_error sat near the 0.06 m limit, so the robot is making brief excursions at bends rather than drifting. steering_oscillation rose from about 0.15 (iteration 0) to 0.34 on the oval and 0.37 on the s-bend after kd went from 0.3 to 0.8. That suggests the derivative term is amplifying sensor noise and jitter, which adds lateral error at each bend. Line_loss_events of 1 to 2 per run suggest the 12 mm sensors are sometimes losing the 25 mm tape on sharp bends and the slalom changes.\n\nChanges: (1) kd 0.8 to 0.5 to cut noise-driven jitter while keeping some damping. (2) kp 6.0 to 5.5 to offset the extra noise gain from the lower kd, since higher kp adds to the oscillation. (3) sensor_size 0.012 to 0.016 so each sensor sees more tape and the line stays visible through bends, which should reduce line-loss events. (4) Sensor x-span widened from +/-0.02 to +/-0.025 (spacing 12.5 mm, still under the 25 mm tape width), so the array catches the line earlier on wide bends and the slalom. (5) Sensors moved to y = 0.06 for more lead before each bend. Base speed 1.25 and mass 0.6 are kept: the oval finish time of about 1.9 s shows the speed is adequate, and changing both at once would make the result hard to attribute.\n\nExpected result: lower steering_oscillation (target below 0.25), fewer line_loss_events (target under 1), and a higher finish rate on the slalom and s-bend, with progress on the slalom above 0.3.\n\nHypotheses: (a) kd is the main source of jitter, so a lower kd reduces steering_oscillation without losing the oval finish; (b) the 16 mm footprint and wider span reduce line losses at sharp bends; (c) if the slalom still goes off track early, the cause is the bend-entry speed, and base_speed should drop to about 1.0 for the slalom only.\n\nMeasurements wanted next: completion, progress, completion_time, max_error, line_loss_events and steering_oscillation on each track, plus control_effort to check how hard the steering is working."
+}

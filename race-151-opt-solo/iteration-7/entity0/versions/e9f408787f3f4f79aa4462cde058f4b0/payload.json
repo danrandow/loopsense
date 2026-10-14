@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 1.2,
+    "ki": 0.0,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.1,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.07,
+        "y": 0.08
+      },
+      {
+        "x": -0.035,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.035,
+        "y": 0.08
+      },
+      {
+        "x": 0.07,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 5 (score 417.0, best so far) finished the oval 20/20 with rms_error 0.0155 and steering_oscillation 0.13, but the s-bend (progress 0.57) and slalom (progress 0.18) still ended off track with max_error about 0.061 to 0.064 m. That is the fixed off-track limit: max(0.06, 0.0125 + W/4) is 0.06 m for every allowed body width. Line loss is rare (0.35 and 1.0 events), so the failure is steering lag on bends, not lost tape. Iteration 6 widened the sensors to x = \u00b10.08, which sit outside the 0.12 m body, and dropped base speed to 1.0. The oval collapsed to 1/20 finishes, so I am reverting both changes. Raising kp past about 5 caused oval overshoot in iterations 3 and 4.\n\nChange. I keep the iteration 5 controller (kp 5.0, kd 1.2, ki 0, base_speed 1.1, last_direction) and geometry (sensors at y 0.08, x \u00b10.07 and \u00b10.035 and 0, size 0.016, wheel_track 0.12, mass 0.8). I change only body_length, from 0.14 to 0.10 m. Yaw inertia is mass*(L^2+W^2)/12, so this cuts inertia from about 0.034 to about 0.024 (roughly 28 percent lower). The robot should then turn into bends faster at the same turn command, which is the lag I am trying to remove. Body length has no other effect in the simulator, and the off-track limit is unchanged.\n\nExpected result. Oval completion stays near 100 percent with steering_oscillation at or below 0.2. Max_error on the s-bend and slalom should drop below 0.06 m, with s-bend progress above 0.7 and slalom progress above 0.25.\n\nHypotheses. (H1) Lower yaw inertia is the main lag term on bends, so the bend tracks improve with no oval penalty. (H2) If the oval oscillation rises above 0.2, the faster yaw response is overshooting, and kd should go to about 1.5 at the same kp. (H3) If the bend tracks do not move, lag is set by sensor coverage on the slalom, and the next step is a 7-sensor array inside \u00b10.07 m. Measurements requested: per-track completion, progress, max_error, rms_error, line_loss_events and steering_oscillation, to separate lag from coverage loss."
+}

@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.6,
+    "ki": 2.0,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.18,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 180 development trials across iterations 0 to 2 ended off_track at progress 0.10 to 0.21. Max error sits at about 0.06 m on every track, which is the off-track limit (max(0.06, 0.0125 + body_width/4) = 0.06 for any body width up to 0.18). RMS error is 0.02 to 0.03 m and steering oscillation is low (0.07 to 0.17), so the robot is not jittering. It settles into a steady offset and drifts off. Iteration 2 (ki = 1.0) was the best so far: oval RMS fell from 0.030 to 0.020 and oval progress rose from 0.12 to 0.21. This supports H1, that a steady bias (the fixed motor mismatch plus the sensor-to-axle geometry) is the main failure, and the integral term is the right direction. Change: raise ki from 1.0 to 2.0, roughly doubling the bounded integral authority (integral clamped to +/-2, so the maximum integral contribution to turn rises from 2 to 4). Also raise kd from 0.4 to 0.6 to damp the transient overshoot on bends, which is H2 if max_error still reaches 0.06 with low RMS. Geometry and the other controller values are held at iteration 2 so the effect of ki and kd can be read cleanly. Expected result: lower RMS and max_error, more progress on s-bend and slalom, and possibly the first completions on the oval. Risk: higher ki may overshoot on sustained curves. If progress rises but still ends off track, the next step is to lower base_speed to about 1.2 to reduce slip and centrifugal drift. If progress is high but completion is zero because of time, base_speed should rise toward 1.8. Measurements requested: all metrics, including control_effort and noise_robustness, to separate bias from transient overshoot."
+}

@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 0.8,
+    "ki": 0.02,
+    "kp": 1.1,
+    "line_loss": "search_left",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 3 (score 680.6) is still the best design. Oval (20/20, 1.998 s) and s-bend (20/20, 2.387 s) complete, but the slalom leaves the track in all 60 trials across iterations 3 to 9 (progress about 0.33 to 0.42, about one line-loss event per run, max_error about 0.063 m against a 0.06 m limit). Every change since iteration 3 has either regressed or been confounded: wider spread (iter 4, 670), 7 sensors with 16 mm (iter 5, 673), speed 0.9 with kd 1.0 (iter 6, 610), mass 0.7 (iter 7, 650), sensor lead y=0.08 (iter 8, 667). Iteration 9 (ki 0.02 to 0.08) was neutral: oval rms 0.0047 vs 0.0049, s-bend unchanged, slalom unchanged, score 675 vs 681. So ki is not the slalom limiter, and the controller gains are near a local optimum for the sharp slalom bends.\n\nChange: return to the iteration 3 geometry and controller, with ki back at 0.02, and change only line_loss from 'last_direction' to 'search_left'. The slalom line loss is the one failure mode that has not been tested directly. When the line is lost, 'last_direction' may steer the robot further off the tape in the wrong direction on alternating bends. 'search_left' gives a fixed, known search direction and may recover faster on the bends that favour it. This is a single-variable test. Expected result: slalom line_loss_events stay near 1 or fall, and slalom progress rises above 0.35 if the recovery direction matters. Oval and s-bend should be unchanged because they rarely lose the line (oval 0.3 events, s-bend 0.2).\n\nRisk: if the slalom's sharp bends are in the opposite direction, 'search_left' may worsen the loss and reduce progress. In that case the next test is 'search_right'. Hypotheses: (a) slalom failure is set by how the robot recovers after line loss, not by steady drift; (b) the recovery direction matters on alternating bends. Measurements wanted: slalom progress, max_error and line_loss_events, to see whether the first failing bend is passed. Also steering_oscillation on the s-bend, to confirm no change to normal tracking."
+}

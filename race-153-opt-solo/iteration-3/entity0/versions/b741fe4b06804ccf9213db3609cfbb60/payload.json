@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 0.9,
+    "kd": 0.5,
+    "ki": 1.0,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      1.0,
+      0.5,
+      0.0,
+      -0.5,
+      -1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.5,
+    "sensor_positions": [
+      {
+        "x": 0.06,
+        "y": 0.08
+      },
+      {
+        "x": 0.03,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": -0.03,
+        "y": 0.08
+      },
+      {
+        "x": -0.06,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials across iterations 0-2 went off track, with progress of 0.04-0.24. Max error sits at about 0.06, which is the off-track floor, while rms error stays around 0.024-0.03. Steering oscillation is low (0.06-0.16), so the robot is not jittering. It drifts steadily off the line, and ki=0.5 with kp=3 gave the best score so far (69.5), which points to a steady bias that proportional action alone does not hold. Widening the body does not help: the limit is max(0.06, 0.0125+body_width/4), and at body_width 0.18 that is still 0.0575, so the 0.06 floor stays in force. Changes: (1) raise kp from 3.0 to 4.0 for stronger correction through bends; (2) raise ki from 0.5 to 1.0 to remove the residual offset faster (the integral is capped at +/-2, so windup is bounded); (3) raise kd from 0.3 to 0.5 to damp the larger kp, since oscillation is currently low; (4) lower base_speed from 1.0 to 0.9 so the robot has more time to correct at bends. Completion time will suffer, but off-track failure dominates the score; (5) move the sensor row forward from y=0.05 to y=0.08 so the line is seen earlier and the controller leads the bends; (6) narrow wheel_track from 0.12 to 0.10 so the same PWM differential gives a sharper turn rate; (7) reduce mass from 0.6 to 0.5 kg to cut yaw inertia. Hypotheses: (a) rms_error falls below 0.02 and max_error stays under 0.05; (b) progress on the s-bend exceeds 0.4; (c) steering_oscillation stays below 0.2 with the higher kp and kd. If oscillation rises, kd is the next lever. If the run completes, raise base_speed to bring completion_time under 3 s. Expected result: fewer off-track exits and progress well above the previous 0.14-0.24."
+}

@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 1.0,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.03
+      },
+      {
+        "x": -0.03,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.03,
+        "y": 0.03
+      },
+      {
+        "x": 0.06,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 1 (aggregated, no per-step telemetry): the oval now finishes 15 of 20 trials (mean time 1.97 s, rms 0.012 m), so the controller is workable on gentle track. The s-bend (progress 0.49, about one line-loss event per run) and slalom (progress 0.12, about one line-loss event per run) still fail by going off track. Line loss is the main failure mode. With sensors at x = +/-0.04 m and 12 mm footprints, the line is only seen while its centre is within about 0.058 m of the robot centre line, which is almost exactly the 0.06 m off-track limit. Once the robot drifts that far, it has no warning and cannot recover. Changes: (1) Widen the sensor array to x = -0.06, -0.03, 0, 0.03, 0.06 m. This lets the sensors see the line earlier, so the error signal starts before the robot reaches the off-track boundary. Weights stay -2, -1, 0, 1, 2, so the steering signal keeps the same sign convention. (2) Reduce wheel_track from 0.12 to 0.10 m. A narrower track gives more yaw rate per PWM difference, so the robot can turn harder on the sharp slalom bends. (3) kd 0.8 -> 1.0, to damp the faster response from the wider sensors and the narrower track. kp stays at 3.0 and base_speed at 1.3, which kept the oval finishing in under 2 s. Expected result: fewer line-loss events on the s-bend and slalom, more progress on those tracks, and some slalom finishes. Hypotheses to check: (a) most line losses happen on the slalom direction changes, where lateral error grows fastest; (b) steering_oscillation will rise a little with the wider sensor spacing and higher kd, and if it does, kd is too high; (c) if the oval still finishes at about 2 s, there is room to raise base_speed later. Next measurements: progress and line_loss_events on s-bend and slalom, max_error location, steering_oscillation and completion_time."
+}

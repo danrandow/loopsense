@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 2.0,
+    "kd": 0.2,
+    "ki": 0.1,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.14,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.04
+      },
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      },
+      {
+        "x": 0.06,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "learning": "If oval and s-bend line_loss_events drop sharply while progress rises, sensor coverage was the cause. If line losses fall but s-bend progress stays near baseline (about 0.07), the s-bend failure is steering or speed, not coverage. Report per-track progress, max_error and line_loss_events separately for oval, s-bend and slalom.",
+  "notes": "Applies the Builder's narrower 0.03 m spacing with weights rescaled to keep 25 per metre of steering gain, so the controller is unchanged apart from the weight scale. Controller gains and base speed are held constant to isolate sensor coverage.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "The baseline (entityR2B, iteration 0 geometry) finished no trials on any track. On the oval, line_loss_events averaged 2.15 and max_error sat at the 0.06 m off-track floor. On the s-bend, line_loss_events was only 0.15, yet all 20 trials still ended off track with progress 0.068. Line loss is therefore not the only failure mode. The s-bend needs a different fix, most likely in the controller or base speed. On the slalom, progress was 0.03 with no line losses, so the robot left the line through steering error rather than losing it.\n\nThe Builder's geometry change is applied as proposed: five 12 mm sensors at x = -0.06, -0.03, 0, 0.03, 0.06 with y = 0.04. The 18 mm gap between footprints is smaller than the 25 mm tape, so the line should be seen by at least one sensor across the spread. Wheel track (0.12), mass (0.8), radius (0.03) and body dimensions are unchanged, so this race isolates the spacing change.\n\nThe weights are rescaled to keep the same signal gain per metre of lateral offset as the baseline. The baseline used x/0.04 (25 per metre). The new weights are x/0.04 at the new spread, giving (-1.5, -0.75, 0, 0.75, 1.5), which is 25 per metre again. With kp, ki and kd unchanged, the steering response to a given offset should match the baseline, so any change in results comes from sensor coverage. The gains stay at kp 3.0, ki 0.1, kd 0.2. base_speed stays at 2.0 because the course must be covered in under 3 s. line_loss stays 'last_direction', which worked as the recovery path in the baseline.\n\nExpected result: fewer oval and s-bend line losses and more progress. This is a hypothesis, not a measured outcome. If line losses fall but progress does not, the next limit is steering or speed."
+}

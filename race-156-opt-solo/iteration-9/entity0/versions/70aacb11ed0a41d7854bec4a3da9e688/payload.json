@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 1.2,
+    "ki": 0.05,
+    "kp": 2.6,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1.33,
+      -0.67,
+      0,
+      0.67,
+      1.33,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.5,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.08
+      },
+      {
+        "x": -0.04,
+        "y": 0.08
+      },
+      {
+        "x": -0.02,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.02,
+        "y": 0.08
+      },
+      {
+        "x": 0.04,
+        "y": 0.08
+      },
+      {
+        "x": 0.06,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 8 (score 932.0, best so far). All 60 development trials finished. Per track: oval 940 (2.12 s, rms 0.004, 1.0 line-loss event), s-bend 934 (2.34 s, 0.95 line-loss events), slalom 922 (2.78 s, rms 0.014, 1.0 line-loss event). Off-track exits, which cost about 500 points each, are gone on the development tracks. What remains is about 15 points per track from line-loss events, about 18 points on the oval from completion time, and a few points of rms error. The fixed 0.06 m off-track limit is the main hazard on the unseen final track, which has a different shape.\n\nThe 1.0 line-loss event per run appears on every track at a similar rate. It does not look like a tight-bend effect (H10), and base_speed 1.0 to 1.1 barely changed it. One likely cause is the line leaving the sensor span during large lateral excursions (H7). That would also make the robot fragile on an unseen shape.\n\nChange: widen the sensor span from +/-0.045 m to +/-0.06 m (7 sensors at 0.02 m spacing, y = 0.08 m, unchanged), with weights unchanged at [-2, -1.33, -0.67, 0, 0.67, 1.33, 2]. Because the weights are spread over a wider span, the signal per metre of lateral error falls by about 25%. I raise kp from 2.0 to 2.6 to keep the overall steering gain about the same, as in iteration 3. Everything else is held at iteration 8 values: base_speed 1.1, ki 0.05, kd 1.2, mass 0.5 kg, track 0.12 m, radius 0.03 m, body 0.12 x 0.16 m, sensor size 0.012 m, line_loss last_direction.\n\nExpected result: line_loss_events fall from about 1.0 toward 0.5 or less on the slalom and s-bend, with completion still 20/20 on all tracks, and scores at or slightly above 932. Robustness to the unseen track should improve even if the development gain is small.\n\nRisks: kp 2.6 with kd 1.2 may add oscillation (iteration 3 showed kp 2.6 raised oval oscillation to 0.37, though with a different sensor layout). The lower per-metre gain could slow the slalom. If line losses do not fall, H7 is rejected and the cause is probably the start or finish region (H10).\n\nHypotheses: H7, the line-loss event happens when the line is outside the old +/-0.045 m span, so widening the span removes it. H12, the wider span alone (with kp scaled) does not hurt slalom completion or oscillation.\n\nMeasurements wanted next: line_loss_events per track (test H7), steering_oscillation (check the kp 2.6 jitter risk), slalom and s-bend completion and max_error (confirm no off-track exits), and completion_time on the oval and slalom (confirm speed is unchanged)."
+}

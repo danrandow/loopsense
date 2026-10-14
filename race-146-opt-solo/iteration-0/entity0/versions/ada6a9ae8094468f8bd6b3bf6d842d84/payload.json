@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.3,
+    "ki": 0.0,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.05
+      },
+      {
+        "x": -0.015,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.015,
+        "y": 0.05
+      },
+      {
+        "x": 0.03,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Iteration 0 has no race telemetry yet, so this is a conservative first candidate built from the contract's physics and sensing rules. Geometry: five line sensors spread across x = -0.03 to +0.03 m (15 mm spacing), mounted 0.05 m ahead of the axle so the controller sees the line before the wheels reach it. A 12 mm footprint is used, which is well under the 25 mm tape width, so readings stay graded as the line moves across the array. Wheel track 0.12 m, radius 0.03 m, body 0.12 x 0.18 m and mass 0.8 kg are mid-range values that keep yaw inertia moderate for quick bend response. Controller: sensor weights -2, -1, 0, 1, 2 give a signal that rises roughly linearly with lateral offset, with positive steering to the left when the line lies to the left. kp = 2 is a moderate proportional gain (each unit of turn is 350 PWM counts). kd = 0.3 damps the swing without amplifying sensor noise, and ki = 0 avoids integral windup on bends. base_speed = 1.2 (about 60 percent of full PWM) is chosen to aim for the roughly 1.5 m/s average needed for a 3 s finish while leaving headroom to stay on the tape through the sharper bends. line_loss = last_direction, so the robot keeps turning the way it was last steering when it drifts off the tape. Expected result: the robot should complete the oval and s-bend with a modest rms_error and few or no line-loss events. The slalom and tight bends are the likely failure points, where I expect overshoot or a timeout. Hypotheses to test next: (1) if completion_time is well above 3 s with completion 1, raise base_speed; (2) if steering_oscillation is high, reduce kp or raise kd; (3) if max_error approaches the off-track limit on sharp bends, lower base_speed or widen the sensor spread. Measurements requested: all metrics, so each can be compared against the score formula."
+}

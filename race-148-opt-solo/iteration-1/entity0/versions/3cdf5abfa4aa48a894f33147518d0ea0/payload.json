@@ -1,0 +1,58 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.6,
+    "ki": 0.05,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation"
+    ]
+  },
+  "rationale": "Evidence from the development race (entityR2A): 0 of 60 trials finished. Every run ended off_track, with progress 0.43 on oval, 0.13 on s-bend and 0.08 on slalom. Tracking error is small while the robot is on the line (rms about 0.022 to 0.026 m) and steering oscillation is low (0.13 to 0.25), so the controller is not jittering. Max error reaches about 0.06 m, which is the off-track limit, and each trial shows about one line-loss event. The robot is drifting wide on bends and then losing the tape, not oscillating.\n\nHypotheses: (1) At base_speed 1.2 the robot carries too much speed into curves, so it runs wide before steering responds. (2) The five sensors span +/-0.04 m, so on sharp bends the tape can fall outside the outer sensors, which reads near zero and triggers a line loss. (3) kp = 3 is too weak to turn back quickly once the robot is off-centre.\n\nChanges: base_speed drops from 1.2 to 1.0 to reduce curve overshoot. kp rises from 3.0 to 4.0 for stronger corrective turn. kd rises from 0.3 to 0.6 to damp the faster response, since oscillation is currently low and there is room. Sensors move forward to y = 0.06 so they see curves earlier, and the lateral spread narrows to +/-0.03 m (spacing 0.015 m) so the tape stays under the array on sharper bends. Sensor size stays at 0.012 m. Wheel track, radius, mass and body stay the same to keep the change attributable to the controller and sensor layout. ki stays at 0.05. line_loss stays at last_direction.\n\nExpected result: fewer line-loss events and a longer distance covered on the s-bend and slalom, with progress rising above 0.5 on the oval. Completion is still uncertain because the time budget needs about 1.5 m/s average.\n\nMeasurements to check next: progress and completion per track, line_loss_events, max_error (is it still hitting 0.06 at the same points?), and steering_oscillation (to see whether the higher kp and kd cause jitter). If progress is still low with few line losses, the next step is to test base_speed and kp separately."
+}

@@ -1,0 +1,214 @@
+map:
+  id: race-169-randow-maps
+  schema: v0.2
+  scenario: Iteration 6
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 5.
+dimensions:
+  time_horizon: prepared
+  iteration: '6'
+overrides:
+  entities:
+  - id: entity0
+    label: Lead 0.07 m test on
+    notes: 'Keeps the best-scoring design (653.3, ±0.036 m span, 12 mm footprints,
+      track 0.10 m) and moves the sensor lead from 0.06 to 0.07 m. This is the only
+      untested variable left after the slalom failed at max_error 0.062 to 0.064 under
+      every span, footprint, lead and track tried.
+
+
+      ### Rationale
+
+
+      Iteration 5 (±0.036 m span, 12 mm footprints, 0.06 m lead, wheel_track 0.10
+      m) is the best so far at 653.3. The oval finished 20/20 at 1.85 s, and the s-bend
+      finished 18/20 with steering_oscillation 0.335, under the 0.35 jitter limit.
+      The slalom is still 0/20, with 1.0 line-loss events and max_error 0.0644, past
+      the 0.06 m limit. Its line loss is unchanged at 1.0, so reach is not the limit
+      either. Across five variants, the slalom has failed at max_error 0.062 to 0.064
+      whatever the span, footprint, lead or track. Lead 0.04 m was clearly worse on
+      every track, but a longer lead of 0.07 m has not been tested. The prior rule
+      says that if slalom line loss stays at about 1.0 and max_error stays at 0.06
+      or more, the lead is the next variable. The longer lead lets the controller
+      see the line earlier, which may cover the slalom''s direction changes. I keep
+      the best-scoring span (±0.036 m, 0.012 m pitch) and change only sensor y from
+      0.06 to 0.07 m, so the result isolates lead. Signal scale is unchanged because
+      the weights and span are unchanged. Expected result: slalom line_loss_events
+      fall below 1.0 or max_error drops below 0.06, with a first slalom finish possible.
+      The risk is more s-bend phase lag and jitter, so steering_oscillation on all
+      tracks must be reported.
+
+
+      - [Open this output](iteration-6/entity0/versions/bc52968170e54d659b866c363f3fc90e/payload.json)
+
+      - Based on: [entityR1](iteration-6/entityR1/versions/carried-df5fb5ac89cf9017/payload.json),
+      [entityR2A](iteration-6/entityR2A/versions/carried-be60fabe7663eb2e/payload.json)'
+  - id: entity1
+    label: Lead 0.07 m integration
+    notes: 'Iteration 5 geometry with sensor lead moved to y=0.07 m; weights, kp 3.6,
+      kd 0.9 unchanged so the lead is the only variable. Based on the 653.3 best score
+      and five failed slalom variants at max_error 0.062 to 0.064.
+
+
+      ### Rationale
+
+
+      Iteration 5 is the best design so far (653.3). Its oval finished 20/20 at 1.85
+      s and its s-bend finished 18/20 with steering_oscillation 0.335, under the 0.35
+      limit. The slalom is still 0/20, with 1.0 line-loss events and max_error 0.0644.
+      Across five variants (span, footprint, lead 0.04 m, wheel_track), the slalom
+      has stayed at max_error 0.062 to 0.064. The Builder''s intent changes only the
+      sensor lead, from 0.06 m to 0.07 m, to test whether a longer look-ahead helps
+      the slalom. I keep the iteration 5 geometry and controller exactly as the Builder
+      specified: kp 3.6, kd 0.9, ki 0, weights -2 to +2 linear, base_speed 1.6, last_direction.
+      Changing only the lead keeps the race a clean test of lead. The observation
+      request covers max_error and line_loss_events for the slalom exit, and steering_oscillation
+      on all tracks, because a longer lead may add s-bend jitter. Expected: slalom
+      line_loss_events fall below 1.0 or max_error drops below 0.06, and the oval
+      stays 20/20. No outcome is claimed for this package.
+
+
+      - [Open this output](iteration-6/entity1/versions/f6f09983c2d841e6a9370012ee5654fa/payload.json)
+
+      - Based on: [entity0](iteration-6/entity0/versions/bc52968170e54d659b866c363f3fc90e/payload.json),
+      [entityR2B](iteration-6/entityR2B/versions/carried-be60fabe7663eb2e/payload.json)'
+  - id: entityR1
+    label: Lead test feedback
+    notes: 'Pre-race feedback: keep lead 0.07 m only if slalom line loss falls or
+      max_error drops; otherwise return to 0.06 m and test lower yaw inertia. Based
+      on iterations 3 and 5, where lead 0.04 m was worse and the slalom was stuck
+      near max_error 0.064.
+
+
+      ### Feedback
+
+
+      Written before this candidate has raced; no outcome is stated for it. Evidence:
+      iteration 5 (±0.036 m span, 12 mm footprints, lead 0.06 m, wheel_track 0.10
+      m, kp 3.6, kd 0.9) scored 653.3, the best so far. Its oval was 20/20 at 1.85
+      s and its s-bend 18/20 with steering_oscillation 0.335. Its slalom was 0/20
+      with 1.0 line-loss events and max_error 0.0644. Iteration 3 showed that lead
+      0.04 m hurt the oval (14/20) and the s-bend (6/20), so shortening the lead is
+      ruled out. The 0.07 m lead is a single test of a longer look-ahead. Next-race
+      rules: if slalom line_loss_events fall below 1.0 or max_error drops below 0.06,
+      keep the lead at 0.07 m and try to tune for finishes, reporting slalom completion_time.
+      If slalom line loss is unchanged at about 1.0 with max_error at 0.06 or more,
+      lead is not the limit, so return the lead to 0.06 m and test the yaw response.
+      If s-bend steering_oscillation rises above about 0.35 with no slalom gain, return
+      the lead to 0.06 m, since jitter cost outweighs the benefit.
+
+
+      ### Requested changes
+
+
+      - Keep the lead at y = 0.07 m only if slalom line_loss_events fall below 1.0
+      or max_error drops below 0.06. If it does not, return to y = 0.06 m (iteration
+      5 values), since lead 0.04 m was worse on every track.
+
+      - If the slalom is unchanged at about 1.0 line-loss events with max_error at
+      or above 0.06 at lead 0.07 m, return to y = 0.06 m and test yaw inertia: mass
+      0.6 kg with body_length 0.12 m, keeping the iteration 5 span and drivetrain.
+      Evidence: the slalom has failed at max_error 0.062 to 0.064 across five variants.
+
+      - If s-bend steering_oscillation rises above 0.35 at lead 0.07 m (iteration
+      5 measured 0.335 at 0.06 m), return the lead to 0.06 m. Keep wheel_track at
+      0.10 m, since the iteration 4 and 5 oval results (20/20 at about 1.82 to 1.85
+      s) show the drivetrain is safe at that track.
+
+
+      - [Open this output](iteration-6/entityR1/versions/f6f09983c2d841e6a9370012ee5654fa/payload.json)
+
+      - Based on: [entity0](iteration-6/entity0/versions/bc52968170e54d659b866c363f3fc90e/payload.json),
+      [entityR2B](iteration-6/entityR2B/versions/carried-be60fabe7663eb2e/payload.json)'
+  - id: entityR2B
+    label: Score 653.29
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 653.29.
+      Per trial — oval-1: 957.3 (finished); oval-2: 958.3 (finished); oval-3: 959.1
+      (finished); oval-4: 945.2 (finished); oval-5: 959.8 (finished); oval-6: 945.7
+      (finished); oval-7: 955.7 (finished); oval-8: 959.3 (finished); oval-9: 957.3
+      (finished); oval-10: 959.6 (finished); oval-11: 959.9 (finished); oval-12: 959.1
+      (finished); oval-13: 959.9 (finished); oval-14: 945.2 (finished); oval-15: 959.8
+      (finished); oval-16: 959.4 (finished); oval-17: 942.4 (finished); oval-18: 943.4
+      (finished); oval-19: 942.5 (finished); oval-20: 945.4 (finished); s-bend-1:
+      339.6 (off_track); s-bend-2: 948.9 (finished); s-bend-3: 929.9 (finished); s-bend-4:
+      935.2 (finished); s-bend-5: 945.4 (finished); s-bend-6: 934.5 (finished); s-bend-7:
+      933.9 (finished); s-bend-8: 948.4 (finished); s-bend-9: 397.2 (off_track); s-bend-10:
+      945.0 (finished); s-bend-11: 933.1 (finished); s-bend-12: 948.3 (finished);
+      s-bend-13: 934.4 (finished); s-bend-14: 942.5 (finished); s-bend-15: 945.5 (finished);
+      s-bend-16: 948.4 (finished); s-bend-17: 929.8 (finished); s-bend-18: 948.7 (finished);
+      s-bend-19: 934.7 (finished); s-bend-20: 945.2 (finished); slalom-1: 123.3 (off_track);
+      slalom-2: 121.5 (off_track); slalom-3: 123.4 (off_track); slalom-4: 124.6 (off_track);
+      slalom-5: 118.3 (off_track); slalom-6: 120.4 (off_track); slalom-7: 125.6 (off_track);
+      slalom-8: 117.3 (off_track); slalom-9: 123.6 (off_track); slalom-10: 125.7 (off_track);
+      slalom-11: 123.2 (off_track); slalom-12: 123.4 (off_track); slalom-13: 124.7
+      (off_track); slalom-14: 120.4 (off_track); slalom-15: 124.6 (off_track); slalom-16:
+      118.4 (off_track); slalom-17: 123.5 (off_track); slalom-18: 122.4 (off_track);
+      slalom-19: 127.6 (off_track); slalom-20: 122.7 (off_track).
+
+
+      - [Open this output](iteration-5/entityR2B/versions/1d1761e191d34c758dc289d0cdcab7da/payload.json)
+
+      - Based on: [entity1](iteration-5/entity1/versions/02433f9ece5b4ba6a8a78d76bd6f91b9/payload.json)'
+  - id: entityR2A
+    label: Score 653.29
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 653.29.
+      Per trial — oval-1: 957.3 (finished); oval-2: 958.3 (finished); oval-3: 959.1
+      (finished); oval-4: 945.2 (finished); oval-5: 959.8 (finished); oval-6: 945.7
+      (finished); oval-7: 955.7 (finished); oval-8: 959.3 (finished); oval-9: 957.3
+      (finished); oval-10: 959.6 (finished); oval-11: 959.9 (finished); oval-12: 959.1
+      (finished); oval-13: 959.9 (finished); oval-14: 945.2 (finished); oval-15: 959.8
+      (finished); oval-16: 959.4 (finished); oval-17: 942.4 (finished); oval-18: 943.4
+      (finished); oval-19: 942.5 (finished); oval-20: 945.4 (finished); s-bend-1:
+      339.6 (off_track); s-bend-2: 948.9 (finished); s-bend-3: 929.9 (finished); s-bend-4:
+      935.2 (finished); s-bend-5: 945.4 (finished); s-bend-6: 934.5 (finished); s-bend-7:
+      933.9 (finished); s-bend-8: 948.4 (finished); s-bend-9: 397.2 (off_track); s-bend-10:
+      945.0 (finished); s-bend-11: 933.1 (finished); s-bend-12: 948.3 (finished);
+      s-bend-13: 934.4 (finished); s-bend-14: 942.5 (finished); s-bend-15: 945.5 (finished);
+      s-bend-16: 948.4 (finished); s-bend-17: 929.8 (finished); s-bend-18: 948.7 (finished);
+      s-bend-19: 934.7 (finished); s-bend-20: 945.2 (finished); slalom-1: 123.3 (off_track);
+      slalom-2: 121.5 (off_track); slalom-3: 123.4 (off_track); slalom-4: 124.6 (off_track);
+      slalom-5: 118.3 (off_track); slalom-6: 120.4 (off_track); slalom-7: 125.6 (off_track);
+      slalom-8: 117.3 (off_track); slalom-9: 123.6 (off_track); slalom-10: 125.7 (off_track);
+      slalom-11: 123.2 (off_track); slalom-12: 123.4 (off_track); slalom-13: 124.7
+      (off_track); slalom-14: 120.4 (off_track); slalom-15: 124.6 (off_track); slalom-16:
+      118.4 (off_track); slalom-17: 123.5 (off_track); slalom-18: 122.4 (off_track);
+      slalom-19: 127.6 (off_track); slalom-20: 122.7 (off_track).
+
+
+      - [Open this output](iteration-5/entityR2A/versions/1d1761e191d34c758dc289d0cdcab7da/payload.json)
+
+      - Based on: [entity1](iteration-5/entity1/versions/02433f9ece5b4ba6a8a78d76bd6f91b9/payload.json)'
+  - id: entity2
+    label: Score 653.29
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 653.29.
+      Per trial — oval-1: 957.3 (finished); oval-2: 958.3 (finished); oval-3: 959.1
+      (finished); oval-4: 945.2 (finished); oval-5: 959.8 (finished); oval-6: 945.7
+      (finished); oval-7: 955.7 (finished); oval-8: 959.3 (finished); oval-9: 957.3
+      (finished); oval-10: 959.6 (finished); oval-11: 959.9 (finished); oval-12: 959.1
+      (finished); oval-13: 959.9 (finished); oval-14: 945.2 (finished); oval-15: 959.8
+      (finished); oval-16: 959.4 (finished); oval-17: 942.4 (finished); oval-18: 943.4
+      (finished); oval-19: 942.5 (finished); oval-20: 945.4 (finished); s-bend-1:
+      339.6 (off_track); s-bend-2: 948.9 (finished); s-bend-3: 929.9 (finished); s-bend-4:
+      935.2 (finished); s-bend-5: 945.4 (finished); s-bend-6: 934.5 (finished); s-bend-7:
+      933.9 (finished); s-bend-8: 948.4 (finished); s-bend-9: 397.2 (off_track); s-bend-10:
+      945.0 (finished); s-bend-11: 933.1 (finished); s-bend-12: 948.3 (finished);
+      s-bend-13: 934.4 (finished); s-bend-14: 942.5 (finished); s-bend-15: 945.5 (finished);
+      s-bend-16: 948.4 (finished); s-bend-17: 929.8 (finished); s-bend-18: 948.7 (finished);
+      s-bend-19: 934.7 (finished); s-bend-20: 945.2 (finished); slalom-1: 123.3 (off_track);
+      slalom-2: 121.5 (off_track); slalom-3: 123.4 (off_track); slalom-4: 124.6 (off_track);
+      slalom-5: 118.3 (off_track); slalom-6: 120.4 (off_track); slalom-7: 125.6 (off_track);
+      slalom-8: 117.3 (off_track); slalom-9: 123.6 (off_track); slalom-10: 125.7 (off_track);
+      slalom-11: 123.2 (off_track); slalom-12: 123.4 (off_track); slalom-13: 124.7
+      (off_track); slalom-14: 120.4 (off_track); slalom-15: 124.6 (off_track); slalom-16:
+      118.4 (off_track); slalom-17: 123.5 (off_track); slalom-18: 122.4 (off_track);
+      slalom-19: 127.6 (off_track); slalom-20: 122.7 (off_track).
+
+
+      - [Open this output](iteration-5/entity2/versions/1d1761e191d34c758dc289d0cdcab7da/payload.json)
+
+      - Based on: [entity1](iteration-5/entity1/versions/02433f9ece5b4ba6a8a78d76bd6f91b9/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}

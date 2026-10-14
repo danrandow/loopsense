@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 0.8,
+    "ki": 0.02,
+    "kp": 1.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.08
+      },
+      {
+        "x": -0.025,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.025,
+        "y": 0.08
+      },
+      {
+        "x": 0.05,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: Iteration 3 (score 680.6) is still the best. Oval and s-bend finish 20/20, but the slalom leaves the track in every trial (progress 0.35, about one line loss per run, max_error about 0.063 m, just past the fixed 0.06 m limit). Iteration 4 showed that widening the sensor spread to +/-0.05 m raises slalom progress (0.42), at some cost to s-bend completion. Iteration 5 (7 sensors, 16 mm) and iteration 6 (speed 0.9, kd 1.0) both regressed. Iteration 7 combined the spread with mass 0.7 and scored 650. Its s-bend completion fell to 17/20, so the mass change did not help and is not separable from the spread change. I am reverting mass to 0.8 because it is the known-good value.\n\nChange: the main untested lever is sensor lead. Moving the sensors from y=0.06 to y=0.08 (the contract maximum) lets the robot see the tape about 2 cm earlier. That should cut the loop lag that appears to set the slalom failure at the sharpest bend. Spread stays at +/-0.05 m, 12 mm footprint, 5 sensors, weights [-2,-1,0,1,2]. Controller stays at kp 1.0, ki 0.02, kd 0.8, base_speed 1.1 and last_direction, so the sensor-lead effect can be read.\n\nExpected result: slalom progress above 0.42 and fewer slalom line losses, with oval and s-bend still completing near 2.0 to 2.4 s. Risks: the sensors may see the tape earlier than the steering can respond on tight bends, and the signal may be noisier at longer range. Hypotheses: (a) slalom failure is lag-driven, so earlier sensing helps; (b) mass 0.8 is better than 0.7 for s-bend stability. Next measurements wanted: per-track progress, max_error and line_loss_events on the slalom, steering_oscillation to check for jitter from the longer lead, and completion_time to confirm the 3 s budget. If the slalom still fails at the same bend, the next test is line_loss 'search_left' or 'search_right'."
+}
