@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.8,
+    "ki": 0.1,
+    "kp": 2.4,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.16,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 6 (kp 2.4, kd 0.8, ki 0.05, base_speed 1.2) scored 679.10. The oval (20/20, mean 1.82 s) and s-bend (20/20, mean 2.14 s) both held at 1.0. The slalom is still 0/20 off-track, with mean max_error 0.0632 (above the 0.06 m limit) and 1.05 line-loss events per run. Lowering kp from 2.6 to 2.4 did not reduce slalom max_error; at kd 0.8 it was 0.0618 at kp 2.6 and 0.0632 at kp 2.4. Changing kd from 0.8 to 0.9 also did not help (0.0634). Neither proportional gain nor derivative damping is the lever that clears the slalom limit. The Evaluator's rule for this case (slalom max_error at or above 0.06 with line-loss events at or above 1.0) points to ki.\n\nChange: ki 0.05 to 0.10. kp 2.4, kd 0.8, base_speed 1.2, sensor_weights, line_loss and all geometry stay as in iteration 6, so the race isolates the integral term. The integral should correct the small sustained lateral offset the robot carries through the alternating slalom bends, which the proportional and derivative terms are not removing.\n\nExpected result: slalom max_error below about 0.063 and line_loss_events at or below about 1.0. A slalom finish is possible but not expected yet. Oval and s-bend should stay at 1.0 finish rate, since ki 0.1 at this speed should not cause windup (the integral is limited to plus or minus 2).\n\nDecision rules for iteration 8: if the slalom still ends off track with max_error at or above 0.06 and ki 0.1 does not reduce it, return ki to 0.05 and keep kp 2.6 with kd 0.9, the best-scoring controller so far (699.16). If the oval or s-bend finish rate drops below 0.95, return ki to 0.05. If the slalom max_error falls below 0.06 with any finishes, hold the controller and keep geometry fixed.\n\nHypotheses: (a) the slalom failure includes a steady bias that integral action removes; (b) ki 0.1 does not raise oval or s-bend oscillation above about 0.3. Measurements requested: full set, read per track, with emphasis on slalom max_error, line_loss_events, completion and steering_oscillation."
+}

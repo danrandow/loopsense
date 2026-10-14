@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.1,
+    "ki": 0.0,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.12,
+    "body_width": 0.12,
+    "mass": 0.5,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.07
+      },
+      {
+        "x": -0.025,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.025,
+        "y": 0.07
+      },
+      {
+        "x": 0.05,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.09
+  },
+  "learning": "Across iterations 0 to 2, max_error stayed at 0.060 to 0.062 m whatever sensing, inertia or track width was tried, and line loss is 0 since iteration 1. Neither sensing nor turn authority appears to be the limit. If max_error is still about 0.06 m after this race, the next suspects are forward lead and gain. Check steering_oscillation first: if it rises above 0.1, the lead is too aggressive.",
+  "notes": "Keeps the iteration 2 controller so the race isolates the Builder's sensor lead (y 0.04 to 0.07 m) and turn authority (wheel_track 0.10 to 0.09 m). Sensor weights are unchanged at [-2, -1, 0, 1, 2] because the lateral spread is unchanged.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Iteration 2 (26.6355) was effectively unchanged from iteration 1 (26.6434). Every run still ends off_track with max_error about 0.061 m, and line_loss_events is 0 on all tracks. Changing sensing (spread, footprint, lead), body inertia and wheel_track each moved max_error by less than 0.001 m, so none of these levers is the binding constraint so far. The Builder's proposal moves the sensor row to y = 0.07 m and keeps wheel_track 0.09 m with mass 0.5 kg and body_length 0.12 m. That is the most informative next test, and I want its result attributed to geometry alone. I therefore keep the controller identical to iteration 2 (kp 2.0, ki 0, kd 0.10, base_speed 1.6, last_direction) and change only the sensor weights to match the five sensors. The signal stays a weighted average of the same [-2, -1, 0, 1, 2] weights, so its scale is unchanged. The forward lead moves from 0.04 m to 0.07 m, so the controller sees each bend about 3 cm earlier. With the narrower track the effective turn gain rises by about 33% (0.12/0.09 relative to the iteration 0 track), so kp stays at 2.0 to avoid adding oscillation. kd stays at 0.10, which kept steering_oscillation near 0.07 in iteration 2. The observation request adds the per-track measurements needed to test the 0.06 m limit and the 0.5 progress threshold. Expected result: steering_oscillation stays near 0.07, line_loss_events stays 0, and max_error may fall slightly. Risk: the lead may increase oscillation if the signal reacts too early."
+}

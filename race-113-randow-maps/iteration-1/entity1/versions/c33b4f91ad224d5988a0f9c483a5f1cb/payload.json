@@ -1,0 +1,62 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.4,
+    "ki": 0.05,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "learning": "Baseline (iteration 0) shows line loss on the s-bend and slalom with low oscillation, so the limit is late reaction, not jitter. Next race: if line_loss_events and max_error fall but steering_oscillation rises, reduce kp or raise kd. If line loss persists at this look-ahead, raise kp before changing geometry.",
+  "notes": "Complete package for the Builder's look-ahead 0.06 m and wheel_track 0.10 m geometry. Controller gain is rescaled for the narrower track (kp 2.5, kd 0.4) so the effective steering gain stays near the baseline's, with extra damping for the longer sensing lag.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "The Builder's proposal moves all five sensors from y 0.04 to y 0.06 and narrows wheel_track from 0.12 to 0.10. The baseline (score 176) left the line on every s-bend and slalom trial with low oscillation (0.14 to 0.32) and low rms error, so the controller was reacting late rather than jittering. The longer look-ahead should help the sharp bends, but it adds sensing lag, so the controller needs slightly more damping. Narrowing the track multiplies turn rate per unit of wheel PWM difference by 0.12/0.10 = 1.2, which raises effective steering gain. To keep the effective gain near the baseline's tuned value, I lower kp from 3.0 to 2.5 (2.5 x 1.2 = 3.0 effective), then keep kp high enough to correct bends. The result is kp 2.5 with kd raised from 0.3 to 0.4 to damp the added lag. ki stays at 0.05 and base_speed at 1.5, which the oval finish times (mean 1.87 s for the two finishers) support. Weights stay antisymmetric [-2, -1, 0, 1, 2], which is valid for the unchanged 12 mm footprint at 15 mm pitch. Line loss stays last_direction, so the robot keeps turning the way it was going when the tape leaves the sensors on a bend. Expected result, not measured: fewer line-loss events and lower max_error on the s-bend and slalom, with steering_oscillation not rising sharply. The observation request covers the metrics needed to test that."
+}

@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.6,
+    "ki": 0.1,
+    "kp": 2.6,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.07,
+        "y": 0.03
+      },
+      {
+        "x": -0.035,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.035,
+        "y": 0.03
+      },
+      {
+        "x": 0.07,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 5 (score 403.4, best so far) is the reference: kp 2.6, kd 0.6, ki 0.1, base_speed 1.2, five sensors at x = -0.07 to 0.07, y = 0.05, sensor_size 0.016. Iteration 6 tested the sensor_size 0.012 change that the Evaluator's R1 feedback proposes, and it scored lower (302.6). Oval finishes fell from 17/20 to 15/20. S-bend progress fell from 0.61 to 0.20 with 20/20 off-track endings. Slalom oscillation fell from 0.19 to 0.11, but slalom progress was still 0.10. So the R1 premise (keep 0.012 and raise speed) is already contradicted by the race. I am not repeating it. I am reverting to the iteration 5 design and changing one variable.\n\nChange. Sensor row y moves from 0.05 m to 0.03 m ahead of the axle (x unchanged, sensor_size back to 0.016). Reason: the remaining failures are s-bend off-track endings (max_error about 0.062, just past the 0.06 m limit) and oscillation above 0.2 on the oval and s-bend at kd 0.6. Both are consistent with a sensing-to-steering lag. Pulling the sensor row closer to the axle reduces the lag between what the sensors see and when the wheels respond, which should reduce the overshoot-and-correct cycle. It also tests the sensor y-position lever the Evaluator asked for, without the sensor_size confound.\n\nWhat I expect. Oval and s-bend steering_oscillation below about 0.22 (from 0.22 and 0.26), line_loss_events still near 0 to 0.15, and fewer s-bend off-track endings. Slalom should stay near 0.19 or lower.\n\nRisks. Less look-ahead may raise max_error on the tighter bends, and the 0.03 m row may see less of the line on the outer sensors. If s-bend max_error rises above 0.065 or line_loss_events rises above about 0.3, return y to 0.05 and test base_speed 1.1 instead.\n\nHypotheses to check next. (a) s-bend steering_oscillation falls below 0.2 at y 0.03. (b) Oval finishes stay at 17/20 or better. (c) If the run is clean on all tracks, raise base_speed in 0.1 steps (1.3, then 1.4) to test completion_time under 3 s."
+}

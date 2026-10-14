@@ -1,0 +1,62 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.7,
+    "ki": 0.05,
+    "kp": 6.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.05
+      },
+      {
+        "x": -0.03,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.03,
+        "y": 0.05
+      },
+      {
+        "x": 0.06,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "learning": "Check whether max_error falls below 0.06 m and line_loss_events approach 0 on the oval and s-bend. If steering_oscillation on the oval exceeds 0.25, the next controller step is more kd, and the next geometry step is sensor y 0.03. Report per-track values so the slalom can be checked separately.",
+  "notes": "Adopts the Builder's \u00b10.06 m span at 0.03 m spacing unchanged. Weights are scaled to x/0.04 and clipped to \u00b11.5 so the loop keeps the sensitivity that gave the best iteration 1 result. kd is raised slightly to damp oscillation.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors"
+    ]
+  },
+  "rationale": "Iteration 0 (\u00b10.03 m span) drifted off the line on every trial, with max_error at the 0.06 m limit and 1 to 2 line-loss events per run. Iteration 1 (\u00b10.04 m span, kp 6, kd 0.6) kept the same failure mode with progress 0.16 to 0.53 and line_loss_events about 1.05 per run, so the span was still too narrow. The Builder's geometry widens the span to \u00b10.06 m at 0.03 m spacing. Because the steering signal is a weighted average, a wider span lowers the signal change per metre of lateral error by about 1.5x, which would weaken the loop that held the line well enough in iteration 1. To keep the tuned sensitivity, I scale the sensor weights to x/0.04 and clip them to \u00b11.5 at the outer sensors, giving [-1.5, -0.75, 0, 0.75, 1.5]. This keeps kp at 6 and kd near 0.6 to 0.7. The iteration 1 oval oscillation (0.275) is already above the 0.25 threshold, so I raise kd slightly to 0.7 for damping and keep ki at 0.05 and base_speed at 1.5 so the change stays attributable to the span. Expected result: line_loss_events fall toward 0 and max_error drops below 0.06 m. The risk is that the outer sensors add oscillation, which the race will show."
+}

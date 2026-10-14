@@ -1,0 +1,60 @@
+{
+  "feedback_request": {
+    "measurements": [
+      "progress",
+      "max_error",
+      "rms_error",
+      "steering_oscillation",
+      "line_loss_events",
+      "completion_time",
+      "control_effort"
+    ],
+    "questions": [
+      "Does oval progress rise to 0.42 or more with 0.6 kg, 0.12 m body and 0.03 m wheels at y = 0.02 m? If it stays near 0.36, the lighter robot is not the progress lever at this row height.",
+      "Does oval steering_oscillation rise above 0.3? If it does, is a kp reduction or kd increase enough to hold the robot on the line, or does the mass need to go back up?",
+      "Is there any line loss on the slalom at y = 0.02 m with 0.6 kg? Iteration 5 showed zero at 0.8 kg.",
+      "Does max_error stay at 0.061 to 0.064 m? If so, geometry is exhausted for that metric, and the remaining gap is controller gain."
+    ]
+  },
+  "geometry": {
+    "body_length": 0.12,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": 0.06,
+        "y": 0.02
+      },
+      {
+        "x": 0.04,
+        "y": 0.02
+      },
+      {
+        "x": 0.02,
+        "y": 0.02
+      },
+      {
+        "x": 0.0,
+        "y": 0.02
+      },
+      {
+        "x": -0.02,
+        "y": 0.02
+      },
+      {
+        "x": -0.04,
+        "y": 0.02
+      },
+      {
+        "x": -0.06,
+        "y": 0.02
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "intent": "Recover the progress that iteration 3 showed for a light robot (0.6 kg, 0.12 m body) while keeping the iteration 5 sensing that removed slalom line loss (seven sensors, 16 mm, x = \u00b10.06 m at y = 0.02 m). The wheel radius returns to 0.03 m, because the 0.035 m speed test cut oval progress. The track stays at 0.10 m. Expected: oval progress 0.42 to 0.45, line loss near 0, oscillation around 0.25 to 0.3 with the light inertia, max_error near 0.062 m, and a score above the iteration 5 value of 88.2.",
+  "learning": "Iteration 6 showed that a 17 percent speed gain from wheel radius reduced oval progress, so speed is not the limiting factor for score and the iteration 6 change was a regression. Score tracks progress, and progress tracks yaw inertia and agility: iterations 2 and 3 (light robot) gave the highest progress and scores, while iteration 4 (heavy robot) gave the lowest. Oscillation is the cost of light inertia, and the Integrator must trade it with gain. max_error has not moved with any geometry change in seven iterations, so the next evidence to collect is whether the lighter robot at y = 0.02 m reaches higher progress before the off-track end.",
+  "rationale": "Iteration 6 raised wheel_radius to 0.035 m as a speed lever, and it did not work. Oval progress fell from 0.358 to 0.291, and the score fell from 88.2 to 79.6. Oscillation dropped to 0.16, but the robot covered less ground before leaving the track, so the larger wheel reduced usable progress rather than adding it. Speed is not the limit I thought it was. Max_error stayed at 0.062 m, and every iteration so far has sat at 0.061 to 0.064 m. Geometry does not move that floor, so I will stop chasing it with geometry.\n\nScore tracks progress, not oscillation. Iteration 2 (0.6 kg, 0.09 m track, 0.12 m body) scored best at 111.9 with oval progress 0.44. Iteration 3 (0.6 kg, 0.10 m track) scored 107.6 with progress 0.45, even though its oscillation was 0.31. Iteration 4 (0.8 kg, same track) dropped to 87.4 with progress 0.34. Lower yaw inertia buys progress, and the cost is oscillation. The 0.8 kg robot damps oscillation but leaves progress on the table.\n\nDecision: revert wheel_radius to 0.03 m, which restores the iteration 5 sensing and speed, and return mass to 0.6 kg and body_length to 0.12 m, which restores the iteration 3 inertia. Keep the 0.10 m track and the seven-sensor, 16 mm, y = 0.02 m row. That row removed slalom line loss at 0.8 kg in iteration 5, so it should hold with the lighter robot. This combines the two best pieces of evidence: iteration 3's progress and iteration 5's line-loss-free sensing. Expected result: oval progress about 0.42 to 0.45, s-bend progress above 0.18, line_loss_events 0 or near 0, oscillation about 0.25 to 0.3 (above the 0.2 threshold, accepted for the progress gain), max_error still 0.062 m, and score about 105 to 115. The controller will need kp and kd retuned for the lighter robot, which the Integrator owns."
+}

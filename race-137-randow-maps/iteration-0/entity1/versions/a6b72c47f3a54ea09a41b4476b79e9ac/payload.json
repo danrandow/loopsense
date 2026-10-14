@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.2,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": -0.01,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.01,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "learning": "No prior race data. After race 0, check whether oscillation (steering_oscillation) is high, which points to kd or kp being too high, and whether line_loss_events are high on the sharpest bends, which points to sensor span or base_speed being too high. Adjust one controller parameter at a time.",
+  "notes": "Complete runnable package for the baseline geometry. Controller is a conservative proportional-derivative law with a 5-sensor weighted signal, sized from the contract; no race evidence yet.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Iteration 0 has no race telemetry or integration feedback, so the controller is built from the contract rather than measured results. The geometry is the Builder's baseline, kept unchanged so the first race tests it as proposed. Sensor weights are scaled to the sensor x-positions (-0.02 to +0.02 m) as -1, -0.5, 0, 0.5, 1, so the steering signal is a normalised lateral line position in [-1, 1]. Positive weights on left sensors steer left, which matches the contract. Because the signal is a reading-weighted average, it stays near the centre when the tape is under the middle sensors, and it is only a small value in the 12 mm, 10 mm-spacing layout. kp = 3 gives a turn of about 1.5 at a half-sensor offset, or about 525 PWM of wheel differential, which is a moderate correction without saturating. ki = 0 avoids integral windup on the bends, and kd = 0.2 adds mild damping against the sensor-to-axle lag. base_speed = 1.6 gives PWM base of about 0.8 of full, aiming for about 1.5 m/s average so the 3 s limit is reachable with a margin. line_loss = last_direction is the safest recovery on a curved track, because the robot keeps turning the way it was going when the line was lost. The observation request covers completion, speed, error, line loss, oscillation and controller health, so the Builder gets the evidence it asked for."
+}

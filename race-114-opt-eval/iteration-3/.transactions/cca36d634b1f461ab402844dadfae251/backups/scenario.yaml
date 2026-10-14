@@ -1,0 +1,215 @@
+map:
+  id: race-114-opt-eval
+  schema: v0.2
+  scenario: Iteration 3
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 2.
+dimensions:
+  time_horizon: prepared
+  iteration: '3'
+overrides:
+  entities:
+  - id: entity0
+    label: Slower base speed 1.0
+    notes: 'Lowers base_speed from 1.2 to 1.0 with kp, kd, ki and geometry unchanged,
+      following the Evaluator''s rule for line loss and max_error near 0.06 m. Iteration
+      1 showed 18 of 20 oval trials leaving the line at max_error about 0.062 m, so
+      the aim is to keep max_error under 0.05 m and finish more runs, accepting a
+      slower time.
+
+
+      ### Rationale
+
+
+      Evidence from iteration 1 (score 160.6, up from 36.3): oval finished 2 of 20
+      trials and the other 18 went off track with max_error about 0.062 m, just above
+      the 0.06 m off-track limit. s-bend and slalom ended off track in every trial,
+      with max_error 0.062 to 0.064 m and one line-loss event per run. Steering oscillation
+      was modest (0.19 to 0.32), so the derivative gain does not appear to be the
+      problem. The failure is still speed-limited: at base_speed 1.2 with kp 5.0 and
+      kd 0.8 the robot drifts past 0.06 m on the sharpest bends. Following the Evaluator''s
+      first branch (line loss present and max_error near 0.06 m), I lower base_speed
+      from 1.2 to 1.0 and keep kp 5.0, kd 0.8, ki 0.02, sensor geometry and line_loss
+      unchanged. This isolates the speed effect. Expected result: max_error below
+      about 0.05 m on all tracks, fewer or no line-loss events, and a higher finish
+      rate on the oval and s-bend. The trade-off is completion time: at 1.0 m/s average
+      the 4 to 5 m course takes about 4.5 s or more, so the 3 s time term will be
+      zero. Completion (500 points) and progress are the priority, and the time term
+      can be recovered later once the robot holds the line. Hypotheses to check next:
+      (a) the 1 to 2 line-loss events are caused by the sharpest bend rather than
+      start-up; (b) max_error falls below 0.05 m at base_speed 1.0; (c) steering_oscillation
+      stays near 0.3 with kd 0.8, so kd does not need changing yet. Measurements requested:
+      completion, progress, completion time, rms and max error, line-loss events,
+      steering oscillation, control effort, controller errors and noise robustness.
+
+
+      - [Open this output](iteration-2/entity0/versions/150fb16f11eb4beda1a7e4a73e92cd58/payload.json)
+
+      - Based on: [entityR1](iteration-2/entityR1/versions/carried-59f71d99290978d7/payload.json),
+      [entityR2A](iteration-2/entityR2A/versions/carried-1d78980abbd2e7f6/payload.json)'
+  - id: entityR1
+    label: 'Approve: speed 1.0 test'
+    notes: 'Approved the base_speed 1.2 to 1.0 candidate, which isolates the speed
+      effect on the off-track failures seen in iteration 1 (max_error about 0.062
+      m, one line loss per run). Feedback is written without stating any race outcome
+      and gives next-step changes for kp, kd and speed depending on the telemetry.
+
+
+      ### Feedback
+
+
+      Reviewed the candidate in entity0 before it has raced, so no result is stated
+      for it. Evidence from iteration 1 (score 160.6): oval finished 2 of 20 trials,
+      the other 18 went off track with max_error about 0.062 m, and the s-bend and
+      slalom ended off track in every trial with max_error 0.062 to 0.064 m and about
+      one line-loss event per run. Steering oscillation was modest (0.19 to 0.32),
+      so kd 0.8 does not look like the main fault. The candidate changes only base_speed
+      (1.2 to 1.0) and keeps kp 5.0, kd 0.8, ki 0.02, geometry and line_loss unchanged,
+      which isolates the speed effect. The change is valid within every contract limit
+      and responds directly to the speed-limited drift. Its cost is completion time:
+      at 1.0 m/s the course takes roughly 4.5 s or more, so the 3 s time term will
+      likely be zero. Completion (500) and progress (250) carry most of the score,
+      so that trade is acceptable at this stage. The run count and iterations remaining
+      support one clean isolating test now.
+
+
+      What to change next, depending on the race:
+
+      - If line_loss_events stays at 1 or more and max_error still reaches about 0.06
+      m on the s-bend or slalom, lower kd is not the lever. Raise kp from 5.0 to about
+      6.0 at base_speed 1.0 to add steering authority on the sharpest bends (evidence:
+      iteration 0 at kp 3.0 failed on every track).
+
+      - If steering_oscillation rises above about 0.4 while max_error is already below
+      0.05 m, reduce kd from 0.8 to about 0.5 (evidence: iteration 0 showed low oscillation
+      at kd 0.3, so kd can be trimmed without losing the line).
+
+      - If the robot finishes on the oval and s-bend with max_error below 0.05 m and
+      no line-loss events, raise base_speed in 0.1 to 0.2 steps (1.0 to 1.2) with
+      kp and kd fixed, to recover completion_time toward 3 s.
+
+
+      ### Requested changes
+
+
+      - If line_loss_events is at least 1 and max_error stays near 0.06 m on the s-bend
+      or slalom: raise kp from 5.0 to about 6.0 and keep base_speed 1.0 and kd 0.8.
+      Reason: iteration 0 at kp 3.0 failed on every track, so steering authority is
+      still a limit.
+
+      - If steering_oscillation exceeds about 0.4 while max_error is below 0.05 m:
+      lower kd from 0.8 to about 0.5 and keep kp 5.0. Reason: iteration 1 oscillation
+      was 0.19 to 0.32, and iteration 0 kd 0.3 gave low oscillation.
+
+      - If the robot finishes the oval and s-bend with max_error below 0.05 m and
+      no line-loss events: raise base_speed in steps of 0.1 to 0.2 (1.0 to 1.2) with
+      kp and kd fixed. Reason: completion_time must approach 3 s for the time term
+      to score, and changing only speed isolates its effect.
+
+
+      - [Open this output](iteration-2/entityR1/versions/5c6355fb208941b0a9a218e328277366/payload.json)
+
+      - Based on: [entity0](iteration-2/entity0/versions/150fb16f11eb4beda1a7e4a73e92cd58/payload.json),
+      [entityR2B](iteration-2/entityR2B/versions/carried-1d78980abbd2e7f6/payload.json)'
+  - id: entity1
+    label: Approved Robot Build
+    notes: 'Approved Robot Build. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-2/entity1/versions/5c6355fb208941b0a9a218e328277366/payload.json)
+
+      - Based on: [entity0](iteration-2/entity0/versions/150fb16f11eb4beda1a7e4a73e92cd58/payload.json),
+      [entityR2B](iteration-2/entityR2B/versions/carried-1d78980abbd2e7f6/payload.json)'
+  - id: entity2
+    label: Score 135.43
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 135.43.
+      Per trial — oval-1: 263.9 (off_track); oval-2: 259.8 (off_track); oval-3: 263.9
+      (off_track); oval-4: 303.3 (off_track); oval-5: 308.3 (off_track); oval-6: 315.8
+      (off_track); oval-7: 263.9 (off_track); oval-8: 208.1 (off_track); oval-9: 270.9
+      (off_track); oval-10: 262.9 (off_track); oval-11: 309.3 (off_track); oval-12:
+      263.9 (off_track); oval-13: 310.7 (off_track); oval-14: 259.8 (off_track); oval-15:
+      259.8 (off_track); oval-16: 259.9 (off_track); oval-17: 308.3 (off_track); oval-18:
+      300.1 (off_track); oval-19: 308.3 (off_track); oval-20: 308.3 (off_track); s-bend-1:
+      132.6 (off_track); s-bend-2: 62.1 (off_track); s-bend-3: 61.1 (off_track); s-bend-4:
+      103.3 (off_track); s-bend-5: 106.2 (off_track); s-bend-6: 141.5 (off_track);
+      s-bend-7: 68.2 (off_track); s-bend-8: 67.2 (off_track); s-bend-9: 59.0 (off_track);
+      s-bend-10: 128.9 (off_track); s-bend-11: 95.0 (off_track); s-bend-12: 103.3
+      (off_track); s-bend-13: 106.2 (off_track); s-bend-14: 62.1 (off_track); s-bend-15:
+      110.9 (off_track); s-bend-16: 103.3 (off_track); s-bend-17: 103.3 (off_track);
+      s-bend-18: 103.3 (off_track); s-bend-19: 106.9 (off_track); s-bend-20: 99.3
+      (off_track); slalom-1: 30.0 (off_track); slalom-2: 29.0 (off_track); slalom-3:
+      30.0 (off_track); slalom-4: 32.0 (off_track); slalom-5: 27.0 (off_track); slalom-6:
+      31.0 (off_track); slalom-7: 31.1 (off_track); slalom-8: 29.0 (off_track); slalom-9:
+      31.1 (off_track); slalom-10: 31.1 (off_track); slalom-11: 32.0 (off_track);
+      slalom-12: 31.1 (off_track); slalom-13: 28.0 (off_track); slalom-14: 27.0 (off_track);
+      slalom-15: 31.1 (off_track); slalom-16: 27.0 (off_track); slalom-17: 27.0 (off_track);
+      slalom-18: 30.0 (off_track); slalom-19: 27.0 (off_track); slalom-20: 31.1 (off_track).
+
+
+      - [Open this output](iteration-2/entity2/versions/31502e22a6f94fbeaaa7c615be595831/payload.json)
+
+      - Based on: [entity1](iteration-2/entity1/versions/5c6355fb208941b0a9a218e328277366/payload.json)'
+  - id: entityR2A
+    label: Score 135.43
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 135.43.
+      Per trial — oval-1: 263.9 (off_track); oval-2: 259.8 (off_track); oval-3: 263.9
+      (off_track); oval-4: 303.3 (off_track); oval-5: 308.3 (off_track); oval-6: 315.8
+      (off_track); oval-7: 263.9 (off_track); oval-8: 208.1 (off_track); oval-9: 270.9
+      (off_track); oval-10: 262.9 (off_track); oval-11: 309.3 (off_track); oval-12:
+      263.9 (off_track); oval-13: 310.7 (off_track); oval-14: 259.8 (off_track); oval-15:
+      259.8 (off_track); oval-16: 259.9 (off_track); oval-17: 308.3 (off_track); oval-18:
+      300.1 (off_track); oval-19: 308.3 (off_track); oval-20: 308.3 (off_track); s-bend-1:
+      132.6 (off_track); s-bend-2: 62.1 (off_track); s-bend-3: 61.1 (off_track); s-bend-4:
+      103.3 (off_track); s-bend-5: 106.2 (off_track); s-bend-6: 141.5 (off_track);
+      s-bend-7: 68.2 (off_track); s-bend-8: 67.2 (off_track); s-bend-9: 59.0 (off_track);
+      s-bend-10: 128.9 (off_track); s-bend-11: 95.0 (off_track); s-bend-12: 103.3
+      (off_track); s-bend-13: 106.2 (off_track); s-bend-14: 62.1 (off_track); s-bend-15:
+      110.9 (off_track); s-bend-16: 103.3 (off_track); s-bend-17: 103.3 (off_track);
+      s-bend-18: 103.3 (off_track); s-bend-19: 106.9 (off_track); s-bend-20: 99.3
+      (off_track); slalom-1: 30.0 (off_track); slalom-2: 29.0 (off_track); slalom-3:
+      30.0 (off_track); slalom-4: 32.0 (off_track); slalom-5: 27.0 (off_track); slalom-6:
+      31.0 (off_track); slalom-7: 31.1 (off_track); slalom-8: 29.0 (off_track); slalom-9:
+      31.1 (off_track); slalom-10: 31.1 (off_track); slalom-11: 32.0 (off_track);
+      slalom-12: 31.1 (off_track); slalom-13: 28.0 (off_track); slalom-14: 27.0 (off_track);
+      slalom-15: 31.1 (off_track); slalom-16: 27.0 (off_track); slalom-17: 27.0 (off_track);
+      slalom-18: 30.0 (off_track); slalom-19: 27.0 (off_track); slalom-20: 31.1 (off_track).
+
+
+      - [Open this output](iteration-2/entityR2A/versions/31502e22a6f94fbeaaa7c615be595831/payload.json)
+
+      - Based on: [entity1](iteration-2/entity1/versions/5c6355fb208941b0a9a218e328277366/payload.json)'
+  - id: entityR2B
+    label: Score 135.43
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 135.43.
+      Per trial — oval-1: 263.9 (off_track); oval-2: 259.8 (off_track); oval-3: 263.9
+      (off_track); oval-4: 303.3 (off_track); oval-5: 308.3 (off_track); oval-6: 315.8
+      (off_track); oval-7: 263.9 (off_track); oval-8: 208.1 (off_track); oval-9: 270.9
+      (off_track); oval-10: 262.9 (off_track); oval-11: 309.3 (off_track); oval-12:
+      263.9 (off_track); oval-13: 310.7 (off_track); oval-14: 259.8 (off_track); oval-15:
+      259.8 (off_track); oval-16: 259.9 (off_track); oval-17: 308.3 (off_track); oval-18:
+      300.1 (off_track); oval-19: 308.3 (off_track); oval-20: 308.3 (off_track); s-bend-1:
+      132.6 (off_track); s-bend-2: 62.1 (off_track); s-bend-3: 61.1 (off_track); s-bend-4:
+      103.3 (off_track); s-bend-5: 106.2 (off_track); s-bend-6: 141.5 (off_track);
+      s-bend-7: 68.2 (off_track); s-bend-8: 67.2 (off_track); s-bend-9: 59.0 (off_track);
+      s-bend-10: 128.9 (off_track); s-bend-11: 95.0 (off_track); s-bend-12: 103.3
+      (off_track); s-bend-13: 106.2 (off_track); s-bend-14: 62.1 (off_track); s-bend-15:
+      110.9 (off_track); s-bend-16: 103.3 (off_track); s-bend-17: 103.3 (off_track);
+      s-bend-18: 103.3 (off_track); s-bend-19: 106.9 (off_track); s-bend-20: 99.3
+      (off_track); slalom-1: 30.0 (off_track); slalom-2: 29.0 (off_track); slalom-3:
+      30.0 (off_track); slalom-4: 32.0 (off_track); slalom-5: 27.0 (off_track); slalom-6:
+      31.0 (off_track); slalom-7: 31.1 (off_track); slalom-8: 29.0 (off_track); slalom-9:
+      31.1 (off_track); slalom-10: 31.1 (off_track); slalom-11: 32.0 (off_track);
+      slalom-12: 31.1 (off_track); slalom-13: 28.0 (off_track); slalom-14: 27.0 (off_track);
+      slalom-15: 31.1 (off_track); slalom-16: 27.0 (off_track); slalom-17: 27.0 (off_track);
+      slalom-18: 30.0 (off_track); slalom-19: 27.0 (off_track); slalom-20: 31.1 (off_track).
+
+
+      - [Open this output](iteration-2/entityR2B/versions/31502e22a6f94fbeaaa7c615be595831/payload.json)
+
+      - Based on: [entity1](iteration-2/entity1/versions/5c6355fb208941b0a9a218e328277366/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}

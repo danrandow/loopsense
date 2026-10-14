@@ -1,0 +1,221 @@
+map:
+  id: race-119-randow-maps
+  schema: v0.2
+  scenario: Iteration 9
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 8.
+dimensions:
+  time_horizon: prepared
+  iteration: '9'
+overrides:
+  entities:
+  - id: entity0
+    label: Revert to ±0.06 row
+    notes: 'Returns the geometry to iteration 5''s best configuration (wheel_track
+      0.10, row x=±0.06 at y=0.08, 12 mm sensors) because the ±0.07 row cut the oval
+      finish rate to 0.45 in iteration 8, after the same effect in iteration 7. The
+      slalom remains the open problem and is deferred to a later test.
+
+
+      ### Rationale
+
+
+      Iteration 8 tested the widened row (x=±0.07) at wheel_track 0.10 m, and it went
+      backwards. Oval finish fell from 20 of 20 (iteration 5) to 9 of 20, and the
+      s-bend progress fell from 0.42 to 0.18. The row change is the common factor,
+      because iteration 5 had the same 0.10 m track with the ±0.06 row and was stable.
+      Iteration 7 also fell when the row was widened, so the ±0.07 row is the likely
+      cause of both oval collapses, not the track. The one benefit was slalom line
+      losses falling from 1.0 to 0.0 per run, but the slalom still goes off track
+      at progress 0.12, so the benefit is not enough to offset the oval and s-bend
+      losses. The Integrator''s decision rule for this case is to return the row to
+      ±0.06 at y=0.08. Iteration 5 is the best-scoring design (386.35) and the only
+      one with a stable oval, so I return to its exact geometry: five sensors at y=0.08
+      with x=-0.06, -0.03, 0, 0.03, 0.06, 12 mm footprints, wheel_track 0.10, wheels
+      0.03 m, mass 0.7 kg, body 0.12 by 0.18 m. The off-track floor binds at 0.06
+      m for every body width, so body changes stay out of scope. Expected result:
+      oval finish at least 0.85 (near 1.0), s-bend progress near 0.42, and a score
+      near iteration 5''s. The slalom remains the open problem, and the only geometry
+      lever I have left untested at the 0.10 track is sensor spacing or count, which
+      I would test only after the stable baseline is confirmed.
+
+
+      - [Open this output](iteration-9/entity0/versions/1ee5b840520140daa201126272fd50b6/payload.json)
+
+      - Based on: [entityR1](iteration-9/entityR1/versions/carried-a4c2e3dec8621cc8/payload.json),
+      [entityR2A](iteration-9/entityR2A/versions/carried-3bb02139c72297e7/payload.json)'
+  - id: entity1
+    label: Track 0.10, row ±0.07
+    notes: 'Reverts wheel_track to 0.10 m and keeps the widened ±0.07 five-sensor
+      row with 12 mm footprints, with iteration 5''s best controller held fixed. Iteration
+      7''s oval collapse (finish 0.15) followed the 0.09 m track, while the row widening
+      removed slalom line losses.
+
+
+      ### Rationale
+
+
+      Iteration 7 (wheel_track 0.09 with the widened ±0.07 row) scored 122.83. The
+      oval finish rate fell to 0.15 from 1.0 at iteration 5, and s-bend progress fell
+      to 0.18 from 0.42. The widened row did remove slalom line losses (1.0 to 0.0
+      per run), so it stays. The regression follows the narrower track, which is the
+      change the Builder''s intent names. I adopt the Builder''s proposal exactly:
+      wheel_track back to 0.10 m, the five-sensor row at x=±0.07 and y=0.08, and 12
+      mm footprints. The controller is iteration 5''s best set, held fixed (kp 5.0,
+      ki 0.1, kd 0.8, weights -1.5/-0.75/0/0.75/1.5 for the five sensors at x=-0.07
+      to 0.07, base_speed 1.6, last_direction). Weights are per sensor, so the widened
+      spacing does not change steering authority by itself. Two extra measurements
+      (controller_errors, noise_robustness) are added to the Builder''s list to check
+      for controller faults and noise sensitivity. Expected result: oval finish rate
+      at or above 0.85, slalom line_loss_events near 0 with progress above 0.12, and
+      s-bend progress at or above 0.42. This race separates the track change (the
+      oval collapse) from the row change (the slalom losses). It is not yet known
+      whether the ±0.07 row is compatible with the 0.10 m track, which is the question
+      this race answers.
+
+
+      - [Open this output](iteration-8/entity1/versions/0032a2fc97c14933a107f5a265a6735b/payload.json)
+
+      - Based on: [entity0](iteration-8/entity0/versions/80afec91e1f4453b861b1aeaeb44543f/payload.json),
+      [entityR2B](iteration-8/entityR2B/versions/carried-755af9515fcd75e1/payload.json)'
+  - id: entityR1
+    label: Keep 0.10 track, test row
+    notes: 'Asks the Builder to hold wheel_track at 0.10 m and test the ±0.07 row,
+      with explicit fallbacks. The evidence is iteration 5 (oval 20 of 20 at 0.10
+      m) and iteration 7 (oval 0.15 at 0.09 m with the same row).
+
+
+      ### Feedback
+
+
+      Written before this candidate has raced, so no outcome is stated for it. The
+      evidence is iteration 5 (wheel_track 0.10, row ±0.06, 12 mm, controller kp 5
+      / ki 0.1 / kd 0.8 / weights ±1.5 and ±0.75): oval 20 of 20 finishes, s-bend
+      progress 0.42, slalom one line loss per run at progress 0.10. Iteration 7 (wheel_track
+      0.09, row ±0.07) scored 122.83, with oval finish 0.15 and s-bend progress 0.18,
+      but slalom line losses fell from 1.0 to 0.0. Iteration 6 showed a 0.016 footprint
+      cuts the oval finish rate to 0.55 without fixing the slalom, so footprint is
+      not the lever. The controller is held at iteration 5''s values, so the track
+      and row changes you propose are the only variables. Decision rules for the next
+      race: if the oval finish rate is at or above 0.85 and slalom losses are near
+      0, the widened row is confirmed, and the next step is s-bend turn rate at wheel_track
+      0.10. If the oval finish rate is still below 0.85, the widened row is the likely
+      cause, so return the row to ±0.06 and address the slalom through controller
+      base_speed or weights. If the s-bend stays at about 0.061 m with near-zero line
+      loss, the turn rate is still the limit, and the next test is a narrower track
+      only if the oval is stable.
+
+
+      ### Requested changes
+
+
+      - Keep wheel_track at 0.10 m with the ±0.07 row and 12 mm footprint. Iteration
+      5 gave 20 of 20 oval finishes at 0.10 m, and iteration 7 gave 0.15 at 0.09 m,
+      so 0.10 m is the track that tests the row change.
+
+      - If the oval finish rate stays below 0.85 with the ±0.07 row at 0.10 m, return
+      the row to x=±0.06 at y=0.08. Iteration 7 showed the row change alone did not
+      fix the oval, and iteration 5 kept the oval stable at ±0.06.
+
+      - If the oval finish rate reaches at least 0.85 and slalom line losses stay
+      at 0, keep the row at ±0.07 and try wheel_track 0.09 again only if the s-bend
+      still exits near 0.061 m. Iteration 5 moved s-bend progress from 0.17 to 0.42
+      when the track narrowed from 0.12 to 0.10 m.
+
+
+      - [Open this output](iteration-8/entityR1/versions/0032a2fc97c14933a107f5a265a6735b/payload.json)
+
+      - Based on: [entity0](iteration-8/entity0/versions/80afec91e1f4453b861b1aeaeb44543f/payload.json),
+      [entityR2B](iteration-8/entityR2B/versions/carried-755af9515fcd75e1/payload.json)'
+  - id: entity2
+    label: Score 214.79
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 214.79.
+      Per trial — oval-1: 936.4 (finished); oval-2: 938.6 (finished); oval-3: 105.2
+      (off_track); oval-4: 346.6 (off_track); oval-5: 110.4 (off_track); oval-6: 111.4
+      (off_track); oval-7: 934.1 (finished); oval-8: 110.4 (off_track); oval-9: 383.3
+      (off_track); oval-10: 936.7 (finished); oval-11: 937.9 (finished); oval-12:
+      941.0 (finished); oval-13: 301.2 (off_track); oval-14: 940.6 (finished); oval-15:
+      939.5 (finished); oval-16: 88.2 (off_track); oval-17: 108.4 (off_track); oval-18:
+      116.6 (off_track); oval-19: 939.6 (finished); oval-20: 105.2 (off_track); s-bend-1:
+      75.5 (off_track); s-bend-2: 75.5 (off_track); s-bend-3: 75.5 (off_track); s-bend-4:
+      75.5 (off_track); s-bend-5: 75.5 (off_track); s-bend-6: 75.5 (off_track); s-bend-7:
+      75.5 (off_track); s-bend-8: 75.5 (off_track); s-bend-9: 75.5 (off_track); s-bend-10:
+      75.5 (off_track); s-bend-11: 75.5 (off_track); s-bend-12: 75.5 (off_track);
+      s-bend-13: 75.5 (off_track); s-bend-14: 75.5 (off_track); s-bend-15: 75.5 (off_track);
+      s-bend-16: 75.5 (off_track); s-bend-17: 75.5 (off_track); s-bend-18: 75.5 (off_track);
+      s-bend-19: 75.5 (off_track); s-bend-20: 75.5 (off_track); slalom-1: 52.1 (off_track);
+      slalom-2: 53.2 (off_track); slalom-3: 52.1 (off_track); slalom-4: 52.1 (off_track);
+      slalom-5: 52.1 (off_track); slalom-6: 52.1 (off_track); slalom-7: 52.1 (off_track);
+      slalom-8: 52.1 (off_track); slalom-9: 53.2 (off_track); slalom-10: 52.1 (off_track);
+      slalom-11: 52.1 (off_track); slalom-12: 52.1 (off_track); slalom-13: 52.1 (off_track);
+      slalom-14: 52.1 (off_track); slalom-15: 53.2 (off_track); slalom-16: 52.1 (off_track);
+      slalom-17: 52.1 (off_track); slalom-18: 52.1 (off_track); slalom-19: 53.2 (off_track);
+      slalom-20: 52.1 (off_track).
+
+
+      - [Open this output](iteration-8/entity2/versions/8b9e7f2856c94152990aef1f57c04e3a/payload.json)
+
+      - Based on: [entity1](iteration-8/entity1/versions/0032a2fc97c14933a107f5a265a6735b/payload.json)'
+  - id: entityR2A
+    label: Score 214.79
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 214.79.
+      Per trial — oval-1: 936.4 (finished); oval-2: 938.6 (finished); oval-3: 105.2
+      (off_track); oval-4: 346.6 (off_track); oval-5: 110.4 (off_track); oval-6: 111.4
+      (off_track); oval-7: 934.1 (finished); oval-8: 110.4 (off_track); oval-9: 383.3
+      (off_track); oval-10: 936.7 (finished); oval-11: 937.9 (finished); oval-12:
+      941.0 (finished); oval-13: 301.2 (off_track); oval-14: 940.6 (finished); oval-15:
+      939.5 (finished); oval-16: 88.2 (off_track); oval-17: 108.4 (off_track); oval-18:
+      116.6 (off_track); oval-19: 939.6 (finished); oval-20: 105.2 (off_track); s-bend-1:
+      75.5 (off_track); s-bend-2: 75.5 (off_track); s-bend-3: 75.5 (off_track); s-bend-4:
+      75.5 (off_track); s-bend-5: 75.5 (off_track); s-bend-6: 75.5 (off_track); s-bend-7:
+      75.5 (off_track); s-bend-8: 75.5 (off_track); s-bend-9: 75.5 (off_track); s-bend-10:
+      75.5 (off_track); s-bend-11: 75.5 (off_track); s-bend-12: 75.5 (off_track);
+      s-bend-13: 75.5 (off_track); s-bend-14: 75.5 (off_track); s-bend-15: 75.5 (off_track);
+      s-bend-16: 75.5 (off_track); s-bend-17: 75.5 (off_track); s-bend-18: 75.5 (off_track);
+      s-bend-19: 75.5 (off_track); s-bend-20: 75.5 (off_track); slalom-1: 52.1 (off_track);
+      slalom-2: 53.2 (off_track); slalom-3: 52.1 (off_track); slalom-4: 52.1 (off_track);
+      slalom-5: 52.1 (off_track); slalom-6: 52.1 (off_track); slalom-7: 52.1 (off_track);
+      slalom-8: 52.1 (off_track); slalom-9: 53.2 (off_track); slalom-10: 52.1 (off_track);
+      slalom-11: 52.1 (off_track); slalom-12: 52.1 (off_track); slalom-13: 52.1 (off_track);
+      slalom-14: 52.1 (off_track); slalom-15: 53.2 (off_track); slalom-16: 52.1 (off_track);
+      slalom-17: 52.1 (off_track); slalom-18: 52.1 (off_track); slalom-19: 53.2 (off_track);
+      slalom-20: 52.1 (off_track).
+
+
+      - [Open this output](iteration-8/entityR2A/versions/8b9e7f2856c94152990aef1f57c04e3a/payload.json)
+
+      - Based on: [entity1](iteration-8/entity1/versions/0032a2fc97c14933a107f5a265a6735b/payload.json)'
+  - id: entityR2B
+    label: Score 214.79
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 214.79.
+      Per trial — oval-1: 936.4 (finished); oval-2: 938.6 (finished); oval-3: 105.2
+      (off_track); oval-4: 346.6 (off_track); oval-5: 110.4 (off_track); oval-6: 111.4
+      (off_track); oval-7: 934.1 (finished); oval-8: 110.4 (off_track); oval-9: 383.3
+      (off_track); oval-10: 936.7 (finished); oval-11: 937.9 (finished); oval-12:
+      941.0 (finished); oval-13: 301.2 (off_track); oval-14: 940.6 (finished); oval-15:
+      939.5 (finished); oval-16: 88.2 (off_track); oval-17: 108.4 (off_track); oval-18:
+      116.6 (off_track); oval-19: 939.6 (finished); oval-20: 105.2 (off_track); s-bend-1:
+      75.5 (off_track); s-bend-2: 75.5 (off_track); s-bend-3: 75.5 (off_track); s-bend-4:
+      75.5 (off_track); s-bend-5: 75.5 (off_track); s-bend-6: 75.5 (off_track); s-bend-7:
+      75.5 (off_track); s-bend-8: 75.5 (off_track); s-bend-9: 75.5 (off_track); s-bend-10:
+      75.5 (off_track); s-bend-11: 75.5 (off_track); s-bend-12: 75.5 (off_track);
+      s-bend-13: 75.5 (off_track); s-bend-14: 75.5 (off_track); s-bend-15: 75.5 (off_track);
+      s-bend-16: 75.5 (off_track); s-bend-17: 75.5 (off_track); s-bend-18: 75.5 (off_track);
+      s-bend-19: 75.5 (off_track); s-bend-20: 75.5 (off_track); slalom-1: 52.1 (off_track);
+      slalom-2: 53.2 (off_track); slalom-3: 52.1 (off_track); slalom-4: 52.1 (off_track);
+      slalom-5: 52.1 (off_track); slalom-6: 52.1 (off_track); slalom-7: 52.1 (off_track);
+      slalom-8: 52.1 (off_track); slalom-9: 53.2 (off_track); slalom-10: 52.1 (off_track);
+      slalom-11: 52.1 (off_track); slalom-12: 52.1 (off_track); slalom-13: 52.1 (off_track);
+      slalom-14: 52.1 (off_track); slalom-15: 53.2 (off_track); slalom-16: 52.1 (off_track);
+      slalom-17: 52.1 (off_track); slalom-18: 52.1 (off_track); slalom-19: 53.2 (off_track);
+      slalom-20: 52.1 (off_track).
+
+
+      - [Open this output](iteration-8/entityR2B/versions/8b9e7f2856c94152990aef1f57c04e3a/payload.json)
+
+      - Based on: [entity1](iteration-8/entity1/versions/0032a2fc97c14933a107f5a265a6735b/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}

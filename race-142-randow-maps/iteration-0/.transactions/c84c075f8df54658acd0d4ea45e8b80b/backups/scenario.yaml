@@ -1,0 +1,126 @@
+map:
+  id: race-142-randow-maps
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor
+    notes: 'Symmetric five-sensor array at 2 cm spacing, 4 cm ahead of the axle, with
+      a 0.12 m track and 0.7 kg body, chosen from the contract''s physics alone because
+      no race data exists yet. It is a baseline to test whether the array holds the
+      line at about 1.5 m/s.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no race telemetry and no integration feedback, so this is a
+      baseline geometry built from the contract''s physics, not from evidence. Finishing
+      in under 3 s needs about 1.5 m/s average speed, so the platform must be stable
+      at speed. A five-sensor array spaced 2 cm apart across ±4 cm gives a usable
+      reading width for a 25 mm tape, so the line stays inside the array through bends.
+      Sensors sit 4 cm ahead of the axle so the signal reacts before the wheels reach
+      a bend. The 12 mm footprint covers roughly half the tape width, so readings
+      change smoothly as the line moves across. Wheel track 0.12 m and radius 0.03
+      m give moderate turn authority without excessive yaw inertia. Mass 0.7 kg with
+      a 0.16 m body keeps inertia low for quick corrections. The off-track limit works
+      out to max(0.06, 0.0125+0.03)=0.06 m, which is a comfortable margin beyond the
+      sensor array. I expect this baseline to complete the oval and s-bend, with the
+      slalom as the hardest case, and I expect line-loss events to be the first sign
+      of a geometry problem if the array is too narrow or too far forward.
+
+
+      - [Open this output](iteration-0/entity0/versions/740063cbd6c641229bc9266b81e4c778/payload.json)'
+  - id: entity1
+    label: Baseline runnable robot
+    notes: 'Builder''s baseline geometry kept unchanged, with a conservative 5-sensor
+      proportional controller (kp 2.0, kd 0.05, base_speed 1.2). Tuned from contract
+      physics because no race data exists yet.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no race telemetry, so the controller is built from the contract
+      physics and the Builder''s stated intent, not from measured tuning. Geometry
+      is kept exactly as proposed so the first race tests the baseline. The sensors
+      sit at x = -0.04 (right) to +0.04 (left), so the outer sensors take weights
+      -2 and +2, the middle ones -1, 0 and +1, which makes the signal sign match the
+      contract (positive = steer left, and a line on the left side reads positive).
+      Because the 12 mm footprints sit on a 2 cm pitch, a centred line covers mainly
+      the middle sensor, so the signal is small near centre and grows as the line
+      drifts outward. kp = 2.0 gives a full-scale turn of about ±4 (about ±1400 PWM)
+      at the array edge, which is enough correction without saturating. kd = 0.05
+      adds mild damping against overshoot. ki = 0 avoids integral wind-up on the bends.
+      base_speed = 1.2 is a moderate start (60 percent PWM demand) so the first race
+      reveals whether the 0.7 kg, 0.12 m platform can hold the line before speed is
+      pushed toward 1.5 m/s. line_loss = ''last_direction'' keeps the robot turning
+      toward the side it last saw the tape, which suits bends better than a fixed
+      search direction. I expect completion on the oval and s-bend; the slalom is
+      the most likely to produce line-loss events.
+
+
+      - [Open this output](iteration-0/entity1/versions/50f928c22de9454087fa559b6f8c23dd/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/740063cbd6c641229bc9266b81e4c778/payload.json)'
+  - id: entityR1
+    label: Baseline integration
+    notes: 'Iteration 0 feedback: the 2 cm sensor pitch with 12 mm footprints needs
+      large outer weights, and the array''s width and forward offset are the main
+      risk. Changes are conditional on the next race''s line-loss and error results;
+      there is no race evidence yet.
+
+
+      ### Feedback
+
+
+      No race evidence exists yet (iteration 0 is the baseline), so these points come
+      from what the controller had to handle, not from measured outcomes. Integration
+      observation: with 12 mm footprints on a 2 cm pitch and a 25 mm tape, a centred
+      line falls almost entirely on the middle sensor, and the outer sensors only
+      start reading once the line moves about 1 cm off centre. This means the signal
+      is small near centre and the controller has to use large weights (±2) at the
+      outer sensors to get a usable response. Overall, the array''s width and forward
+      offset are the main things that will decide whether the robot can hold the line
+      through bends, so the next race is the key test of that. If the next race shows
+      many line-loss events or large rms_error on the slalom (the array is too narrow
+      or too far from the wheels), widen the outer sensors and/or move the array forward.
+      If it shows completion with steady error but the robot oscillates, the array
+      is probably fine and the issue is the wheel track or mass limiting turn authority,
+      so keep the geometry and adjust the mass or track instead. The sensor noise
+      may also be large compared with the signal near centre, which would make tuning
+      harder; check steering_oscillation against control_effort to see whether that
+      is happening.
+
+
+      ### Requested changes
+
+
+      - If the next race shows line_loss_events above zero on the slalom or rms_error
+      above about 0.03: widen the outer sensors to x = ±0.03 (or ±0.04 with sensor_size
+      0.016) so the array keeps the line through sharp bends. Evidence basis: contract
+      reading geometry only; no race yet.
+
+      - If the next race completes with low rms_error but steering_oscillation is
+      high: reduce the body mass toward 0.5 kg or keep the array and reduce wheel_track
+      toward 0.10 m to lower yaw inertia. Evidence basis: contract physics (yaw inertia
+      = mass*(L^2+W^2)/12); no race yet.
+
+      - If the next race shows the line leaving the array on tight bends: move the
+      sensor row forward to y = 0.06 so it reacts earlier than the wheels. Evidence
+      basis: contract sensing geometry; no race yet.
+
+
+      - [Open this output](iteration-0/entityR1/versions/50f928c22de9454087fa559b6f8c23dd/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/740063cbd6c641229bc9266b81e4c778/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

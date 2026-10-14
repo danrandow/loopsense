@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.1,
+    "ki": 0.3,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      1.0,
+      0.5,
+      0.0,
+      -0.5,
+      -1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.04,
+        "y": 0.03
+      },
+      {
+        "x": 0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": -0.02,
+        "y": 0.03
+      },
+      {
+        "x": -0.04,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 0: every trial on all three tracks ended off_track (0 of 60 finished). Progress was only 0.04 to 0.12, and max_error sat at about 0.061 m, right at the 0.06 m off-track limit. Each run recorded one line-loss event and very low steering_oscillation (0.06 to 0.07). The robot is not jittering. It drifts steadily off the line and falls out of sensor coverage. The five sensors span only +/-0.02 m, so once the robot is roughly 0.03 m off centre all readings go to background, and last_direction then steers the wrong way for the rest of the run. Two causes fit this. First, the contract's fixed left/right motor mismatch produces a constant bias. With ki = 0, proportional-only control leaves a steady offset of about bias/kp, which grows until the line is lost. Second, base_speed 1.6 leaves little margin for correction. Changes in this candidate: (1) widen the sensor span to +/-0.04 m (positions 0.04, 0.02, 0, -0.02, -0.04) with the same weights, so the line stays visible at about 0.05 m offset; (2) add ki = 0.3 to cancel the constant motor-mismatch bias (the integral is capped at +/-2, so the added turn stays bounded); (3) raise kd from 0.05 to 0.1 for damping; (4) lower base_speed from 1.6 to 1.4 to give the loop more correction margin. kp stays at 3.0 because oscillation is low. Expected result: the robot stays on the line through the bends and completes at least some oval and s-bend trials. Completion time may be a little above 3 s at 1.4, so if progress is near 1 but completion_time is above 3 s, raise base_speed to about 1.7. Hypotheses to test next: (a) the off-track drift is caused by the motor mismatch, so ki should cut max_error and line_loss_events sharply; (b) if line_loss_events stays above 0 with the wider span, the sensors are still too narrow or too far forward, and last_direction may need to change to search_left or search_right. Measurements requested: all metrics, so the next review can compare max_error and line_loss_events against iteration 0."
+}

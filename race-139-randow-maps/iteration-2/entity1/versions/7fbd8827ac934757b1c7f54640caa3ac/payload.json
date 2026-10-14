@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.1,
+    "ki": 0.0,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.12,
+    "body_width": 0.12,
+    "mass": 0.5,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.04
+      },
+      {
+        "x": -0.025,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.025,
+        "y": 0.04
+      },
+      {
+        "x": 0.05,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "learning": "Iteration 1 showed line loss is zero and off-track drift remains, so the next race tests whether faster yaw response (lower inertia, narrower track) cuts max_error. Watch steering_oscillation against the 0.07 baseline first; if it rises, kd and then wheel_track are the levers.",
+  "notes": "Adopts the Builder's lighter, narrower body with the sensing layout that removed line loss. The controller keeps kp 2.0 because the narrower track already raises effective turn gain by about 20%. kd is raised to 0.10 to damp the lighter body's faster yaw response.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Iteration 1 (entityR2A, 26.64) removed line loss: line_loss_events is 0 on all three tracks, down from 1 per run. Every run still ends off_track with max_error about 0.06 m and progress of only 0.035 to 0.11. The robot now drifts off while the tape is still under the sensors, so the limit is how fast the body turns, not what the sensors see. Steering oscillation stayed near 0.07 with the 16 mm footprint and the +/-0.05 m spread, so sensing is not causing jitter. The Builder's geometry lowers yaw inertia (mass 0.7 to 0.5 kg, body length 0.16 to 0.12 m) and narrows wheel_track from 0.12 to 0.10 m. Narrowing the track raises turn rate per unit of wheel difference by about 20%, so the controller's fixed 350 PWM per turn unit has more effect. That is a gain increase of about 20%, so I keep kp at 2.0 instead of raising it, which would add oscillation on top of the extra authority. The lighter body is less damped, so I raise kd from 0.05 to 0.10 to damp the faster yaw response. ki stays 0 to avoid windup. base_speed stays 1.6 because the robot needs roughly 1.5 m/s average to finish in 3 s. line_loss stays last_direction, which has worked since line loss went to zero. Sensor weights stay [-2,-1,0,1,2] to match the unchanged +/-0.05 m spread, keeping the signal near +/-2. Expected result: max_error falls below 0.06 m and progress rises above 0.11. Risk: steering_oscillation may rise above the 0.07 baseline, in which case kd is the first thing to check."
+}

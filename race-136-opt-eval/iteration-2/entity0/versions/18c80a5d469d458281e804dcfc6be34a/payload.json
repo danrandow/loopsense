@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.1,
+    "ki": 0.3,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      1.5,
+      0.75,
+      0.0,
+      -0.75,
+      -1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.06,
+        "y": 0.03
+      },
+      {
+        "x": 0.03,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": -0.03,
+        "y": 0.03
+      },
+      {
+        "x": -0.06,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 1: all 60 trials still ended off_track, with progress 0.04 to 0.13 and one line-loss event per run. max_error stayed pinned at about 0.061 m, just above the 0.06 m off-track limit (max(0.06, 0.0125 + 0.12/4) = 0.06). Widening the sensors to +/-0.04 m and adding ki = 0.3 did not change the failure, and s-bend and slalom progress stayed at 0.04 and 0.035, so the failure point is essentially the same. Steering_oscillation is low (0.06 to 0.07), so the robot is not jittering. It drifts steadily outward and loses the line at about 0.06 m. Geometry check: a sensor at x = 0.04 with a 12 mm footprint still sees tape only while the line centre is within about 0.04 + 0.006 + 0.0125 = 0.058 m of the robot centre. Once the offset reaches the 0.06 m limit, all sensors read background, the line is lost, and the robot leaves the track. The span is therefore still too narrow, and the loss is a symptom of that. Change in this candidate, a single group: widen the sensor span to x = +/-0.06 at spacing 0.03 m (positions 0.06, 0.03, 0, -0.03, -0.06) and scale the outer weights to +/-1.5, with inner weights +/-0.75 and centre 0, as the Evaluator recommended. This keeps the line visible to about 0.078 m of offset, beyond the 0.06 m off-track limit, so line loss should no longer come before leaving the track. The controller is otherwise unchanged (kp 3.0, ki 0.3, kd 0.1, base_speed 1.4, last_direction). Caveat: scaling the weights by 1.5 also raises the effective proportional gain by 1.5x, so the loop may be stiffer and oscillation could rise. Expected result: line_loss_events drop to 0 and max_error is no longer pinned at 0.061, with some trials progressing further. Hypotheses to test next: (a) if line_loss_events is 0 but max_error still reaches 0.06, the robot cannot steer hard enough on bends, so kp or base_speed must come down; (b) if completion_time is above 3 s with progress near 1, raise base_speed to about 1.7 as planned; (c) if the drift is steady with low oscillation, raise ki toward 0.5. Measurements requested: all metrics, to compare line_loss_events and max_error against iteration 1."
+}

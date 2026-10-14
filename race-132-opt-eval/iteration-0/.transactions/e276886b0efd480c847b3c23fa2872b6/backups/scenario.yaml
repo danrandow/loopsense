@@ -1,0 +1,114 @@
+map:
+  id: race-132-opt-eval
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor, kp 1.5
+    notes: 'First complete candidate: five 12 mm sensors at 2 cm spacing, base speed
+      1.8, kp 1.5, kd 0.05, no integral. Chosen from the contract physics and scoring
+      because no race data exists yet; it is a baseline to test speed and steering
+      gain.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no race telemetry or Evaluator feedback yet, so this is a conservative
+      first candidate built from the contract''s physics and scoring. Speed: the course
+      is about 4 to 5 m and must finish in under 3 s, so average speed needs to be
+      roughly 1.5 m/s or more. I set base_speed to 1.8 (PWM fraction 0.9) to leave
+      some margin for the speed losses that cornering and slip cause. Sensing: five
+      sensors at 0.02 m spacing (x = -0.04 to +0.04) with 0.012 m footprints give
+      a continuous read across the 25 mm tape, even when the robot is 1 to 2 cm off-centre.
+      They sit 0.04 m ahead of the axle so the steering reacts before the wheels reach
+      the bend. Weights are -2, -1, 0, 1, 2 (positive = left), so the signal grows
+      linearly with lateral error and its sign steers the robot back toward the line.
+      Control: kp = 1.5 gives a turn of about 1.5 x signal, so a full-scale error
+      (signal about 1) produces roughly 525 PWM of differential, which is firm but
+      not saturating. ki = 0 avoids integral windup on curves. kd = 0.05 adds mild
+      damping. Because signal changes quickly, a larger kd would amplify sensor noise.
+      Line loss uses last_direction so the robot keeps turning the way it was heading
+      when the line disappears. Geometry: wheel_track 0.12 and wheel_radius 0.03 give
+      a moderate turn rate; mass 0.8 kg with body 0.16 x 0.12 m gives moderate yaw
+      inertia; body_width 0.12 keeps the off-track limit at 0.06 m. Expected result:
+      the robot should complete the course with few line losses, but it may show some
+      oscillation on the slalom because kd is low and kp is untested. Hypotheses to
+      test next: (1) kp around 1.5 is enough to hold the line at 1.8 base speed without
+      much oscillation; (2) line losses should be near zero with five sensors; (3)
+      if max_error approaches 0.06 on the tightest bend, speed is too high or kp too
+      low. Measurements requested: completion, progress, completion_time, rms_error,
+      max_error, line_loss_events, steering_oscillation, control_effort, controller_errors
+      and noise_robustness, so the next iteration can separate speed-limited failures
+      from steering-limited ones.
+
+
+      - [Open this output](iteration-0/entity0/versions/fbcf6310309a4d14ad8a4e28a00c0827/payload.json)'
+  - id: entityR1
+    label: 'Iter 0 baseline: approved'
+    notes: 'Approved the conservative first candidate, which is valid and not obviously
+      broken, so it races to produce the first telemetry. No earlier race exists,
+      so the feedback and requested changes are conditional on that race''s measurements
+      (speed, oscillation, line loss).
+
+
+      ### Feedback
+
+
+      No race has run yet, so there is no earlier telemetry for this candidate or
+      for any other. The bar for this iteration is that the candidate is valid and
+      not obviously broken. I checked every field against the contract: all values
+      are inside their limits, with 5 sensors matching 5 weights, a 0.012 m footprint,
+      and last_direction line loss. Nothing is obviously broken, so I am approving
+      it to race and get the first telemetry. Two things are untested and worth watching
+      in the results. First, base_speed 1.8 may be too fast for the tightest bend,
+      since the contract says 1.5 m/s average is needed to finish, and the first race
+      will show whether the robot holds the line at that speed. Second, kp 1.5 with
+      kd 0.05 gives a large differential (turn up to about 1050 PWM from a full-scale
+      signal of 2), so oscillation on the slalom is plausible. Once the race reports,
+      use these rules: if max_error approaches 0.06 or line_loss_events is above zero,
+      lower base_speed or raise kp so the robot holds the line. If steering_oscillation
+      is high while max_error is small, raise kd in small steps, since that damps
+      the jitter without adding much noise. If completion is 0 with progress stalled,
+      check the bend where it stopped before changing anything else. Keep ki at 0
+      unless rms_error shows a steady offset.
+
+
+      ### Requested changes
+
+
+      - After the race, if max_error is near 0.06 or line_loss_events is above 0,
+      reduce base_speed (for example 1.8 to 1.5) before changing kp, because the speed
+      limit is the likelier cause on the first run.
+
+      - If steering_oscillation is high while max_error stays small, raise kd from
+      0.05 to about 0.2 in one step and re-race; no earlier race supports a specific
+      value yet.
+
+      - If completion_time is above 3 s with completion 1, raise base_speed in small
+      steps only if max_error and line_loss_events stay low; no earlier race has measured
+      this trade-off yet.
+
+
+      - [Open this output](iteration-0/entityR1/versions/ce01cb8381a8425bbf0e9c34b923afab/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/fbcf6310309a4d14ad8a4e28a00c0827/payload.json)'
+  - id: entity1
+    label: Approved Robot Build
+    notes: 'Approved Robot Build. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-0/entity1/versions/ce01cb8381a8425bbf0e9c34b923afab/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/fbcf6310309a4d14ad8a4e28a00c0827/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

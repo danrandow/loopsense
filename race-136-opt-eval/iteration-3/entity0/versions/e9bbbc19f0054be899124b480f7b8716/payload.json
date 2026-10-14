@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.1,
+    "ki": 0.3,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      1.5,
+      0.75,
+      0.0,
+      -0.75,
+      -1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.06,
+        "y": 0.03
+      },
+      {
+        "x": 0.03,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": -0.03,
+        "y": 0.03
+      },
+      {
+        "x": -0.06,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 2 (sensors at x = +/-0.06 m, weights +/-1.5 outer and +/-0.75 inner, kp 3.0, ki 0.3, kd 0.1, base_speed 1.4): the wider span removed line loss. line_loss_events is 0 on all three development tracks, down from 1 per run in iteration 1. The failure is now a pure off-track exit. max_error still reaches 0.0609 to 0.0627 m, which is at or just above the 0.06 m limit, and every run ends off_track (0 of 60 finished). The oval shows high variance (progress 0.21 mean, scores 31 to 167) and the highest steering_oscillation (0.112). That fits the 1.5x weight scaling, which raised the effective proportional gain at the outer sensors from 3.0 to 4.5. The s-bend and slalom have low oscillation (0.064 to 0.067) and progress of only 0.04 and 0.035, so they are drifting, not jittering. The Evaluator's stated rule applies: line_loss_events is 0 but max_error still reaches 0.06, so change kp (not speed) first. I set controller.kp from 3.0 to 2.5. This lowers the effective gain from 4.5 to 3.75 at the outer sensors, which should cut the oval oscillation and the overshoot that pushes max_error past the limit. Everything else is held fixed (geometry, weights, ki, kd, base_speed, line_loss) so the effect of this one change is readable. Expected result: line_loss_events stays 0, oval steering_oscillation falls below about 0.09, and max_error drops below 0.06 on at least some trials. The main risk is that lower kp leaves the robot under-steering on the tighter bends, so max_error may not improve on the s-bend. Hypotheses for the next race: (a) if max_error stays at about 0.06 with low oscillation and grows over the run, the drift is steady and ki should rise toward 0.5 next; (b) if max_error is now under 0.06 with progress near 1 and completion_time above 3 s, raise base_speed to 1.7 next; (c) if max_error still reaches 0.06 with high oscillation, the proportional gain is still too high, so reduce kd-linked damping questions before changing kp further. Measurements requested: all metrics, so line_loss_events, max_error and steering_oscillation can be compared against iteration 2."
+}

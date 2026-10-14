@@ -1,0 +1,61 @@
+{
+  "feedback_request": {
+    "measurements_requested": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ],
+    "questions": [
+      "Did s-bend progress recover to 0.25 or more with the lead back at 0.05 m, and did the lighter 0.6 kg robot overshoot less on the tightest bend?",
+      "Did max_error fall below 0.06 m on the oval, and where does the first off-track event occur now?",
+      "With yaw inertia lowered, does steering_oscillation rise on the slalom, given the 7-sensor array?",
+      "If line loss stays at 0 and max_error still reaches 0.06 m, is the wheel track of 0.10 m now the limit, so that the next step is a narrower track of 0.08 m?"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.12,
+    "body_width": 0.1,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.05
+      },
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      },
+      {
+        "x": 0.06,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "intent": "Test whether the s-bend and oval failure is turn response rather than sensing. Changes from iteration 2: sensor lead restored from y = 0.03 m to y = 0.05 m (Integrator's rule for line loss at zero with low s-bend progress; iteration 0 at this lead reached 0.29). Mass reduced from 0.8 kg to 0.6 kg and body reduced from 0.16 m x 0.12 m to 0.12 m x 0.10 m, which cuts yaw inertia by about 45 percent. Sensor array (7 sensors, x = +/-0.06 m, 16 mm footprints) and wheel track (0.10 m) unchanged. Expected result: s-bend progress at least 0.25, max_error below 0.06 m on the oval, and line_loss_events at 0 or 1.",
+  "learning": "Iteration 2 showed that the sensing reach at +/-0.06 m removes line loss on the oval and s-bend, yet the score fell. So the failure is not in sensing reach. Iteration 3 tests lead and inertia together. If progress recovers, the next step is to separate them, starting with the lead.",
+  "rationale": "Iteration 2 widened the sensing reach to +/-0.060 m with 7 sensors. It did what it was meant to do: line_loss_events fell to 0 on the oval and s-bend, and only 0.7 on the slalom. But the score fell to 39.5, and the cause is not sensing. Every development trial still ends off_track with max_error about 0.061 m, which is the 0.06 m floor, and rms_error stays about 0.03 m. The s-bend progress fell from 0.29 (iteration 0, lead 0.05 m) to 0.18 (iteration 1, lead 0.03 m) to 0.04 (iteration 2), while line loss on that track was zero. So the robot is leaving the line on the bend without losing sight of it, which points to the controller overshooting or lacking turn response, not to a missed edge. Two geometry levers are left. The first is the lead: Integrator's rule says that if s-bend progress stays low with line loss at zero, restore y = 0.05 m. Iteration 0 reached 0.29 at that lead, and the shorter lead has coincided with each drop, so I restore it. The second is yaw inertia, which is mass*(L^2+W^2)/12. Iteration 2 had 0.8 kg with a 0.16 m body, so the robot turned slowly after the controller commanded a turn. I reduce mass to 0.6 kg and the body to 0.12 m x 0.10 m. That lowers inertia by roughly 45 percent and should let the robot follow sharp bends with less overshoot. The off-track floor stays at 0.06 m for any body width, so narrowing the body costs nothing there. I keep the 7-sensor array at +/-0.06 m with 16 mm footprints, since it gave zero loss on two tracks, and I keep the 0.10 m track so the turn-authority change is confined to inertia. Expected result: s-bend progress back to 0.25 or more, max_error below 0.06 m on the oval, and fewer off-track ends. Risk: the lead change and the inertia change are applied together, so if the result improves I cannot say which one did it."
+}

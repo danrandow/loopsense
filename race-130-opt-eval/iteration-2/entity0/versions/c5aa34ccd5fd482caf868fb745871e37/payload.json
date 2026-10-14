@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.3,
+    "ki": 0.05,
+    "kp": 6.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.035,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Evidence from the last race (iteration 1: base_speed 1.4, kd 0.3, ki 0.05, kp 4.0): every trial still ran off track. Progress rose from 0.12 to 0.21 on the oval, 0.055 to 0.098 on the s-bend and 0.045 to 0.063 on the slalom, so slower speed helped. max_error is now 0.068, 0.062 and 0.064, which is above the 0.06 off-track limit, so the robot still drifts out. Line_loss_events stay at 2 per run on all tracks, and steering_oscillation rose to 0.19 on the oval, so the added kd did not make the steering smoother. Interpretation: the five sensors sit at x = \u00b116 mm with 12 mm footprints, so they only see the tape out to about \u00b128 mm from centre. Once the robot drifts past that, every sensor reads background, the line is lost, and the robot runs wide. The sensing envelope is the bottleneck, not the speed.\n\nChanges: (1) Widen the sensor array to x = -0.030, -0.015, 0, 0.015, 0.030 m. Sensor footprints also go to 16 mm. The sensors then see the tape out to about \u00b138 mm, which gives the controller about 10 mm more warning before line loss. (2) Because the signal is a normalised weighted average, widening the array halves the signal per unit offset. Raise kp from 4.0 to 6.0 to restore and modestly exceed the earlier steering authority. (3) Keep base_speed 1.4, kd 0.3 and ki 0.05, so the result is attributable mainly to sensing and kp. (4) Keep line_loss last_direction for this test. Line losses have persisted, and I will test search_left or search_right in the next iteration if they still occur at the same bend entries, so that this race isolates the sensing change.\n\nExpected result: fewer line-loss events (target 1 or 0 per run), max_error below 0.06, and progress above 0.3 on the oval. Risks: kp 6 with kd 0.3 could raise steering oscillation above 0.2, and the 1.4 base_speed may still be too slow to finish in 3.0 s (the average needed is about 1.5 m/s). Next measurements: max_error and line_loss_events per track, progress, steering_oscillation, rms_error and completion_time. If the robot now stays on track and progress stalls below 1, raise base_speed toward 1.6 to 2.0. If it still leaves at bend entries with low oscillation, raise kp to about 7. If line losses persist, test line_loss search_right or search_left."
+}

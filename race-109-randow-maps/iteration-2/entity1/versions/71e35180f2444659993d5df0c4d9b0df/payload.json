@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.6,
+    "ki": 0.2,
+    "kp": 3.6,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "learning": "If max_error stays near 0.062 m with no change in completions, the limit is base_speed rather than turn authority. If steering_oscillation rises well above 0.30 without line loss, the effective gain is too high. Compare line_loss_events against iteration 0 to see whether the reverted row still loses the tape on the s-bend.",
+  "notes": "Five-sensor row restored with a narrower track (0.10 m) and lighter mass (0.6 kg) per the Builder's intent. kp is trimmed to 3.6 and kd raised to 0.6 to offset the higher yaw gain per PWM unit and protect against the jitter seen in iteration 0.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Iteration 0 (five sensors at x = \u00b10.04, score 136) remains the best design. Iteration 1 widened the row to \u00b10.06 m, which roughly halved line-loss events on the oval and s-bend, but every trial still ended off track and the score fell to 86. Max_error sits at 0.0615 to 0.0635 m in every trial of both designs, so the robot is lost at the same lateral error whatever the sensors report. This points to turn response, not sensing. I therefore revert to the five-sensor row with weights [-2,-1,0,1,2] and test the Builder's intent: wheel_track 0.12 to 0.10 m and mass 0.8 to 0.6 kg. Narrowing the track raises yaw rate per unit PWM difference by about 1.2x (turn rate = (v_R - v_L)/wheel_track, and the controller applies 350 PWM per unit turn regardless of track). To keep the steering gain near the tested level and limit the steering_oscillation risk (0.30 on the oval in iteration 0), I reduce kp from 4.0 to 3.6 and raise kd from 0.5 to 0.6 for extra damping. ki stays at 0.2 and line_loss stays 'last_direction', which gave the best result. base_speed stays at 1.4, because oval finishers ran at about 1.97 s, so speed is not the binding limit yet. Expected result, which is a prediction and not a measurement: max_error below 0.06 m on the oval and s-bend, more completions, and higher progress than iteration 1."
+}

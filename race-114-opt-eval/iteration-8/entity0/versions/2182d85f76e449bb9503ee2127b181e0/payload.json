@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.8,
+    "ki": 0.15,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.75,
+      -0.5,
+      0.0,
+      0.5,
+      0.75,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.03
+      },
+      {
+        "x": -0.04,
+        "y": 0.03
+      },
+      {
+        "x": -0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.04,
+        "y": 0.03
+      },
+      {
+        "x": 0.06,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 7 (the y = 0.01 m row) scored 179.1, below iteration 6 (255.7). Oval finishes fell from 9 of 20 to 5 of 20, and the oval max_error rose from 0.0535 to 0.0612 m. The s-bend and slalom max_error stayed at 0.063 and 0.0635 m, so the row move did not reduce edge exits. The lag hypothesis is not supported, and I revert the row to y = 0.03 m. Line loss stayed at 0 in iteration 7, so the sensing array itself is fine.\n\nThe off-track limit is max(0.06, 0.0125 + body_width/4). Even at body_width 0.18 the limit is 0.0575, so it stays at 0.06 m and body width cannot relax it. Max_error sits at 0.060 to 0.064 m across every design, whatever the speed or kp. That points to a steady bias the controller does not remove, such as the fixed left/right motor mismatch in the contract. Integral action is the only term that can cancel a constant bias, and ki has stayed at 0.02 since iteration 1.\n\nChange: restore the iteration 6 design (y = 0.03 m, 7 sensors at x = \u00b10.06 m, weights [-1, -0.75, -0.5, 0, 0.5, 0.75, 1], base_speed 1.3, kp 5.0, kd 0.8, last_direction) and raise ki from 0.02 to 0.15. This is one variable against the best raced design. The integral is capped at \u00b12, so the change limits windup while it works on a constant offset.\n\nExpected result: oval finishes at or above 9 of 20, and oval and s-bend max_error down toward 0.05 m if a bias is present. If the score falls and max_error does not move, the bias hypothesis is wrong and the next test is base_speed 1.2 or kd 0.5 on the iteration 6 design.\n\nHypotheses to check: (a) max_error includes a steady offset that ki can remove; (b) steering_oscillation stays near 0.32 on the oval, so the higher ki does not add jitter. Measurements requested: completion, progress, completion time, rms and max error, line-loss events, steering oscillation, control effort, controller errors and noise robustness."
+}

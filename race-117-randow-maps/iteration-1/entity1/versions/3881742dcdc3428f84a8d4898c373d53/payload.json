@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.2,
+    "ki": 0.0,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.036,
+        "y": 0.03
+      },
+      {
+        "x": -0.018,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.018,
+        "y": 0.03
+      },
+      {
+        "x": 0.036,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "learning": "Iteration 0 showed line loss at large offsets, which precedes off-track failure. This package tests whether wider sensor coverage fixes that. If the robot still loses the line at 0 events but still goes off track, the limit is turn authority rather than sensing.",
+  "notes": "Builder's proposed geometry used unchanged, with a conservative controller that varies only the geometry. The gains and base speed are held at iteration 0 values so the race isolates the sensor-span and wheel-track change.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Iteration 0 raced 60 development trials with no finishes. Every run ended off_track with max_error about 0.061 m, while rms_error stayed low (0.023 to 0.030 m). Line_loss_events of 1 to 2 per run show the tape left the 48 mm sensor span on the largest offsets. Once all sensors lost the line, the fixed fallback let the robot drift off. This Builder proposal widens the span to 72 mm (x = \u00b10.036 m), enlarges footprints to 16 mm, moves the lead to y = 0.03 m, and narrows the wheel track to 0.10 m. I kept the geometry exactly as proposed. The controller has to cope with the new geometry, so I made these choices. (1) Sensor weights stay proportional to sensor x, [-2, -1, 0, 1, 2]. Each sensor is 18 mm apart, so the signal is still a smooth weighted average across the wider span. (2) kp stays at 2.0 and kd at 0.2. The narrower track already raises turn rate per unit of wheel difference, so more kp would risk oscillation. Changing only geometry keeps the test clean. (3) base_speed stays at 1.4, so the speed sweep is not confounded with the geometry change. (4) line_loss stays 'last_direction', since the robot should still recover toward the side it last saw the tape. Expected: line_loss_events fall toward 0 or 1, max_error drops below 0.06 m on the oval, and the finish rate rises above zero. Main risk: the 18 mm spacing with a 16 mm footprint means the central sensors may see less contrast, so steering could become jittery near centre."
+}

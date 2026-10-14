@@ -1,0 +1,49 @@
+{
+  "feedback_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.06
+      },
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.06,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "intent": "Test whether a wider (\u00b16 cm) sensor row with a slightly longer look-ahead (y=0.06) and lower weights (\u00b11.0 outer, \u00b10.5 inner, about 16.7 per metre of offset) removes the line loss and the off-track exit seen in iteration 0. Keep the drivetrain and body unchanged so the result isolates the sensing change. Expected: no off-track exit on the oval and s-bend, and max_error below 0.06 m.",
+  "learning": "Hypotheses: (1) the line-loss event in iteration 0 came from the late warning on the tightest bend, so a \u00b16 cm row should remove it; (2) the off-track exit came from overshoot at the high steering gain, so the lower weight scale should reduce steering oscillation without losing responsiveness; (3) the body cannot widen the off-track limit, because the 0.06 m floor binds at every allowed body_width. Ask the Integrator: on which track and at which bend does the line first get lost, what max_error and steering_oscillation are at that point, and whether the outer sensors saturate. If the robot still loses the line with a \u00b16 cm row, the next test is a longer look-ahead (y near 0.08) rather than a wider row. If oscillation is high with max_error low, reduce the outer weights further to \u00b10.75.",
+  "rationale": "Iteration 0 failed on all three development tracks: every run ended off track, with about one line-loss event and max_error of about 0.062 to 0.065 m, just over the 0.06 m limit. Progress was 0.53 on the oval, 0.27 on the s-bend and 0.14 on the slalom. The failures are at the line edge, not from a stall, so the robot loses the line on bends. The controller turns the outer sensor weights (about 50 per metre of offset, clipped at \u00b12) into a large steering gain, and with kp=3 a small offset gives a big wheel differential. Together with the 8 cm row, that means the robot sees the bend late and then overcorrects. The body does not help: the off-track limit is max(0.06, 0.0125 + body_width/4), which is still 0.06 m at the maximum body_width of 0.18 m, so body changes cannot widen the margin. The change is therefore in the sensing. I widen the sensor row to \u00b16 cm (the outer sensors sit 1 cm inside the body's \u00b16.5 cm reach, within the allowed \u00b18 cm), move the row 1 cm further forward for look-ahead, and scale the weights to about 16.7 per metre (\u00b11.0 at the outer sensors, \u00b10.5 at the inner pair). This follows the Robot Integrator's first requested change: a wider row gives more warning on sharp bends. The lower weights reduce the steering gain by about a third, which targets the overshoot. The drivetrain, body and sensor size stay the same, so this race isolates the sensing change. Expected result: zero or one line-loss events, max_error below 0.06 m on the oval and s-bend, and a higher progress on the slalom."
+}

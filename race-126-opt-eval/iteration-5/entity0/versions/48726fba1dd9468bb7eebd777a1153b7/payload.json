@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.5,
+    "ki": 0.0,
+    "kp": 3.5,
+    "line_loss": "search_right",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.07
+      },
+      {
+        "x": -0.02,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.02,
+        "y": 0.07
+      },
+      {
+        "x": 0.04,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "controller_errors"
+    ]
+  },
+  "rationale": "Evidence from iteration 4 (kd 0.5, kp 3.5, base_speed 1.6, sensors at y = 0.07, x = -0.04 to +0.04, sensor_size 0.012, line_loss last_direction): score 64.17, the best so far, but all 60 trials still went off track. max_error was 0.0611 (oval), 0.062 (s-bend) and 0.0619 (slalom), all just above the 0.06 m floor. Line_loss_events were 1 per run on every track. Steering_oscillation was 0.108 on the oval and 0.151 on the s-bend and slalom. Raising kd from 0.3 to 0.5 gave about +1.5 points and cut oval oscillation, but it did not bring max_error under 0.06 m. Lookahead (y = 0.07) and wider sensors were real gains, but neither has removed the single line-loss event per run. The evaluator's rule for this state is: if max_error still exceeds 0.06 m with line loss of 1 or more at kd 0.5, change line_loss from last_direction to search_left or search_right. That is the test I am making. Steering_oscillation sits at about 0.15 on two tracks, which is borderline for the kp reduction, so I hold kp at 3.5 to keep this a single-variable test. Change: controller.line_loss last_direction -> search_right (signal fixed at +1, steering the robot left). I chose search_right over search_left because the oval is a loop with mainly left-hand bends, so the outer-edge drift it recovers from should be to the right of the line; this direction is a judgement, not a measured result. Everything else is unchanged: geometry, kp 3.5, kd 0.5, base_speed 1.6. Expected result: line_loss_events fall to 0, which should keep max_error near or below 0.06 m and raise progress. Hypotheses: (H1) search_right reduces the single line-loss event per run, so max_error falls below 0.06 m on at least the s-bend and slalom; (H2) if search_right makes loss worse (more events or larger max_error), the opposite direction, search_left, is the next test; (H3) if line loss stays at 1 with no change, the blind spot is in sensing and the next lever is sensor geometry or kd. Measurements wanted: completion, progress, completion_time, max_error, rms_error, line_loss_events, steering_oscillation, controller_errors. Next step if runs stay on track but do not finish: raise base_speed toward 2.0. If steering_oscillation exceeds about 0.15 while on track: lower kp toward 2.5."
+}

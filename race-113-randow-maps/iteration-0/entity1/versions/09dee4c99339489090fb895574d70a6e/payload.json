@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.3,
+    "ki": 0.05,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "learning": "No prior races. Next iteration, use the race telemetry: if steering_oscillation is high, reduce kp or raise kd; if the robot lags on bends (large max_error, line_loss_events on sharp curves), raise kp or consider a shorter look-ahead; if completion_time exceeds 3 s, raise base_speed.",
+  "notes": "Baseline package: supplied geometry with a conservative antisymmetric five-sensor controller (kp 3, kd 0.3, base_speed 1.5, last_direction line loss). Chosen from the contract alone because no race data exists yet.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Iteration 0 has no race telemetry, so the controller is set from the contract and the geometry alone. The geometry is the supplied baseline, unchanged. The five sensors sit at x = -0.03, -0.015, 0, +0.015, +0.03 (positive is left) with 12 mm footprints. On a 25 mm tape, a centred line gives readings of about [0, 0.29, 1, 0.29, 0], and the outer sensors see nothing until the robot is roughly 1 cm off centre. Antisymmetric weights [-2, -1, 0, 1, 2] therefore give a signal near zero when centred and a signal that grows with offset. Positive weights on the left sensors steer left, as the contract requires. Base speed 1.5 gives about 1.5 m/s, which meets the 3 s finish requirement with some margin. Full PWM is reached at base_speed 2, so 1.5 leaves room for the controller to turn without saturating the wheels. kp = 3 gives a turn of about 1050 PWM per unit of signal, which is a moderate correction without being aggressive for a 0.12 m track. ki = 0.05 is kept small to avoid integral windup on long bends. kd = 0.3 damps oscillation from the sensor step changes. Line loss uses last_direction, because the robot should keep turning the way it was going when the tape leaves the sensors on a bend. Expected result: a completing run on the development tracks, but this is a prior-based expectation and has not been measured. The observation request asks for the full set of signal-quality and tracking measures, so the Builder can judge sensor resolution and look-ahead from the next race."
+}

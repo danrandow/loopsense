@@ -1,0 +1,122 @@
+map:
+  id: race-133-randow-maps
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor
+    notes: 'First geometry: five 12 mm sensors at 10 mm pitch, 50 mm ahead of the
+      axle, on a compact 0.12 m track body. No race data exists yet, so this rests
+      on the contract''s sensing and off-track rules, and it sets a baseline for the
+      Integrator to test.
+
+
+      ### Rationale
+
+
+      This is iteration 0, so there is no race telemetry or integration feedback yet.
+      The design therefore rests on the contract''s physics and sensing rules, not
+      on observed results. Five sensors at 10 mm pitch (x = -0.02, -0.01, 0, 0.01,
+      0.02) give a 40 mm sensing span across a 25 mm tape. With 12 mm footprints,
+      the outer sensors still see the tape edge during moderate offsets, so the signal
+      changes smoothly and the controller gets a graded error rather than a binary
+      one. Sensors sit at y = 0.05 m, ahead of the axle, so the signal reads the line
+      before the wheels reach it. That lead time should reduce oscillation at speed.
+      Wheel track 0.12 m and wheel radius 0.03 m give a moderate turn rate per unit
+      wheel difference and keep the base speed capable of ~1.5 m/s. Body width 0.12
+      m is the off-track limit at max(0.06, 0.0125 + 0.03) = 0.06 m, and widening
+      the body cannot lift it above 0.06 m within the allowed range, so width is chosen
+      for compactness. Body length 0.14 m and mass 0.7 kg keep yaw inertia low, which
+      favours quick response on bends. Sensor weights are antisymmetric (-2, -1, 0,
+      1, 2), so the signal is zero when centred and scales with offset. The expected
+      result is a completed run on the development tracks with moderate line-loss
+      counts, with the main risk being oscillation from the lead sensors. I expect
+      the Integrator to report whether the 0.05 m lookahead and 10 mm pitch are a
+      usable base.
+
+
+      - [Open this output](iteration-0/entity0/versions/a0f98fc066f74c3fb51a8e11816642e7/payload.json)'
+  - id: entity1
+    label: Baseline robot package
+    notes: 'Builder geometry used unchanged, with a conservative controller: kp 4,
+      ki 0.2, kd 0.3, base_speed 1.5, weights (-2,-1,0,1,2), last_direction line-loss.
+      No race data exists yet, so all values follow the contract physics.
+
+
+      ### Rationale
+
+
+      This is iteration 0, so there is no race telemetry or integration feedback to
+      act on. I used the Builder''s supplied geometry unchanged, because every field
+      is inside its contract range: five sensors at x = -0.02 to 0.02 with y = 0.05,
+      sensor_size 0.012, wheel_track 0.12, wheel_radius 0.03, body_width 0.12, body_length
+      0.14, mass 0.7. The controller is built from the contract physics. Sensor weights
+      (-2, -1, 0, 1, 2) follow the sign convention: positive x is left and positive
+      signal steers left, so a line to the left of centre gives a positive signal
+      and the robot turns left. base_speed 1.5 gives PWM fraction 0.75, which should
+      hold the roughly 1.5 m/s average needed to finish in 3 s. kp 4 gives a moderate
+      steering authority (a full signal of 2 produces about 2800 PWM of differential).
+      ki 0.2 is kept small to avoid integral windup on the S-bend. kd 0.3 damps the
+      lead-sensor response. line_loss is last_direction, so the robot keeps turning
+      the way it was going when it leaves the tape. The observation request covers
+      completion, progress, time, rms and max error, line-loss count, oscillation
+      and controller errors, so the Builder and I can separate tracking error from
+      jitter.
+
+
+      - [Open this output](iteration-0/entity1/versions/71f308ad44284fcab1ade6b9c07cc8b4/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/a0f98fc066f74c3fb51a8e11816642e7/payload.json)'
+  - id: entityR1
+    label: Baseline integration
+    notes: 'Pre-race feedback with no outcomes claimed. It gives conditional changes
+      tied to line-loss, oscillation and completion-time signals, which the next race
+      will decide between.
+
+
+      ### Feedback
+
+
+      Written before this robot has raced, so no outcome is stated. There is no earlier
+      race telemetry yet. My integration choices so far are only the contract-based
+      defaults. The controller uses a modest kp (4) and small ki and kd, because the
+      0.05 m lead and 10 mm pitch have not been tested and I do not want to hide sensing
+      problems with aggressive gains. Nothing has been compensated for yet. Next race,
+      decide as follows. If line_loss_events is high or rms_error rises on the S-bend
+      and slalom, the sensors are probably losing the tape between samples, so widen
+      the footprint or the pitch (see requested change 1). If steering_oscillation
+      is high while line_loss_events is low, the lead is too long for the gains, so
+      move the sensors closer to the axle (change 2). If completion_time is above
+      about 3 s or the robot slips in bends, the drivetrain is the limit, so reduce
+      mass or widen the track (change 3).
+
+
+      ### Requested changes
+
+
+      - If line_loss_events is more than about 2 on the development tracks, try sensor_size
+      0.016 with the same five positions. This widens the footprint so the outer sensors
+      keep a graded signal across the 25 mm tape edge.
+
+      - If steering_oscillation is high with few line losses, try sensor y = 0.03
+      instead of 0.05 for all five sensors. This reduces the lead time that causes
+      phase lag at the current gains.
+
+      - If completion is 0 or completion_time is over about 2.7 s, try wheel_track
+      0.10 and mass 0.6. This should make turns quicker and reduce slip, at the cost
+      of less stability on fast bends.
+
+
+      - [Open this output](iteration-0/entityR1/versions/71f308ad44284fcab1ade6b9c07cc8b4/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/a0f98fc066f74c3fb51a8e11816642e7/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

@@ -1,0 +1,223 @@
+map:
+  id: race-127-randow-maps
+  schema: v0.2
+  scenario: Iteration 5
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 4.
+dimensions:
+  time_horizon: prepared
+  iteration: '5'
+overrides:
+  entities:
+  - id: entity0
+    label: Geometry Proposal
+    notes: 'Geometry Proposal. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      ### Rationale
+
+
+      Iteration 4 (0.8 kg, 0.16 m body, 0.10 m track, 0.03 m wheels, 16 mm sensors
+      at y = 0.03 m) is the first race that meets the Integrator''s conditions for
+      a reaction-point test. Oval steering_oscillation fell to 0.181, below the 0.2
+      threshold, so restoring inertia cured the jitter that the light robot had. Line
+      loss is 0 on the oval and s-bend, and only 0.25 events per run on the slalom.
+      Max_error stayed at 0.0614 m, so every run still leaves the 0.06 m floor. Body
+      width cannot raise that floor, because the limit is max(0.06, 0.0125 + body_width/4)
+      and this stays at 0.06 for all allowed widths. Tracking therefore has to improve,
+      and the reaction point is the remaining untested geometry lever. Across iterations
+      0 to 4, max_error has sat at 0.062 to 0.064 m whatever the track, mass or sensor
+      footprint, so the reaction point is the variable I have not yet moved in isolation.
+      Progress on the oval is 0.34, below the Integrator''s 0.35 threshold for a speed
+      test. I will not test wheel radius in this same race, because it would confound
+      the reaction-point result, and wheel radius is the next lever if progress stays
+      low. This iteration changes only the sensor row, from y = 0.03 m to y = 0.02
+      m, which brings the row closer to the axle and so reduces the lead the controller
+      has on the line. Everything else is held at the iteration 4 values. Expected
+      result: max_error falls below about 0.06 m, or at least moves materially, while
+      oval oscillation stays near or below 0.2 and line_loss_events stays near 0.
+      If max_error does not move, the controller gain is the limit, not geometry.
+
+
+      - [Open this output](iteration-5/entity0/versions/78c94050efac4e568d213675d20ceba3/payload.json)
+
+      - Based on: [entityR1](iteration-5/entityR1/versions/carried-faa3ddc1527f7336/payload.json),
+      [entityR2A](iteration-5/entityR2A/versions/carried-c14c78769b42fe45/payload.json)'
+  - id: entity1
+    label: Inertia-restored robot
+    notes: 'Restores mass 0.8 kg and body_length 0.16 m with the 0.10 m track, and
+      sets kp 2.8, kd 0.35 for the higher inertia and narrower yaw gain. Based on
+      iterations 1 to 3, where inertia tracked oscillation more closely than track
+      width did.
+
+
+      ### Rationale
+
+
+      The Builder''s geometry restores the iteration 1 inertia (mass 0.8 kg, body_length
+      0.16 m) and keeps the 0.10 m track that gave oval progress of 0.45 in iteration
+      3. Iteration 3 showed that the 0.10 m track alone did not lower oscillation
+      (0.309 on the oval), so inertia is the lever under test. The controller must
+      work with this geometry. Yaw gain per unit of turn scales roughly as 1/track,
+      so 0.10 m gives about 20% more yaw per command than iteration 1''s 0.12 m. Iteration
+      1 (0.12 m, kp 3.0, kd 0.3) had oval oscillation of 0.173, and iterations 2 and
+      3 (kp 2.5, kd 0.4) had 0.272 and 0.309 at lower inertia. I therefore use kp
+      2.8, between those settings, so that the higher inertia and the narrower track
+      do not overshoot. kd 0.35 sits between 0.3 and 0.4: more damping than iteration
+      1 without the derivative noise that kd 0.4 may add at low inertia. ki stays
+      at 0.05 and base_speed at 1.4, because iterations 1 to 3 had no line loss on
+      the oval or s-bend at these values. The sensor weights stay proportional to
+      x (about 33 times x, within the ±2 limit) so the signal scale matches the evidence.
+      line_loss stays last_direction. Expected result: oval steering_oscillation near
+      0.17 to 0.22, oval progress 0.35 to 0.45, line_loss near 0 on oval and s-bend,
+      and max_error still near 0.062 m. This is an estimate, not a measured result.
+
+
+      - [Open this output](iteration-4/entity1/versions/f524d66058f14111bc6974391a7eab2e/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/152ceb607f294b2cb50210a2ec99db3a/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-a24d3a929eb9021f/payload.json)'
+  - id: entityR1
+    label: Inertia-first feedback
+    notes: 'Points the Builder to inertia as the oscillation lever, citing iterations
+      1 to 3 (oscillation 0.173 at 0.8 kg vs 0.272 to 0.309 at 0.6 kg). Max_error
+      has stayed at 0.062 to 0.064 m in every race, so the next lever is the sensor
+      row, not geometry.
+
+
+      ### Feedback
+
+
+      Before this geometry races, the evidence is as follows. Iterations 2 and 3 used
+      a 0.6 kg, 0.12 m body and gave oval progress of 0.44 and 0.45 with oscillation
+      of 0.272 and 0.309. Iteration 1 used 0.8 kg, a 0.16 m body and a 0.12 m track,
+      and gave oscillation of 0.173 but progress of 0.31. Yaw inertia (mass*(L^2+W^2)/12)
+      is about 0.0027 in iteration 1 and about 0.0014 in iterations 2 and 3. So the
+      evidence points to inertia, not track width, as the main driver of oscillation,
+      although the two were confounded. Iteration 3 showed that widening to 0.10 m
+      did not reduce oscillation, so I do not expect the track alone to help. The
+      controller I wrote uses kp 2.8 and kd 0.35, between the iteration 1 and iteration
+      2/3 gains. Yaw gain rises as the track narrows, so I did not use the iteration
+      1 gain of 3.0 on this 0.10 m track. Max_error has stayed at 0.062 to 0.064 m
+      on every track in every iteration, so it does not respond to these geometry
+      or gain changes. Next race: if oscillation falls below about 0.2 with progress
+      near 0.4, keep the inertia and move on to the reaction point. If oscillation
+      is still high, the gain is the cause, not geometry, so stop chasing it with
+      geometry. If progress drops below about 0.35 with the heavier robot, speed (wheel
+      radius) is the next lever.
+
+
+      ### Requested changes
+
+
+      - If oval steering_oscillation stays above 0.2 with mass 0.8 kg and body_length
+      0.16 m, keep the inertia and test wheel_track 0.11 m, because the narrower track
+      has been raising yaw gain per command in every iteration so far.
+
+      - If oval progress falls below about 0.35 with the heavier robot (iteration
+      1 at 0.8 kg gave 0.31; iterations 2 and 3 at 0.6 kg gave 0.44 and 0.45), try
+      wheel_radius 0.035 m, since progress has tracked speed and the wheel radius
+      is the speed lever.
+
+      - If max_error stays at 0.062 m with line_loss_events at 0 and oscillation below
+      0.2 (every iteration so far has shown 0.062 to 0.064 m), move the sensor row
+      to y = 0.02 m, because sensing has not limited tracking since iteration 1.
+
+
+      - [Open this output](iteration-4/entityR1/versions/f524d66058f14111bc6974391a7eab2e/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/152ceb607f294b2cb50210a2ec99db3a/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-a24d3a929eb9021f/payload.json)'
+  - id: entity2
+    label: Score 87.40
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 87.40.
+      Per trial — oval-1: 195.2 (off_track); oval-2: 136.8 (off_track); oval-3: 137.9
+      (off_track); oval-4: 140.0 (off_track); oval-5: 147.4 (off_track); oval-6: 136.8
+      (off_track); oval-7: 111.8 (off_track); oval-8: 111.8 (off_track); oval-9: 145.3
+      (off_track); oval-10: 137.9 (off_track); oval-11: 146.3 (off_track); oval-12:
+      135.8 (off_track); oval-13: 142.1 (off_track); oval-14: 106.5 (off_track); oval-15:
+      147.4 (off_track); oval-16: 137.9 (off_track); oval-17: 257.4 (off_track); oval-18:
+      140.0 (off_track); oval-19: 135.8 (off_track); oval-20: 140.0 (off_track); s-bend-1:
+      70.3 (off_track); s-bend-2: 70.3 (off_track); s-bend-3: 70.3 (off_track); s-bend-4:
+      70.3 (off_track); s-bend-5: 70.3 (off_track); s-bend-6: 71.4 (off_track); s-bend-7:
+      70.3 (off_track); s-bend-8: 70.3 (off_track); s-bend-9: 70.3 (off_track); s-bend-10:
+      69.3 (off_track); s-bend-11: 69.3 (off_track); s-bend-12: 70.4 (off_track);
+      s-bend-13: 70.3 (off_track); s-bend-14: 69.2 (off_track); s-bend-15: 68.2 (off_track);
+      s-bend-16: 70.3 (off_track); s-bend-17: 70.3 (off_track); s-bend-18: 70.3 (off_track);
+      s-bend-19: 70.3 (off_track); s-bend-20: 69.3 (off_track); slalom-1: 47.9 (off_track);
+      slalom-2: 47.9 (off_track); slalom-3: 47.9 (off_track); slalom-4: 47.9 (off_track);
+      slalom-5: 47.9 (off_track); slalom-6: 47.9 (off_track); slalom-7: 47.9 (off_track);
+      slalom-8: 42.6 (off_track); slalom-9: 47.9 (off_track); slalom-10: 47.9 (off_track);
+      slalom-11: 47.9 (off_track); slalom-12: 47.9 (off_track); slalom-13: 47.9 (off_track);
+      slalom-14: 47.9 (off_track); slalom-15: 47.9 (off_track); slalom-16: 47.9 (off_track);
+      slalom-17: 47.9 (off_track); slalom-18: 47.9 (off_track); slalom-19: 47.9 (off_track);
+      slalom-20: 47.9 (off_track).
+
+
+      - [Open this output](iteration-4/entity2/versions/c941fcb6c2414dc4b9d0734c7e8e7104/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/f524d66058f14111bc6974391a7eab2e/payload.json)'
+  - id: entityR2A
+    label: Score 87.40
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 87.40.
+      Per trial — oval-1: 195.2 (off_track); oval-2: 136.8 (off_track); oval-3: 137.9
+      (off_track); oval-4: 140.0 (off_track); oval-5: 147.4 (off_track); oval-6: 136.8
+      (off_track); oval-7: 111.8 (off_track); oval-8: 111.8 (off_track); oval-9: 145.3
+      (off_track); oval-10: 137.9 (off_track); oval-11: 146.3 (off_track); oval-12:
+      135.8 (off_track); oval-13: 142.1 (off_track); oval-14: 106.5 (off_track); oval-15:
+      147.4 (off_track); oval-16: 137.9 (off_track); oval-17: 257.4 (off_track); oval-18:
+      140.0 (off_track); oval-19: 135.8 (off_track); oval-20: 140.0 (off_track); s-bend-1:
+      70.3 (off_track); s-bend-2: 70.3 (off_track); s-bend-3: 70.3 (off_track); s-bend-4:
+      70.3 (off_track); s-bend-5: 70.3 (off_track); s-bend-6: 71.4 (off_track); s-bend-7:
+      70.3 (off_track); s-bend-8: 70.3 (off_track); s-bend-9: 70.3 (off_track); s-bend-10:
+      69.3 (off_track); s-bend-11: 69.3 (off_track); s-bend-12: 70.4 (off_track);
+      s-bend-13: 70.3 (off_track); s-bend-14: 69.2 (off_track); s-bend-15: 68.2 (off_track);
+      s-bend-16: 70.3 (off_track); s-bend-17: 70.3 (off_track); s-bend-18: 70.3 (off_track);
+      s-bend-19: 70.3 (off_track); s-bend-20: 69.3 (off_track); slalom-1: 47.9 (off_track);
+      slalom-2: 47.9 (off_track); slalom-3: 47.9 (off_track); slalom-4: 47.9 (off_track);
+      slalom-5: 47.9 (off_track); slalom-6: 47.9 (off_track); slalom-7: 47.9 (off_track);
+      slalom-8: 42.6 (off_track); slalom-9: 47.9 (off_track); slalom-10: 47.9 (off_track);
+      slalom-11: 47.9 (off_track); slalom-12: 47.9 (off_track); slalom-13: 47.9 (off_track);
+      slalom-14: 47.9 (off_track); slalom-15: 47.9 (off_track); slalom-16: 47.9 (off_track);
+      slalom-17: 47.9 (off_track); slalom-18: 47.9 (off_track); slalom-19: 47.9 (off_track);
+      slalom-20: 47.9 (off_track).
+
+
+      - [Open this output](iteration-4/entityR2A/versions/c941fcb6c2414dc4b9d0734c7e8e7104/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/f524d66058f14111bc6974391a7eab2e/payload.json)'
+  - id: entityR2B
+    label: Score 87.40
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 87.40.
+      Per trial — oval-1: 195.2 (off_track); oval-2: 136.8 (off_track); oval-3: 137.9
+      (off_track); oval-4: 140.0 (off_track); oval-5: 147.4 (off_track); oval-6: 136.8
+      (off_track); oval-7: 111.8 (off_track); oval-8: 111.8 (off_track); oval-9: 145.3
+      (off_track); oval-10: 137.9 (off_track); oval-11: 146.3 (off_track); oval-12:
+      135.8 (off_track); oval-13: 142.1 (off_track); oval-14: 106.5 (off_track); oval-15:
+      147.4 (off_track); oval-16: 137.9 (off_track); oval-17: 257.4 (off_track); oval-18:
+      140.0 (off_track); oval-19: 135.8 (off_track); oval-20: 140.0 (off_track); s-bend-1:
+      70.3 (off_track); s-bend-2: 70.3 (off_track); s-bend-3: 70.3 (off_track); s-bend-4:
+      70.3 (off_track); s-bend-5: 70.3 (off_track); s-bend-6: 71.4 (off_track); s-bend-7:
+      70.3 (off_track); s-bend-8: 70.3 (off_track); s-bend-9: 70.3 (off_track); s-bend-10:
+      69.3 (off_track); s-bend-11: 69.3 (off_track); s-bend-12: 70.4 (off_track);
+      s-bend-13: 70.3 (off_track); s-bend-14: 69.2 (off_track); s-bend-15: 68.2 (off_track);
+      s-bend-16: 70.3 (off_track); s-bend-17: 70.3 (off_track); s-bend-18: 70.3 (off_track);
+      s-bend-19: 70.3 (off_track); s-bend-20: 69.3 (off_track); slalom-1: 47.9 (off_track);
+      slalom-2: 47.9 (off_track); slalom-3: 47.9 (off_track); slalom-4: 47.9 (off_track);
+      slalom-5: 47.9 (off_track); slalom-6: 47.9 (off_track); slalom-7: 47.9 (off_track);
+      slalom-8: 42.6 (off_track); slalom-9: 47.9 (off_track); slalom-10: 47.9 (off_track);
+      slalom-11: 47.9 (off_track); slalom-12: 47.9 (off_track); slalom-13: 47.9 (off_track);
+      slalom-14: 47.9 (off_track); slalom-15: 47.9 (off_track); slalom-16: 47.9 (off_track);
+      slalom-17: 47.9 (off_track); slalom-18: 47.9 (off_track); slalom-19: 47.9 (off_track);
+      slalom-20: 47.9 (off_track).
+
+
+      - [Open this output](iteration-4/entityR2B/versions/c941fcb6c2414dc4b9d0734c7e8e7104/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/f524d66058f14111bc6974391a7eab2e/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}

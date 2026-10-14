@@ -1,0 +1,124 @@
+map:
+  id: race-131-randow-maps
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor
+    notes: 'Neutral first geometry: five 12 mm sensors at 10 mm pitch, 0.04 m ahead
+      of the axle, on a mid-range 0.8 kg chassis. No race evidence exists yet, so
+      the choices are chosen for coverage of the 25 mm tape and to give a reference
+      point for one-variable changes.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no race telemetry and no Integrator feedback, so this proposal
+      is a neutral baseline meant to make the first race informative. The 25 mm tape
+      is covered by a 12 mm sensor footprint, so a 5-sensor bar at 10 mm pitch (x
+      = -0.02 to +0.02) always has at least two sensors reading tape on a centred
+      line. That gives a graded signal and avoids the line-loss threshold on small
+      deviations. The sensors sit 0.04 m ahead of the axle so the reading leads the
+      wheels by a few centimetres, which gives the controller some lookahead for the
+      bends. Wheel track 0.12 m and radius 0.03 m give a mid-range turn authority
+      and a top speed that can plausibly reach the roughly 1.5 m/s average needed
+      to finish in 3 s. Mass 0.8 kg keeps inertia moderate. Body width 0.12 m keeps
+      the off-track limit at 0.06 m, the floor of max(0.06, tape_half_width + body_width/4),
+      so the robot is not given extra slack. Expected result: completion on the oval
+      and s-bend, with the slalom as the harder test. I expect the line-loss and rms_error
+      metrics to show whether the 10 mm pitch is too fine or too coarse, and whether
+      the sensors are too far ahead for the bends.
+
+
+      - [Open this output](iteration-0/entity0/versions/b8bf97f74c964660b2621133085031fa/payload.json)'
+  - id: entity1
+    label: Baseline robot package
+    notes: 'Proposed 5-sensor baseline geometry with a sign-correct linear weight
+      vector, kp 1.2, kd 0.1 and last-direction line recovery. Gains are first guesses
+      because no race telemetry exists yet.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no race telemetry and no earlier outcomes, so the controller
+      is a conservative first design for the baseline geometry, not a tuned one. Geometry:
+      five sensors at x = -0.02 to +0.02 m, y = 0.04 m, so the sensor bar sits 4 cm
+      ahead of the axle; 12 mm footprints cover the 25 mm tape; 0.12 m track, 0.03
+      m wheels, 0.8 kg mass, all as proposed. Signal: the sensor at x is weighted
+      by 100*x, giving weights [-2, -1, 0, 1, 2]. A line left of centre (positive
+      x) gives a positive signal and steers left, matching the contract''s sign convention.
+      The weights span the full allowed range and are the sign-correct, linear-in-position
+      choice. Gains: kp = 1.2 gives roughly 420 PWM of differential per unit of signal,
+      which is firm enough to follow bends without large overshoot at the sensor''s
+      noise level. ki = 0.05 is small to avoid integral windup on long bends. kd =
+      0.1 adds mild damping against the 4 cm lead. base_speed = 1.6 (PWM about 78
+      percent) is high enough to need about 1.5 m/s average for a 3 s finish, but
+      leaves turn authority, since higher speed amplifies the lateral error on the
+      slalom. line_loss = last_direction, so the robot keeps turning toward the side
+      it last saw the tape rather than driving straight off the line. Expected: completion
+      on the oval and s-bend; the slalom is the stress test for kp and base_speed.
+      Observation requests cover completion, progress, time, rms and max error, line-loss
+      events, and oscillation, so the next race can separate sensor-pitch problems
+      from control problems.
+
+
+      - [Open this output](iteration-0/entity1/versions/dc712eb996454543954c7a96c3c6b0a6/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/b8bf97f74c964660b2621133085031fa/payload.json)'
+  - id: entityR1
+    label: Baseline integration
+    notes: 'No races have run, so feedback is conditional on the next race''s line-loss,
+      oscillation and time results. Three geometry changes (pitch, forward offset,
+      wheel size) are each tied to the stated hypotheses, not to measured data.
+
+
+      ### Feedback
+
+
+      No races have run yet, so this feedback rests on design reasoning rather than
+      measured outcomes. In iteration 0 the main compensation I made was to set the
+      sensor weights to the sign-correct, linear form (-2,-1,0,1,2), so the signal
+      and steering direction agree with the contract. The 10 mm pitch over a 40 mm
+      span gives a graded signal only while at least one sensor is partly on tape,
+      so I could not confirm whether it saturates. If the next race shows line_loss_events
+      above zero, or completion failing on the tighter bends, the likely cause is
+      the sensor bar being too narrow for the 25 mm tape at high speed. In that case,
+      widen the pitch to 15 mm (x = -0.03 to +0.03) before changing the footprint.
+      If the race instead shows high steering_oscillation with few line losses, the
+      0.04 m forward offset is probably giving too much lag, so move the bar to y
+      = 0.02 m. If the robot completes with low rms_error and fails only the time
+      target, the chassis is the limit, so try a smaller wheel_track or a higher wheel_radius
+      for more top speed.
+
+
+      ### Requested changes
+
+
+      - If line_loss_events is above 0 or the robot leaves the line on bends, widen
+      sensor pitch from 10 mm to 15 mm (x = -0.03 to +0.03, y = 0.04). No race has
+      tested this yet; it is based on the 25 mm tape and 12 mm footprint.
+
+      - If steering_oscillation is high while line losses are low, reduce forward
+      offset from y = 0.04 to y = 0.02 m to cut lag. No race evidence yet; this follows
+      the 0.04 m lookahead hypothesis.
+
+      - If the robot completes but progress reaches 0.995 too slowly for 3 s, try
+      wheel_radius 0.035 with wheel_track 0.10 for more top speed. No race evidence
+      yet; this follows the 1.5 m/s average requirement.
+
+
+      - [Open this output](iteration-0/entityR1/versions/dc712eb996454543954c7a96c3c6b0a6/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/b8bf97f74c964660b2621133085031fa/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

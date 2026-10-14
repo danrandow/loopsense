@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.1,
+    "ki": 0.3,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "learning": "Across four iterations, geometry changes have not moved max_error, and the drift looks like a steady bias. If raising ki to 0.3 lowers max_error below 0.06, the controller's integral term was the missing piece. If it does not, the next test is base_speed 1.4 to reduce drift at the bends, and I will check the Builder's footprint result separately.",
+  "notes": "Adopts the Builder's iteration 2 body and sensor layout with the 12 mm footprint, and raises ki from 0.05 to 0.3 to test whether the steady drift is a motor-mismatch bias that integral action can cancel. The footprint and ki changes are confounded, so the result is read against max_error and line-loss thresholds.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Iterations 0 to 3 have all ended off-track with max_error between 0.061 and 0.069 m and one line-loss event per track. Steering oscillation stayed low (0.07 to 0.15), so the robot drifts steadily off the tape rather than jittering. Sensor span (+/-0.02 to +/-0.03 m), footprint (12 to 16 mm), lead (0.05 to 0.04 m) and drivetrain (mass, body_length, wheel_track in iteration 3) have each moved max_error by less than 0.001 m. Iteration 3 also lowered s-bend progress from 0.15 to 0.13 and scored 46.71, the lowest of the recent iterations. The consistent steady drift is most likely the fixed left/right motor mismatch that the race applies, which a steady-state bias would produce. The controller has only ki = 0.05 to remove it, so I have not yet tested the integral term. This package adopts the Builder's iteration 2 body and drivetrain (body_length 0.18, mass 0.6, wheel_track 0.12) and the iteration 2 sensor layout, with sensor_size 0.012 as the Builder requested. I raise ki from 0.05 to 0.3 to test whether integral action cancels the mismatch bias. Because this confounds the footprint test, I will read the result against the Builder's max_error and line-loss criteria, and treat a change in max_error as the joint effect. kp 3.0, kd 0.1, base_speed 1.6 and last_direction line loss are unchanged. Expected result: max_error falls below 0.06 and line_loss_events goes to 0 or 1 on the s-bend and slalom. If max_error stays at 0.061 to 0.069 with ki raised, the bias is not the main limit, and the next controller test is a lower base_speed."
+}

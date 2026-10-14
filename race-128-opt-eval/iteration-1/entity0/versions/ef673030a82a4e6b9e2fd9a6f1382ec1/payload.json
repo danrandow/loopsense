@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.1,
+    "ki": 0.0,
+    "kp": 1.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      2.0,
+      1.0,
+      0.0,
+      -1.0,
+      -2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.03,
+        "y": 0.03
+      },
+      {
+        "x": 0.015,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": -0.015,
+        "y": 0.03
+      },
+      {
+        "x": -0.03,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Evidence from the baseline (iteration 0, no race yet, development sim only): all 60 trials went off track on oval, s-bend and slalom, with 1 line-loss event each and progress of only 0.04 to 0.12. The off-track limit is max(0.06, 0.0125 + 0.12/4) = 0.06 m, and the measured max_error is about 0.061 m, so the robot drifts just past the allowed band right after losing the line once. rms_error (about 0.03 m) is low, so the robot is tracking reasonably until a transient pushes it out. Likely causes: (1) the outer sensors at x = +/-0.04 with 12 mm footprints barely see the 25 mm tape until the error is about 0.02 m, so the line is lost too early on bends; (2) base_speed 1.6 is too fast for the bend and recovery transients; (3) kp = 2 with a +/-2 signal gives up to about +/-4 turn, which is aggressive for a line-follower with weak sensing. Changes: (a) sensors spread to x = -0.03, -0.015, 0, +0.015, +0.03 with 16 mm footprints, so the outer sensors overlap the tape at about 0.0045 m error and line loss needs error above about 0.058 m; (b) kp reduced from 2.0 to 1.5 and kd raised from 0.05 to 0.1 to damp the response; (c) base_speed reduced from 1.6 to 1.4 to give the bends more margin, and line_loss kept as last_direction. Expected result: fewer line-loss events, max_error below 0.06 m on the development tracks, and some completions. The cost is a slower lap (about 3 s at 1.4). Hypotheses to check next: if completion is 1 with time above 2.8 s, raise base_speed toward 1.6 to 1.7; if max_error still exceeds 0.06 on the s-bend, reduce base_speed further or increase kd."
+}

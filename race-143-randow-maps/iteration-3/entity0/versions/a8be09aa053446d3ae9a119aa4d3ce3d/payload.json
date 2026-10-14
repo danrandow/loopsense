@@ -1,0 +1,45 @@
+{
+  "feedback_request": {
+    "questions": [
+      "Did line_loss_events fall from about 1.1 to 1.3 per run on s-bend and slalom? Report the count per track.",
+      "Did max_error on s-bend and slalom fall below 0.05 m, and did any run still exit off-track? Report off-track counts per track.",
+      "Did the oval finish rate stay at or above 13 of 20, with completion_time near 1.8 s?",
+      "With 16 mm footprints overlapping at 15 mm spacing, did the signal saturate or become too coarse on the sharpest bend? If so, should weights be scaled down rather than the footprint changed?",
+      "Did oval steering_oscillation stay above 0.2 while max_error stayed low? If so, this is a weight problem for the Integrator."
+    ],
+    "suggested_changes_to_test": "If line-loss events persist with sensor_size 0.016 m, the gap is not in the footprint and the next test is wider spacing at 0.02 m with sensor_size 0.016 m (footprints still overlap). If s-bend or slalom still exit with max_error above 0.05 m, keep this geometry and let the Integrator scale weights. Raise wheel_radius to 0.035 m only if a run completes with completion_time above about 3 s."
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.11
+  },
+  "intent": "Revert the span to \u00b10.03 m (the best observed span, iteration 1 score 337.5) at 0.015 m spacing, and increase sensor_size to 0.016 m so the footprints overlap and remove the dead zones that iteration 2 exposed. Everything else matches iteration 1. Expected result: line-loss events fall from about 1.1 to 1.3 per run toward 0 to 0.5, s-bend and slalom max_error drops below about 0.05 m, and oval keeps at least its 13/20 finish rate. The controller is the Integrator's to set. The oval steering_oscillation of about 0.31 is a weight question for the Integrator, not a geometry one.",
+  "learning": "Iteration 2 showed that widening the span without changing footprint size made every track worse, so span alone is not the lever. The test here checks whether footprint overlap (sensor_size 0.016 at 0.015 m spacing) fixes the line-loss events. Expected to learn whether the failures come from dead zones (line-loss counts fall) or from turn authority (line-loss counts stay high and max_error stays near 0.06 m).",
+  "rationale": "Iteration 2 (span \u00b10.04 m at 0.02 m spacing, sensor_size 0.012) scored 150.8, down from 337.5 in iteration 1 (span \u00b10.03 m at 0.015 m spacing). The widening hurt on every track. Oval finishes fell from 13/20 to 0/20, and oval max_error rose from 0.044 to 0.064. s-bend finishes stayed at 0/20 (1/20 before), and slalom progress fell from 0.16 to 0.10. The Integrator's controller was unchanged, so this regression is attributable to the span change. The likely cause is geometry. With a 12 mm footprint and 20 mm spacing, there are gaps of about 8 mm between footprints. A centred robot sees only the central sensor, and sensors at \u00b10.02 and \u00b10.04 see no tape at all. That makes the signal lose its graded shape and produces dead zones, which fits the 1 to 1.3 line-loss events per run. Iteration 1 with 15 mm spacing had fewer gaps, so the span was never the sole problem. I am therefore reverting to the best-scoring span (\u00b10.03 m) and closing the dead zones directly. I change sensor_size from 0.012 to 0.016 m at 0.015 m spacing, so each 16 mm footprint overlaps its neighbours and the 25 mm tape is always covered by at least two sensors. This is a single-variable change relative to iteration 1, so the race isolates the effect of footprint size. Body width does not help: the off-track limit is max(0.06, 0.0125 + body_width/4), which sits at the 0.06 m floor for any allowed body width, so body_width stays at 0.12 m. Speed is not limiting (oval finished in 1.83 s), so wheel_radius stays at 0.03 m. wheel_track 0.11 m, mass 0.7 kg, body_length 0.16 m and sensor y = 0.06 m are kept from iteration 1."
+}

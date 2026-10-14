@@ -1,0 +1,52 @@
+{
+  "feedback_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation"
+    ],
+    "questions": [
+      "Did line_loss_events fall to 0 on the slalom and s-bend? If not, which track still loses the line?",
+      "Is max_error still at or above 0.06 when the robot leaves the track, and at what progress does it leave?",
+      "Did the 16 mm footprint give a smooth enough signal, or did it cause steering oscillation or overshoot?",
+      "If the robot now stays on the line but is still slow, is completion_time limited by speed (mass or wheel radius) or by the controller?"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.05
+      },
+      {
+        "x": -0.015,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.015,
+        "y": 0.05
+      },
+      {
+        "x": 0.03,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "intent": "Widen the sensor array from \u00b10.02 m to \u00b10.03 m, with a 16 mm footprint and 15 mm spacing, so the outer sensors still see the tape when the robot drifts toward the 0.06 m off-track limit. Keep the same weights [-2,-1,0,1,2] and the same body and drivetrain, so the Integrator's gains still apply. Expected result: line_loss_events falls toward 0 on the slalom and s-bend, max_error stays under 0.06, and progress rises well above the current 0.10 to 0.15. Hypothesis to test: the array width, not the lead or speed, is the main cause of the off-track failures.",
+  "learning": "Iteration 0 showed that the failure is line loss and off-track drift, not oscillation. The off-track limit is fixed at 0.06 m, so I should judge geometry by how far it keeps max_error under that value. If the widened array fixes line loss but the robot still drifts, I will shorten the lead (y = 0.04 m) next. If it finishes but is slow, I will reduce mass to 0.5 kg or raise wheel_radius to 0.035 m.",
+  "rationale": "Iteration 0 raced with no completions. All 60 trials ended off-track, with progress of only 0.10 to 0.15 and max_error of 0.062 to 0.069. The off-track limit is max(0.06, 0.0125 + body_width/4), which is 0.06 for every allowed body width, so the robot is leaving the tape near the limit. Line-loss events averaged 1 on the oval and s-bend and 2 on the slalom. Steering oscillation is low (0.07 to 0.15), so the robot is not jittering. It drifts off the line steadily rather than oscillating. The failure is coverage: the 5-sensor array spans only \u00b10.02 m, so as the tape moves toward the outer sensors, the sensor readings fall below the 0.05 total that counts as line loss. Each sensor covers only 12 mm, and the outer sensors see no tape once the line is offset by more than about 0.015 m. The fix is to widen the span while keeping the same signal scale. I will place 5 sensors at x = -0.03, -0.015, 0, 0.015, 0.03 m and enlarge the footprint to 16 mm. The 15 mm spacing is still smaller than the footprint, so every sensor overlaps its neighbour and the tape stays visible across the array. The weights stay at [-2,-1,0,1,2], so the signal scale and the Integrator's kp, kd and ki stay valid. Mass, wheel size and track stay unchanged, because progress rather than speed is the limit. Expected result: fewer line-loss events, max_error below 0.06, and progress well above 0.15. If line loss is gone and the robot still leaves the track, the next suspect is the 50 mm lead, which I will test by moving the sensors to y = 0.04 m."
+}

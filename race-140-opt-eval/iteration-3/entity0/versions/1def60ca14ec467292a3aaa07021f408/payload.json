@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.3,
+    "ki": 0.3,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.6,
+      -0.8,
+      0.0,
+      0.8,
+      1.6
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.05
+      },
+      {
+        "x": -0.012,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.012,
+        "y": 0.05
+      },
+      {
+        "x": 0.024,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: the best raced design is iteration 1 (score 124.80): kp 3.0, kd 0.30, ki 0.05, base_speed 1.5, sensor spread x = \u00b10.024 m, footprint 0.016 m. Iteration 2 raised kp to 3.5 and scored 99.25. That is a clear regression: oval finishes fell from 1 to 0, oval line-loss events rose from 1.1 to 1.7, and oval steering oscillation rose from 0.17 to 0.25. So kp 3.5 is rejected, and the Evaluator's entityR1 feedback, which treats kp 3.5 as the 124.80 baseline, appears to have mixed up the two designs. Max_error is still about 0.061 to 0.064, just over the 0.06 m off-track limit. Body width cannot help: the limit is max(0.06, 0.0125 + body_width/4), which stays at 0.06 for all allowed widths. Speed is not the binding constraint (the oval finish took 1.87 s). The failure is a steady drift off the line, not jitter. A plausible cause is the fixed left/right motor mismatch in the disturbance, which produces a steady bias that proportional action alone does not remove. Change: keep the iteration 1 design and raise ki from 0.05 to 0.30, so the integral term can cancel the steady bias. The integral stays within its \u00b12 limit, and its contribution is small on bends. Expected result: max_error falls below 0.06 on some tracks and line_loss_events drop. Risk: the integral may overshoot on bends, which would show up as higher steering_oscillation. If oscillation rises above about 0.25, the next step is kd 0.40 with ki 0.30. If max_error is still above 0.06 with no oscillation rise, the next step is ki 0.6. Hypotheses: H1, the drift is a steady mismatch bias that integral action cancels. H2, kp 3.0 is near the best proportional gain, since 3.5 was worse. Measurements wanted next: per-track max_error and where it peaks, line-loss timing, steering_oscillation, and completion_time on the oval."
+}

@@ -1,0 +1,117 @@
+map:
+  id: race-121-randow-maps
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor array
+    notes: 'Symmetric five-sensor bar, 1 cm spacing, 12 mm footprints, 5 cm ahead
+      of the axle, with mid-range body and wheels. No race evidence exists yet, so
+      this is a baseline chosen to give a clean first measurement.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no race data or integration feedback, so this is a baseline,
+      not an optimised design. I chose a symmetric five-sensor bar that spans about
+      4 cm across the 25 mm tape, so the line stays under at least one sensor through
+      a moderate bend. The 12 mm footprint is half the tape width, so neighbouring
+      sensors overlap the tape edge and give a graded reading. Sensors sit 5 cm ahead
+      of the axle to read the line before the wheels reach it. Weights are proportional
+      to sensor x (-2, -1, 0, 1, 2), so a positive weight on the left sensor steers
+      left, matching the signal convention. Body and wheels are mid-range to keep
+      the yaw inertia and drive torque moderate: 0.12 m track, 0.03 m wheel radius,
+      0.12 m body width (off-track limit about 0.0625 m, which gives margin), 0.18
+      m body length, 0.8 kg mass. I expect a complete run with a moderate rms error,
+      which I will check against the race telemetry.
+
+
+      - [Open this output](iteration-0/entity0/versions/579bba4886cc4d8984181d489af78e9b/payload.json)'
+  - id: entity1
+    label: Complete Robot Package
+    notes: 'Complete Robot Package. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no race telemetry or earlier integration feedback, so this package
+      is a runnable baseline. I kept the Builder''s geometry unchanged so the first
+      race measures that geometry directly. The five sensors sit at x = -0.02 to +0.02
+      m, and positive x is left. The weights [-2, -1, 0, 1, 2] therefore give a positive
+      signal when the tape is on the left, which steers left as the contract requires.
+      The weights are linear in x, so the signal is roughly proportional to lateral
+      offset while the line is under at least one sensor. Gains are moderate. kp =
+      2.5 turns each 1 cm of offset into a clear but not violent correction, which
+      keeps the first race stable. ki = 0 avoids integral windup on a curved course
+      with no evidence yet. kd = 0.05 adds only a little damping against jitter. base_speed
+      = 1.6 gives 80 percent PWM, which should be enough to approach the 1.5 m/s average
+      needed for a 3 s finish while leaving headroom for the controller to slow down
+      on bends. line_loss = ''last_direction'' lets the robot keep turning toward
+      the side it last saw the tape, which suits a line-following course with sharp
+      bends. Expected result: a completed run with moderate rms_error. This is a hypothesis
+      to check against the race, not a measured result. The observation request covers
+      every allowed measurement so the Builder gets full telemetry on the first race.
+
+
+      - [Open this output](iteration-0/entity1/versions/ba5306b909794682837f05b92697f3e7/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/579bba4886cc4d8984181d489af78e9b/payload.json)'
+  - id: entityR1
+    label: Integration Feedback
+    notes: 'Integration Feedback. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      ### Feedback
+
+
+      No earlier race exists, so this feedback rests only on what the integration
+      of this geometry required, not on measured performance. (1) The five sensors
+      at 1 cm spacing with 12 mm footprints give a graded signal across the tape,
+      so I could use a single linear weight set [-2,-1,0,1,2] with no special handling.
+      (2) Because the array spans only about 4 cm and the tape is 2.5 cm wide, the
+      line can leave the array on sharper bends. I had to choose line_loss = ''last_direction''
+      to handle this, so the controller depends on the array staying close to the
+      line. If the next race shows line_loss_events above zero, or completion failing
+      on the tightest bend, the array is probably too narrow: widen the x span (for
+      example to about 0.06 m) before changing the controller. If the race shows steering_oscillation
+      high while line_loss_events is zero, the cause is more likely the 5 cm forward
+      offset or the sensor spacing than the gains, so try a shorter forward offset
+      (about 0.03 m) or a larger spacing. If the race completes with low rms_error,
+      keep the geometry and only adjust gains. Also, with the 4.5 m course needing
+      an average of about 1.5 m/s, if completion_time is too long, a smaller wheel_track
+      or lower mass gives faster response, so try mass 0.6 with the same body.
+
+
+      ### Requested changes
+
+
+      - If line_loss_events > 0 on the tightest bend, widen the sensor span to about
+      0.06 m (x from -0.03 to +0.03, five sensors) and keep sensor_size at 0.012,
+      to keep the line under the array through sharp bends.
+
+      - If steering_oscillation is high while line_loss_events is 0, move the sensors
+      forward to y = 0.03 m (from 0.05) or keep the sensor pitch and reduce the body
+      mass to 0.6 kg, to reduce oscillation at speed.
+
+      - If completion_time is above about 3.0 s with completion at 1, reduce wheel_track
+      to 0.10 m and keep the same sensor layout, so the robot turns more readily without
+      changing the signal scale.
+
+
+      - [Open this output](iteration-0/entityR1/versions/ba5306b909794682837f05b92697f3e7/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/579bba4886cc4d8984181d489af78e9b/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

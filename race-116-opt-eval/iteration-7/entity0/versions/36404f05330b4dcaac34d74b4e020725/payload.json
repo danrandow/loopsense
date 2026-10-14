@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.6,
+    "ki": 0.02,
+    "kp": 1.5,
+    "line_loss": "search_right",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.1,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 6 (kd 0.6, kp 1.5, base_speed 1.2, last_direction) is the best raced design at 604.0. Oval is at 18/20 finishes with progress 0.97. S-bend is at 15/20 finishes, but its steering_oscillation is 0.397, right at the 0.4 guard. Slalom still ends off track in 20/20 runs with progress 0.33 (up from 0.24 at kd 0.5), and line_loss_events stay at exactly 1.0 per run. Across iterations 4 to 6 the slalom line loss has not responded to kp (1.7 and 1.5 both gave 1.0) or to kd (0.5 and 0.6 both gave 1.0). kd did raise slalom progress, so damping is helping, but the single line loss per run is not being recovered. The Evaluator's rule for this case is to stop changing kp and kd and test line_loss as a comparison on the same kd.\n\nChange: controller.line_loss from 'last_direction' to 'search_right' (signal fixed at +1, steering the robot to its left). Everything else is held at the iteration 6 best values: kp 1.5, ki 0.02, kd 0.6, base_speed 1.2, sensor geometry and sensor_weights unchanged. I chose search_right over search_left without direct evidence of which side the slalom loses the line on, so this is a gamble on direction. The change touches only the lost-line segments, so the oval and s-bend steering behaviour should be largely unchanged.\n\nExpected result: slalom line_loss_events should fall below 1.0 or the slalom should go further (progress above 0.33), and the oval should hold near 18/20 finishes. Risks: search_right may push the robot the wrong way on a slalom bend, which would leave slalom results unchanged or worse, and s-bend oscillation may stay near 0.4. If slalom loss does not change, the next test should be a forward sensor shift (y 0.06) or search_left, not more gain changes. If s-bend oscillation goes above 0.4, revert to kd 0.5.\n\nHypotheses: H1, the slalom loss happens on one side of the course, so a directed search recovers the line where last_direction does not. H2, kd 0.6 keeps the non-slalom oscillation below 0.4."
+}

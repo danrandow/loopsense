@@ -1,0 +1,216 @@
+map:
+  id: race-109-randow-maps
+  schema: v0.2
+  scenario: Iteration 4
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 3.
+dimensions:
+  time_horizon: prepared
+  iteration: '4'
+overrides:
+  entities:
+  - id: entity0
+    label: Track 0.095 m
+    notes: 'Interpolates wheel_track between the iteration 2 best (0.10 m, score 321)
+      and iteration 3 (0.09 m, score 303). Iteration 3 gained oval finishes (0.45
+      to 0.65) but lost all s-bend completions (0.10 to 0.00) with higher s-bend max_error,
+      so this setting tries to keep the oval gain while restoring bend completions.
+
+
+      ### Rationale
+
+
+      Iteration 3 narrowed wheel_track from 0.10 to 0.09 m and scored 303, below iteration
+      2''s 321. The oval improved: finish rate rose from 0.45 to 0.65, progress from
+      0.86 to 0.92, and completion time from 1.73 to 1.79 s. The s-bend got worse:
+      finish rate fell from 0.10 to 0.00, progress from 0.67 to 0.33, and max_error
+      rose from 0.0627 to 0.0645 m. Steering oscillation on the s-bend dropped from
+      0.43 to 0.27, so the s-bend failure is not jitter. It looks like the extra yaw
+      gain overshoots on the bends. Sensing is not the limit, since the five-sensor
+      row at ±0.04 m is still the best layout tested. Mass has been 0.6 kg since iteration
+      2 and was not varied. Because the s-bend completions are worth far more than
+      the oval gain, and the 0.10 m design is the only one with s-bend completions,
+      I will interpolate to wheel_track 0.095 m. This keeps the oval gain from narrowing
+      while reducing the bend overshoot. I expect the oval finish rate to land around
+      0.5 to 0.55 and the s-bend finish rate to recover to roughly 0.05 to 0.10, for
+      a score near the iteration 2 level. Only wheel_track changes, so the next race
+      isolates how the score responds between 0.09 and 0.10 m.
+
+
+      - [Open this output](iteration-4/entity0/versions/0de29dfe11454064b084414ed39c2acd/payload.json)
+
+      - Based on: [entityR1](iteration-4/entityR1/versions/carried-aa9fe4cb8883f932/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-4a9847c4e0954cfc/payload.json)'
+  - id: entity1
+    label: Wheel track 0.095 package
+    notes: 'Builder''s 0.095 m wheel_track with kp trimmed to 3.5 to limit bend overshoot
+      seen at 0.09 m (score 303) and 0.10 m (score 321). Other gains are held from
+      the best iteration.
+
+
+      ### Rationale
+
+
+      Evidence from iterations 2 and 3 (wheel_track 0.10 m scored 321; 0.09 m scored
+      303) points to yaw overshoot on bends as the s-bend limit. Narrowing the track
+      raised oval finishes (0.45 to 0.65) but cut s-bend finishes to zero, and s-bend
+      max_error rose to about 0.0645 m. Steering oscillation on the s-bend fell from
+      0.43 to 0.27, so the bend failure is overshoot, not jitter. The Builder''s geometry
+      sets wheel_track to 0.095 m, halfway between those two designs, with mass 0.6
+      kg, body and wheel radius unchanged, and the five-sensor row at ±0.04 m. Turn
+      rate is (v_R - v_L)/wheel_track, so this track is about 1.05x more responsive
+      than the 0.10 m design. I scale kp down from 3.6 to 3.5, roughly the 0.10/0.095
+      interpolation, to avoid overshooting the bends that iteration 3 overshot. kd
+      stays at 0.6 to keep s-bend oscillation near its iteration 2 level (0.43). ki
+      stays at 0.2, base_speed at 1.4, and line_loss at ''last_direction'', which
+      gave the best results. I expect the oval finish rate near 0.5 to 0.55 and some
+      s-bend completions, for a score near 321. This is a prediction, not a measurement.
+      The observation request covers all metrics so the Builder can read per-track
+      effects.
+
+
+      - [Open this output](iteration-4/entity1/versions/a52c1f2b167a4851b9e667ab6ab7b885/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/0de29dfe11454064b084414ed39c2acd/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-4a9847c4e0954cfc/payload.json)'
+  - id: entityR1
+    label: Overshoot-aware feedback
+    notes: 'Feedback tied to iteration 2 and 3 results: s-bend max_error clusters
+      near 0.0645 m, so the next step depends on whether the s-bend recovers at 0.095
+      m or stays at zero. Requests give sensor forward offset and track fallback branches.
+
+
+      ### Feedback
+
+
+      Written before this candidate has raced. Iteration 2 (wheel_track 0.10 m, kp
+      3.6, kd 0.6, mass 0.6 kg) scored 321, with oval finish 0.45 and s-bend finish
+      0.10. Iteration 3 (wheel_track 0.09 m, kp 3.3) scored 303, with oval finish
+      0.65 but s-bend finish 0.00 and s-bend max_error rising to 0.0645 m. Sensing
+      is not the limit: iteration 1''s wider row cut line loss but lost completions.
+      What I compensated for in the controller: narrowing the track raises yaw per
+      unit of PWM difference, so kp is trimmed from 3.6 to 3.5 for this 0.095 m track,
+      and kd is held at 0.6 to keep s-bend oscillation near 0.43. The next race should
+      be read as follows. If s-bend finish rises above 0.05 and max_error falls below
+      0.063 m while the oval finish holds at or above 0.5, keep wheel_track near 0.095
+      m. If the s-bend stays at zero with max_error still about 0.0645 m, the overshoot
+      is not set by turn authority, so the next lever is the sensor forward offset.
+      If the oval finish drops to 0.45 or below, the track change is not the oval
+      lever, so return to 0.10 m.
+
+
+      ### Requested changes
+
+
+      - If the s-bend finish stays at 0 with max_error still about 0.0645 m, move
+      the sensor row forward to y = 0.06 m with the same five sensors at ±0.04 m (0.02
+      m spacing). Evidence: iterations 2 and 3 both show s-bend max_error clustering
+      at 0.0627 to 0.0645 m, so the sensors may be reacting too late at speed.
+
+      - If the oval finish falls to 0.45 or below and completion_time worsens, return
+      wheel_track to 0.10 m and keep mass 0.6 kg. Evidence: iteration 2 (0.10 m) reached
+      0.45 oval finish, and iteration 0 (0.12 m, mass 0.8 kg) reached only 0.05.
+
+      - If the s-bend finish rises above 0.05 and steering_oscillation stays under
+      about 0.43, keep wheel_track 0.095 m and test base_speed around 1.5 with kp
+      unchanged. Evidence: the s-bend finish recovered in iteration 2 (0.10) when
+      the track was wider, and speed is not yet the binding limit on the oval (finishers
+      ran about 1.73 s).
+
+
+      - [Open this output](iteration-4/entityR1/versions/a52c1f2b167a4851b9e667ab6ab7b885/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/0de29dfe11454064b084414ed39c2acd/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-4a9847c4e0954cfc/payload.json)'
+  - id: entity2
+    label: Score 302.91
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 302.91.
+      Per trial — oval-1: 958.0 (finished); oval-2: 960.3 (finished); oval-3: 956.1
+      (finished); oval-4: 958.7 (finished); oval-5: 259.2 (off_track); oval-6: 960.0
+      (finished); oval-7: 957.3 (finished); oval-8: 951.3 (finished); oval-9: 271.0
+      (off_track); oval-10: 305.9 (off_track); oval-11: 959.2 (finished); oval-12:
+      957.1 (finished); oval-13: 945.7 (finished); oval-14: 304.5 (off_track); oval-15:
+      960.4 (finished); oval-16: 959.4 (finished); oval-17: 954.5 (finished); oval-18:
+      409.1 (off_track); oval-19: 399.6 (off_track); oval-20: 315.1 (off_track); s-bend-1:
+      127.6 (off_track); s-bend-2: 141.1 (off_track); s-bend-3: 135.7 (off_track);
+      s-bend-4: 128.5 (off_track); s-bend-5: 127.6 (off_track); s-bend-6: 127.6 (off_track);
+      s-bend-7: 128.7 (off_track); s-bend-8: 134.1 (off_track); s-bend-9: 144.1 (off_track);
+      s-bend-10: 127.7 (off_track); s-bend-11: 135.7 (off_track); s-bend-12: 127.6
+      (off_track); s-bend-13: 148.6 (off_track); s-bend-14: 141.1 (off_track); s-bend-15:
+      261.9 (off_track); s-bend-16: 134.0 (off_track); s-bend-17: 127.7 (off_track);
+      s-bend-18: 123.5 (off_track); s-bend-19: 123.4 (off_track); s-bend-20: 127.6
+      (off_track); slalom-1: 32.1 (off_track); slalom-2: 33.1 (off_track); slalom-3:
+      36.2 (off_track); slalom-4: 36.2 (off_track); slalom-5: 35.1 (off_track); slalom-6:
+      36.2 (off_track); slalom-7: 37.2 (off_track); slalom-8: 35.2 (off_track); slalom-9:
+      32.1 (off_track); slalom-10: 31.1 (off_track); slalom-11: 32.1 (off_track);
+      slalom-12: 36.2 (off_track); slalom-13: 35.2 (off_track); slalom-14: 36.2 (off_track);
+      slalom-15: 36.2 (off_track); slalom-16: 35.2 (off_track); slalom-17: 36.2 (off_track);
+      slalom-18: 36.2 (off_track); slalom-19: 34.1 (off_track); slalom-20: 36.2 (off_track).
+
+
+      - [Open this output](iteration-3/entity2/versions/743f29d03f114c57b0c89f33db7d02de/payload.json)
+
+      - Based on: [entity1](iteration-3/entity1/versions/67578318b18649f086790450761db7fb/payload.json)'
+  - id: entityR2A
+    label: Score 302.91
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 302.91.
+      Per trial — oval-1: 958.0 (finished); oval-2: 960.3 (finished); oval-3: 956.1
+      (finished); oval-4: 958.7 (finished); oval-5: 259.2 (off_track); oval-6: 960.0
+      (finished); oval-7: 957.3 (finished); oval-8: 951.3 (finished); oval-9: 271.0
+      (off_track); oval-10: 305.9 (off_track); oval-11: 959.2 (finished); oval-12:
+      957.1 (finished); oval-13: 945.7 (finished); oval-14: 304.5 (off_track); oval-15:
+      960.4 (finished); oval-16: 959.4 (finished); oval-17: 954.5 (finished); oval-18:
+      409.1 (off_track); oval-19: 399.6 (off_track); oval-20: 315.1 (off_track); s-bend-1:
+      127.6 (off_track); s-bend-2: 141.1 (off_track); s-bend-3: 135.7 (off_track);
+      s-bend-4: 128.5 (off_track); s-bend-5: 127.6 (off_track); s-bend-6: 127.6 (off_track);
+      s-bend-7: 128.7 (off_track); s-bend-8: 134.1 (off_track); s-bend-9: 144.1 (off_track);
+      s-bend-10: 127.7 (off_track); s-bend-11: 135.7 (off_track); s-bend-12: 127.6
+      (off_track); s-bend-13: 148.6 (off_track); s-bend-14: 141.1 (off_track); s-bend-15:
+      261.9 (off_track); s-bend-16: 134.0 (off_track); s-bend-17: 127.7 (off_track);
+      s-bend-18: 123.5 (off_track); s-bend-19: 123.4 (off_track); s-bend-20: 127.6
+      (off_track); slalom-1: 32.1 (off_track); slalom-2: 33.1 (off_track); slalom-3:
+      36.2 (off_track); slalom-4: 36.2 (off_track); slalom-5: 35.1 (off_track); slalom-6:
+      36.2 (off_track); slalom-7: 37.2 (off_track); slalom-8: 35.2 (off_track); slalom-9:
+      32.1 (off_track); slalom-10: 31.1 (off_track); slalom-11: 32.1 (off_track);
+      slalom-12: 36.2 (off_track); slalom-13: 35.2 (off_track); slalom-14: 36.2 (off_track);
+      slalom-15: 36.2 (off_track); slalom-16: 35.2 (off_track); slalom-17: 36.2 (off_track);
+      slalom-18: 36.2 (off_track); slalom-19: 34.1 (off_track); slalom-20: 36.2 (off_track).
+
+
+      - [Open this output](iteration-3/entityR2A/versions/743f29d03f114c57b0c89f33db7d02de/payload.json)
+
+      - Based on: [entity1](iteration-3/entity1/versions/67578318b18649f086790450761db7fb/payload.json)'
+  - id: entityR2B
+    label: Score 302.91
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 302.91.
+      Per trial — oval-1: 958.0 (finished); oval-2: 960.3 (finished); oval-3: 956.1
+      (finished); oval-4: 958.7 (finished); oval-5: 259.2 (off_track); oval-6: 960.0
+      (finished); oval-7: 957.3 (finished); oval-8: 951.3 (finished); oval-9: 271.0
+      (off_track); oval-10: 305.9 (off_track); oval-11: 959.2 (finished); oval-12:
+      957.1 (finished); oval-13: 945.7 (finished); oval-14: 304.5 (off_track); oval-15:
+      960.4 (finished); oval-16: 959.4 (finished); oval-17: 954.5 (finished); oval-18:
+      409.1 (off_track); oval-19: 399.6 (off_track); oval-20: 315.1 (off_track); s-bend-1:
+      127.6 (off_track); s-bend-2: 141.1 (off_track); s-bend-3: 135.7 (off_track);
+      s-bend-4: 128.5 (off_track); s-bend-5: 127.6 (off_track); s-bend-6: 127.6 (off_track);
+      s-bend-7: 128.7 (off_track); s-bend-8: 134.1 (off_track); s-bend-9: 144.1 (off_track);
+      s-bend-10: 127.7 (off_track); s-bend-11: 135.7 (off_track); s-bend-12: 127.6
+      (off_track); s-bend-13: 148.6 (off_track); s-bend-14: 141.1 (off_track); s-bend-15:
+      261.9 (off_track); s-bend-16: 134.0 (off_track); s-bend-17: 127.7 (off_track);
+      s-bend-18: 123.5 (off_track); s-bend-19: 123.4 (off_track); s-bend-20: 127.6
+      (off_track); slalom-1: 32.1 (off_track); slalom-2: 33.1 (off_track); slalom-3:
+      36.2 (off_track); slalom-4: 36.2 (off_track); slalom-5: 35.1 (off_track); slalom-6:
+      36.2 (off_track); slalom-7: 37.2 (off_track); slalom-8: 35.2 (off_track); slalom-9:
+      32.1 (off_track); slalom-10: 31.1 (off_track); slalom-11: 32.1 (off_track);
+      slalom-12: 36.2 (off_track); slalom-13: 35.2 (off_track); slalom-14: 36.2 (off_track);
+      slalom-15: 36.2 (off_track); slalom-16: 35.2 (off_track); slalom-17: 36.2 (off_track);
+      slalom-18: 36.2 (off_track); slalom-19: 34.1 (off_track); slalom-20: 36.2 (off_track).
+
+
+      - [Open this output](iteration-3/entityR2B/versions/743f29d03f114c57b0c89f33db7d02de/payload.json)
+
+      - Based on: [entity1](iteration-3/entity1/versions/67578318b18649f086790450761db7fb/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}

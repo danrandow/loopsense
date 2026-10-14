@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.3,
+    "ki": 0.2,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.05
+      },
+      {
+        "x": -0.025,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.025,
+        "y": 0.05
+      },
+      {
+        "x": 0.05,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Evidence: all 180 trials across iterations 0 to 2 ended off track, with progress only 0.11 to 0.16 and max_error 0.061 to 0.067 m, just over the 0.06 m limit. Widening the sensors (iteration 1) removed oval line loss but did not keep the robot on the line. Lowering kp from 4.0 to 3.5 and base_speed to 1.2 (iteration 2) made the score worse and left progress near 0.15, so neither change addressed the drift. Every variant drifts out at about the same point, which suggests the controller gain is too high for the signal scale, not that speed or sensor footprint is the limit. A full-scale signal at kp 3.5 gives roughly 1200 PWM of differential against a base PWM of about 2450 at speed 1.2, so the correction is large and overshoots. This design tests a clearly lower gain: kp 2.5, which halves the differential for a given error, with ki raised to 0.2 to cancel the fixed left/right motor mismatch that a weak integral term has not removed, and base_speed cut to 1.0 to favour survival. Sensor footprint returns to 0.012 because iteration 1 showed no oval line loss with it and the 0.016 footprint did not reduce the slalom line loss. kd stays at 0.3, a value that reduced oval oscillation in iteration 1. Expected result: the robot stays on track longer (progress above 0.5), max_error below 0.06 on the oval, and steering_oscillation below 0.10. Completion time will be well over 3 s at this speed, so completion is not expected yet. Hypotheses: (a) kp 2.5 is still enough to track the bends at this speed; (b) the integral term, not kp, was limiting the mismatch correction. If the robot now survives with max_error below 0.06, raise base_speed in steps (1.2, 1.4) before touching kp. If it still drifts with low oscillation, raise ki toward 0.5. If oscillation is high, raise kd toward 0.4."
+}

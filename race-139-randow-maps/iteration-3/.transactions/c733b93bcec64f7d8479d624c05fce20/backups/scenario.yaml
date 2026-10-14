@@ -1,0 +1,222 @@
+map:
+  id: race-139-randow-maps
+  schema: v0.2
+  scenario: Iteration 3
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 2.
+dimensions:
+  time_horizon: prepared
+  iteration: '3'
+overrides:
+  entities:
+  - id: entity0
+    label: Lighter, narrower body
+    notes: 'Keeps the ±0.05 m, 16 mm sensing that gave zero line loss in iteration
+      1, and cuts mass to 0.5 kg, body length to 0.12 m and wheel track to 0.10 m
+      to make the robot turn faster. The aim is to reduce the 0.06 m max_error that
+      still ends every run off track, based on the iteration 1 race telemetry.
+
+
+      ### Rationale
+
+
+      The iteration 1 race (entityR2A, 26.64) removed line loss: line_loss_events
+      is now 0 on all three tracks, down from 1 per run. Every run still ends off_track,
+      with max_error about 0.06 m (the off-track limit) and progress of only 0.035
+      to 0.11. So the line is no longer lost. The robot drifts off while the tape
+      is still under the sensors, which points to a tracking response problem, not
+      a sensing-coverage problem. Steering oscillation is unchanged at about 0.07,
+      so the 16 mm footprint is not causing jitter and the ±0.05 m spread is not the
+      limiting factor. The off-track limit is max(0.06, 0.0125 + body_width/4). Body
+      width 0.18 would only give 0.0575, below the 0.06 floor, so body width cannot
+      buy margin and I keep 0.12. What remains is how quickly the body turns and how
+      much inertia it has. Yaw inertia is mass*(L²+W²)/12. I lower it by reducing
+      mass from 0.7 to 0.5 kg and body length from 0.16 to 0.12 m, so the same wheel
+      difference turns the robot faster and it can correct drift before reaching 0.06
+      m. I narrow wheel_track from 0.12 to 0.10 m, which raises turn rate per unit
+      of wheel difference by about 20%, so the controller''s fixed 350 PWM per turn
+      unit has more effect. Sensors stay at ±0.05 m, y = 0.04, 16 mm, which the feedback
+      shows is giving zero line loss. Wheel radius stays 0.03 m to keep the speed
+      needed for a 3 s finish. Expected result: max_error falls below 0.06 m, progress
+      rises above 0.11, and some runs reach progress above 0.5. Risk: a narrower track
+      and lighter body may increase oscillation, which I will check against the 0.07
+      baseline.
+
+
+      - [Open this output](iteration-2/entity0/versions/67ffdf62bfb74631a154c24a19fdce5b/payload.json)
+
+      - Based on: [entityR1](iteration-2/entityR1/versions/carried-8b722f533ef8770e/payload.json),
+      [entityR2A](iteration-2/entityR2A/versions/carried-f208c0698a5c1abe/payload.json)'
+  - id: entity1
+    label: Lighter body, faster yaw
+    notes: 'Adopts the Builder''s lighter, narrower body (0.5 kg, 0.12 m long, 0.10
+      m track) with the sensing that removed line loss in iteration 1. kd is raised
+      to 0.10 to damp the faster yaw response, and kp stays at 2.0 because the narrower
+      track already adds about 20% turn authority.
+
+
+      ### Rationale
+
+
+      Iteration 1 (entityR2A, 26.64) removed line loss: line_loss_events is 0 on all
+      three tracks, down from 1 per run. Every run still ends off_track with max_error
+      about 0.06 m and progress of only 0.035 to 0.11. The robot now drifts off while
+      the tape is still under the sensors, so the limit is how fast the body turns,
+      not what the sensors see. Steering oscillation stayed near 0.07 with the 16
+      mm footprint and the +/-0.05 m spread, so sensing is not causing jitter. The
+      Builder''s geometry lowers yaw inertia (mass 0.7 to 0.5 kg, body length 0.16
+      to 0.12 m) and narrows wheel_track from 0.12 to 0.10 m. Narrowing the track
+      raises turn rate per unit of wheel difference by about 20%, so the controller''s
+      fixed 350 PWM per turn unit has more effect. That is a gain increase of about
+      20%, so I keep kp at 2.0 instead of raising it, which would add oscillation
+      on top of the extra authority. The lighter body is less damped, so I raise kd
+      from 0.05 to 0.10 to damp the faster yaw response. ki stays 0 to avoid windup.
+      base_speed stays 1.6 because the robot needs roughly 1.5 m/s average to finish
+      in 3 s. line_loss stays last_direction, which has worked since line loss went
+      to zero. Sensor weights stay [-2,-1,0,1,2] to match the unchanged +/-0.05 m
+      spread, keeping the signal near +/-2. Expected result: max_error falls below
+      0.06 m and progress rises above 0.11. Risk: steering_oscillation may rise above
+      the 0.07 baseline, in which case kd is the first thing to check.
+
+
+      - [Open this output](iteration-2/entity1/versions/7fbd8827ac934757b1c7f54640caa3ac/payload.json)
+
+      - Based on: [entity0](iteration-2/entity0/versions/67ffdf62bfb74631a154c24a19fdce5b/payload.json),
+      [entityR2B](iteration-2/entityR2B/versions/carried-f208c0698a5c1abe/payload.json)'
+  - id: entityR1
+    label: Stepwise fallback changes
+    notes: 'Feedback is written before the race and cites iteration 1 (zero line loss,
+      max_error 0.06 m, oscillation 0.07). It gives three branches to try depending
+      on whether oscillation, off-track drift, or line loss appears next.
+
+
+      ### Feedback
+
+
+      Written before this candidate has raced, so no outcome is claimed for it. Evidence
+      from iteration 1 (entityR2A, 26.64): line_loss_events is 0 on all tracks with
+      the +/-0.05 m spread and 16 mm footprint, and every run still ends off_track
+      with max_error about 0.06 m and progress 0.035 to 0.11. Steering oscillation
+      held near 0.07. So the remaining problem is body response, not sensing. What
+      I had to compensate for: narrowing wheel_track and lowering mass raises turn
+      authority, so I kept kp at 2.0 rather than increasing it, and raised kd from
+      0.05 to 0.10 to damp the lighter body. Keep ki at 0 and the spread at +/-0.05
+      m. Next race: if steering_oscillation rises above about 0.1 while max_error
+      stays near 0.06 m, the inertia change is probably too aggressive; revert wheel_track
+      to 0.12 m and keep the lighter body to isolate the effect. If max_error improves
+      but the robot still goes off track, try wheel_track 0.09 m for more turn authority.
+      If line_loss_events goes above 0, the narrower track has moved the sensors relative
+      to the line, so widen the spread to +/-0.065 m.
+
+
+      ### Requested changes
+
+
+      - If steering_oscillation exceeds about 0.1 with max_error still near 0.06 m
+      (iteration 1 showed oscillation 0.07 and max_error 0.06 m), revert wheel_track
+      to 0.12 m and keep the lighter body to isolate the inertia effect.
+
+      - If max_error falls but runs still go off track (iteration 1 max_error 0.06
+      m), try wheel_track 0.09 m to add turn authority, keeping mass 0.5 kg.
+
+      - If line_loss_events rises above 0 (zero in iteration 1), widen sensor x to
+      +/-0.065 m (-0.065, -0.0325, 0, 0.0325, 0.065) with sensor_size 0.016, since
+      the narrower track shifts where the line falls under the sensors.
+
+
+      - [Open this output](iteration-2/entityR1/versions/7fbd8827ac934757b1c7f54640caa3ac/payload.json)
+
+      - Based on: [entity0](iteration-2/entity0/versions/67ffdf62bfb74631a154c24a19fdce5b/payload.json),
+      [entityR2B](iteration-2/entityR2B/versions/carried-f208c0698a5c1abe/payload.json)'
+  - id: entity2
+    label: Score 26.64
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 26.64.
+      Per trial — oval-1: 49.0 (off_track); oval-2: 49.0 (off_track); oval-3: 49.0
+      (off_track); oval-4: 49.0 (off_track); oval-5: 49.0 (off_track); oval-6: 49.0
+      (off_track); oval-7: 49.0 (off_track); oval-8: 49.0 (off_track); oval-9: 49.0
+      (off_track); oval-10: 49.0 (off_track); oval-11: 49.0 (off_track); oval-12:
+      49.0 (off_track); oval-13: 49.0 (off_track); oval-14: 49.0 (off_track); oval-15:
+      49.0 (off_track); oval-16: 49.0 (off_track); oval-17: 49.0 (off_track); oval-18:
+      49.0 (off_track); oval-19: 49.0 (off_track); oval-20: 49.0 (off_track); s-bend-1:
+      17.1 (off_track); s-bend-2: 17.1 (off_track); s-bend-3: 17.1 (off_track); s-bend-4:
+      17.1 (off_track); s-bend-5: 17.1 (off_track); s-bend-6: 17.1 (off_track); s-bend-7:
+      17.1 (off_track); s-bend-8: 17.1 (off_track); s-bend-9: 17.1 (off_track); s-bend-10:
+      17.1 (off_track); s-bend-11: 17.1 (off_track); s-bend-12: 17.1 (off_track);
+      s-bend-13: 17.1 (off_track); s-bend-14: 17.1 (off_track); s-bend-15: 17.1 (off_track);
+      s-bend-16: 17.1 (off_track); s-bend-17: 17.1 (off_track); s-bend-18: 17.1 (off_track);
+      s-bend-19: 17.1 (off_track); s-bend-20: 17.1 (off_track); slalom-1: 13.8 (off_track);
+      slalom-2: 13.8 (off_track); slalom-3: 13.8 (off_track); slalom-4: 13.8 (off_track);
+      slalom-5: 13.8 (off_track); slalom-6: 13.8 (off_track); slalom-7: 13.8 (off_track);
+      slalom-8: 13.8 (off_track); slalom-9: 13.8 (off_track); slalom-10: 13.8 (off_track);
+      slalom-11: 13.8 (off_track); slalom-12: 13.8 (off_track); slalom-13: 13.8 (off_track);
+      slalom-14: 13.8 (off_track); slalom-15: 13.8 (off_track); slalom-16: 13.8 (off_track);
+      slalom-17: 13.8 (off_track); slalom-18: 13.8 (off_track); slalom-19: 13.8 (off_track);
+      slalom-20: 13.8 (off_track).
+
+
+      - [Open this output](iteration-2/entity2/versions/b2ead15a38864d0a87e83e73e502a344/payload.json)
+
+      - Based on: [entity1](iteration-2/entity1/versions/7fbd8827ac934757b1c7f54640caa3ac/payload.json)'
+  - id: entityR2A
+    label: Score 26.64
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 26.64.
+      Per trial — oval-1: 49.0 (off_track); oval-2: 49.0 (off_track); oval-3: 49.0
+      (off_track); oval-4: 49.0 (off_track); oval-5: 49.0 (off_track); oval-6: 49.0
+      (off_track); oval-7: 49.0 (off_track); oval-8: 49.0 (off_track); oval-9: 49.0
+      (off_track); oval-10: 49.0 (off_track); oval-11: 49.0 (off_track); oval-12:
+      49.0 (off_track); oval-13: 49.0 (off_track); oval-14: 49.0 (off_track); oval-15:
+      49.0 (off_track); oval-16: 49.0 (off_track); oval-17: 49.0 (off_track); oval-18:
+      49.0 (off_track); oval-19: 49.0 (off_track); oval-20: 49.0 (off_track); s-bend-1:
+      17.1 (off_track); s-bend-2: 17.1 (off_track); s-bend-3: 17.1 (off_track); s-bend-4:
+      17.1 (off_track); s-bend-5: 17.1 (off_track); s-bend-6: 17.1 (off_track); s-bend-7:
+      17.1 (off_track); s-bend-8: 17.1 (off_track); s-bend-9: 17.1 (off_track); s-bend-10:
+      17.1 (off_track); s-bend-11: 17.1 (off_track); s-bend-12: 17.1 (off_track);
+      s-bend-13: 17.1 (off_track); s-bend-14: 17.1 (off_track); s-bend-15: 17.1 (off_track);
+      s-bend-16: 17.1 (off_track); s-bend-17: 17.1 (off_track); s-bend-18: 17.1 (off_track);
+      s-bend-19: 17.1 (off_track); s-bend-20: 17.1 (off_track); slalom-1: 13.8 (off_track);
+      slalom-2: 13.8 (off_track); slalom-3: 13.8 (off_track); slalom-4: 13.8 (off_track);
+      slalom-5: 13.8 (off_track); slalom-6: 13.8 (off_track); slalom-7: 13.8 (off_track);
+      slalom-8: 13.8 (off_track); slalom-9: 13.8 (off_track); slalom-10: 13.8 (off_track);
+      slalom-11: 13.8 (off_track); slalom-12: 13.8 (off_track); slalom-13: 13.8 (off_track);
+      slalom-14: 13.8 (off_track); slalom-15: 13.8 (off_track); slalom-16: 13.8 (off_track);
+      slalom-17: 13.8 (off_track); slalom-18: 13.8 (off_track); slalom-19: 13.8 (off_track);
+      slalom-20: 13.8 (off_track).
+
+
+      - [Open this output](iteration-2/entityR2A/versions/b2ead15a38864d0a87e83e73e502a344/payload.json)
+
+      - Based on: [entity1](iteration-2/entity1/versions/7fbd8827ac934757b1c7f54640caa3ac/payload.json)'
+  - id: entityR2B
+    label: Score 26.64
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 26.64.
+      Per trial — oval-1: 49.0 (off_track); oval-2: 49.0 (off_track); oval-3: 49.0
+      (off_track); oval-4: 49.0 (off_track); oval-5: 49.0 (off_track); oval-6: 49.0
+      (off_track); oval-7: 49.0 (off_track); oval-8: 49.0 (off_track); oval-9: 49.0
+      (off_track); oval-10: 49.0 (off_track); oval-11: 49.0 (off_track); oval-12:
+      49.0 (off_track); oval-13: 49.0 (off_track); oval-14: 49.0 (off_track); oval-15:
+      49.0 (off_track); oval-16: 49.0 (off_track); oval-17: 49.0 (off_track); oval-18:
+      49.0 (off_track); oval-19: 49.0 (off_track); oval-20: 49.0 (off_track); s-bend-1:
+      17.1 (off_track); s-bend-2: 17.1 (off_track); s-bend-3: 17.1 (off_track); s-bend-4:
+      17.1 (off_track); s-bend-5: 17.1 (off_track); s-bend-6: 17.1 (off_track); s-bend-7:
+      17.1 (off_track); s-bend-8: 17.1 (off_track); s-bend-9: 17.1 (off_track); s-bend-10:
+      17.1 (off_track); s-bend-11: 17.1 (off_track); s-bend-12: 17.1 (off_track);
+      s-bend-13: 17.1 (off_track); s-bend-14: 17.1 (off_track); s-bend-15: 17.1 (off_track);
+      s-bend-16: 17.1 (off_track); s-bend-17: 17.1 (off_track); s-bend-18: 17.1 (off_track);
+      s-bend-19: 17.1 (off_track); s-bend-20: 17.1 (off_track); slalom-1: 13.8 (off_track);
+      slalom-2: 13.8 (off_track); slalom-3: 13.8 (off_track); slalom-4: 13.8 (off_track);
+      slalom-5: 13.8 (off_track); slalom-6: 13.8 (off_track); slalom-7: 13.8 (off_track);
+      slalom-8: 13.8 (off_track); slalom-9: 13.8 (off_track); slalom-10: 13.8 (off_track);
+      slalom-11: 13.8 (off_track); slalom-12: 13.8 (off_track); slalom-13: 13.8 (off_track);
+      slalom-14: 13.8 (off_track); slalom-15: 13.8 (off_track); slalom-16: 13.8 (off_track);
+      slalom-17: 13.8 (off_track); slalom-18: 13.8 (off_track); slalom-19: 13.8 (off_track);
+      slalom-20: 13.8 (off_track).
+
+
+      - [Open this output](iteration-2/entityR2B/versions/b2ead15a38864d0a87e83e73e502a344/payload.json)
+
+      - Based on: [entity1](iteration-2/entity1/versions/7fbd8827ac934757b1c7f54640caa3ac/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}

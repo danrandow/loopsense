@@ -1,0 +1,44 @@
+{
+  "feedback_request": {
+    "questions": [
+      "Did the array's wider span (\u00b10.03 m) and forward position (y = 0.06 m) reduce off-track exits compared with iteration 0? Report the number of off-track runs and max_error per track.",
+      "Was the signal smooth across the 15 mm spacing, or did it saturate when the robot was centred? If saturation occurred, does that suggest narrowing spacing or lowering weights?",
+      "With wheel_track 0.11 m and mass 0.7 kg, did the robot oscillate on the s-bend or slalom? If so, does steering_oscillation point to reducing the sensor weights rather than adding kd?",
+      "Did the robot reach a speed that could finish in under 3 s on any track, or did speed limit completion time?"
+    ],
+    "suggested_changes_to_test": "If max_error is still above 0.06 m on bends, try sensor spacing of 0.01 m (x from -0.02 to +0.02) for a finer signal. If the robot completes but takes more than about 3 s, raise wheel_radius to 0.035 m. If steering oscillates, lower the weights to [-1,-0.5,0,0.5,1] before adding derivative gain."
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.11
+  },
+  "intent": "Test whether a wider (\u00b10.03 m), forward-placed (y = 0.06 m) five-sensor array with a narrower 0.11 m wheel track and lower mass keeps the robot on the line through bends. Success means off-track exits drop and max_error stays under about 0.05 m. The controller should be the Integrator's to set; I supply only the geometry and the weights' shape [-2,-1,0,1,2].",
+  "learning": "Expect to learn whether the off-track failures come from detection delay (sensors too close to the axle and too narrow) or from insufficient turn authority (wheel_track). The change to wheel_track and mass is paired with the sensor change, so the race cannot isolate which one helped. The next iteration should separate them if the result is mixed. Telemetry should report per-step line error so the bend behaviour can be read directly.",
+  "rationale": "Iteration 0 raced in all 60 trials across three tracks and every run went off track (finish rate 0). Progress stalled at 0.08 to 0.15, and max_error (0.060 to 0.069 m) reached or exceeded the 0.06 m off-track limit. Line-loss events were 1 to 2 per run. The evidence points at the robot losing the line on bends, not at speed, since runs ended before any time limit mattered. Three geometry levers follow from this. (1) Widen the sensor array from \u00b10.02 m to \u00b10.03 m, as the Integrator suggested, so the outer sensors see the tape sooner and the signal reacts before the robot drifts past 0.06 m. Keep 5 sensors with the same graded weights [-2,-1,0,1,2] so the Integrator's controller is unchanged in structure. Sensor x values at -0.03, -0.015, 0, 0.015, 0.03 keep the spacing even at 15 mm. (2) Move the sensors forward to y = 0.06 m, giving about 4 cm more look-ahead so the steering reacts earlier and lag is reduced. This stays inside the 0.08 m limit. (3) Narrow wheel_track from 0.12 to 0.11 m, which gives more turn rate per unit of wheel PWM difference on sharp bends. I also lower mass from 0.8 to 0.7 kg to reduce yaw inertia and speed up turn response. I keep sensor_size 0.012 (the tape still covers about two sensors), wheel_radius 0.03 and body_width 0.12. Body width cannot help: the off-track limit is max(0.06, 0.0125 + body_width/4), and it stays at the 0.06 floor for any body width up to 0.18. Expected result: fewer off-track exits and max_error below about 0.05 m on the bends, with the robot finishing at least some runs. If the robot still leaves the line, the next lever is spacing or wheel_radius, depending on whether time or error limits it."
+}

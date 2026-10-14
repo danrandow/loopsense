@@ -1,0 +1,54 @@
+{
+  "feedback_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ],
+    "questions": [
+      "Did line_loss_events fall on the s-bend and slalom compared with the baseline (about 1 per run)? If not, is the cause look-ahead, turn authority, or both?",
+      "Did steering_oscillation rise with the narrower 0.10 m track or the longer 0.06 m look-ahead? Is the controller lagging (large max_error with low oscillation) or jittering (high oscillation)?",
+      "Does the robot now finish the oval, and is completion_time under 3 s? If it finishes with low error, the next change should be speed (wheel_radius or base_speed) rather than geometry.",
+      "Does the signal stay monotonic across the sensors at y 0.06, or does the longer look-ahead reduce reading quality on the outer sensors during sharp bends?"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "intent": "Test whether a longer look-ahead (sensors 0.06 m ahead of the axle, up from 0.04 m) and a narrower wheel track (0.10 m, up from 0.12 m, for more turn authority) keep the robot on the line through the s-bend and slalom. Expected result: line_loss_events and max_error fall on the sharpest bends, and s-bend progress rises above 0.26 without a rise in steering_oscillation.",
+  "learning": "Baseline finished 2 of 60 trials, with failures on the s-bend and slalom. The baseline drift was driven by late reaction, not oscillation. Next: if look-ahead alone fixes the sharp bends, keep 0.06 and revisit wheel_track; if oscillation rises, return to 0.12 m track and try a smaller sensor footprint or fewer changes.",
+  "rationale": "The baseline (score 176) fails mainly by leaving the line. On the s-bend all 20 trials went off track (progress 0.26) and on the slalom progress was 0.10. Max error sits at about 0.060 m, which is the off-track floor, so the robot reaches the edge of the allowed band rather than oscillating. Steering oscillation (0.21 to 0.32) and rms error (0.02 to 0.03 m) are low, so the controller is not jittering; it is reacting too late on bends. Line loss averages about 1 event per run, which fits a loss on the sharpest bend. The 40 mm look-ahead is the most likely cause, as the Integrator predicted. Body width cannot help: the off-track limit is max(0.06, 0.0125 + body_width/4), which is 0.06 for every allowed body width, so I leave body width alone. Changes: (1) move all five sensors forward from y 0.04 to y 0.06 to lengthen look-ahead to about 0.06 m, keeping the x positions and the 12 mm footprint at 15 mm pitch, which the Integrator said must stay so the antisymmetric weights remain valid. (2) Narrow wheel_track from 0.12 to 0.10 m. For a given wheel PWM difference, turn rate is the wheel speed difference divided by track width, so this gives more turn authority for sharp bends. I keep wheel_radius, mass and body dimensions unchanged to limit the number of variables moved at once. Expected result: fewer line-loss events and lower max_error on the s-bend and slalom, with progress rising well above 0.26 on the s-bend. Risk: the longer look-ahead may add lag on tight bends, and the narrower track may increase oscillation, so the next race must report both."
+}

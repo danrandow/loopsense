@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.3,
+    "ki": 0.0,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": -0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.008,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "controller_errors"
+    ]
+  },
+  "rationale": "Evidence from iteration 0: all 60 development trials went off track (ended_by off_track: 20/20 on each track). Progress was only 0.05 to 0.13, so no run finished. Every run had 2 line-loss events, which means the robot lost the tape early and never recovered. max_error was about 0.06 to 0.068 m, right at the off-track limit of 0.0625 m, and rms_error was about 0.025 to 0.029 m. Steering oscillation was moderate (about 0.15). The likely cause is over-aggressive steering at high speed: kp = 4 gives up to 1400 PWM of differential for a full-scale signal, and kd = 0.1 is too weak to damp the swing. The robot overshoots across the line, loses it, and drifts off. Changes: (1) kp 4.0 to 2.5, to halve the steering gain and reduce overshoot. (2) kd 0.1 to 0.3, to add damping against the fast signal changes. (3) base_speed 1.8 to 1.6, to give the controller more time to correct on bends. The trade-off is a slower lap, so completion_time may rise, but staying on track matters more while the robot fails early. Geometry is unchanged so that the controller change is the only variable. Expected result: line_loss_events fall to 0 or 1, progress rises well above 0.13, and at least some runs complete. Hypotheses to test: (H1) the early off-track is caused by overshoot, so line_loss_events should drop with lower kp; (H2) with the line held, progress should reach at least 0.5 on the oval; (H3) if the runs still leave the track, the problem is sensor geometry or the line-loss response rather than gains. Next measurements to check: completion, progress, completion_time, line_loss_events, max_error and steering_oscillation. If the runs now stay on track but do not finish within 3 s, raise base_speed toward 2.0. If oscillation is still high, lower kp further or raise kd."
+}

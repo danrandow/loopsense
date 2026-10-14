@@ -1,0 +1,53 @@
+{
+  "feedback_request": {
+    "measurements_requested": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ],
+    "questions": [
+      "Did the wider 72 mm span stop line loss on the s-bend and slalom, and did line_loss_events fall from 1 to 2 down to 0 or 1?",
+      "Did max_error move below the 0.06 m off-track limit, and on which track did the robot first fail?",
+      "Did the 0.10 m wheel track and narrower span make the controller saturate, or did steering_oscillation rise noticeably on the tight bends?",
+      "Did the shorter 30 mm lead reduce overshoot, or did the robot now react too late on sharp bends?"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.036,
+        "y": 0.03
+      },
+      {
+        "x": -0.018,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.018,
+        "y": 0.03
+      },
+      {
+        "x": 0.036,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "intent": "Test whether the iteration-0 failure is a lost-line problem at large offsets rather than a resolution problem. Changes from iteration 0: sensor span widened from 48 mm to 72 mm (x = \u00b10.036 m, 18 mm spacing), footprint 12 mm to 16 mm, lead reduced from y = 0.05 m to 0.03 m, and wheel track narrowed from 0.12 m to 0.10 m for more turn authority. Expected result: line_loss_events drop to 0 or 1 on the s-bend and slalom, max_error falls below 0.06 m on at least the oval, and finish rate rises above zero.",
+  "learning": "Iteration 0 showed that the failure is an off-track excursion at max_error of about 0.06 m with low rms_error, and that line loss precedes it. So sensor coverage at large offsets is the first thing to test. If this iteration finishes, next test the lead and wheel track separately. If it still fails with line loss at 0, the cause is turn authority, and the next step is a wheel track of 0.08 m or a lighter mass.",
+  "rationale": "Iteration 0 raced all 60 development trials and none finished. Every trial ended off_track, with max_error around 0.061 m. That is essentially the off-track limit of 0.06 m, which is the larger of 0.06 m and tape_half_width + body_width/4 (0.0425 m for the 0.12 m body). rms_error stayed low at 0.023 to 0.030 m, so the robot tracks well on average and fails on short excursions. Those excursions are the problem. line_loss_events were 1 to 2 per run, which means the line left the 48 mm sensor span during the largest offsets. At a 0.06 m offset the tape centre sits 0.06 m from the robot centre, so with sensors at x = -0.024 to +0.024 and 12 mm footprints, none of the sensors sees the tape. Once all sensors lose the line, the controller falls back to throttle 0.35 with a fixed signal, and the robot leaves the track. The body width cannot fix this, because widening the body only raises the off-track limit to 0.0575 m, which is still below the 0.06 m floor and does not help. The change I propose is to widen the sensor span so the array keeps the tape in view at larger offsets. I am also shortening the lead and widening the sensing footprint so the sensors do not miss the tape at the edge of the span. Finally, I am narrowing the wheel track to 0.10 m to increase turn authority on the tightest bends. Expected result: fewer line-loss events on the s-bend and slalom, a smaller max_error, and a first finish on at least some oval and s-bend seeds. Main risk: the wider span gives coarser resolution near centre, so steering may get more jittery."
+}

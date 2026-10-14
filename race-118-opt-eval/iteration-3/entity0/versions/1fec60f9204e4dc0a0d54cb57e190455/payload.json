@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.3,
+    "ki": 0.05,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      2,
+      1,
+      0,
+      -1,
+      -2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.024,
+        "y": 0.03
+      },
+      {
+        "x": 0.012,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": -0.012,
+        "y": 0.03
+      },
+      {
+        "x": -0.024,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 1 (sensor 0.012, score 128.9) and iteration 2 (sensor 0.016, score 115.4) both ended every run off_track. max_error stayed at 0.062 to 0.063 m against the 0.06 m limit on all tracks, and rms_error was about 0.023 to 0.029 m, so the robot tracks the line on average but makes short excursions past the edge. Going from 0.012 to 0.016 cut line_loss_events on the oval (1.9 to 1.2) and s-bend (1.85 to 1.15), and gave the only oval finish (1 of 20). Its mean score fell mainly because oval progress dropped (0.61 to 0.48). The slalom line-loss count (1.0) did not change. steering_oscillation (0.14 to 0.28) is low, so kd 0.3 is not too much damping. The body width cannot widen the off-track limit, which stays at 0.06 m.\n\nChange. I keep sensor_size at 0.016, since it reduces line loss on two tracks and gives the best oval finish, and I raise controller.kp from 2.0 to 2.5. This follows the Evaluator's conditional rule for the case where line loss falls but max_error still reaches about 0.06 m on bends: the limit is steering authority, not signal loss. base_speed 1.3, kd 0.3, ki 0.05, weights [2,1,0,-1,-2] and last_direction stay unchanged so the effect of kp is isolated.\n\nExpected result. max_error should drop below about 0.058 m on the s-bend and slalom, and line_loss_events should stay near 1 or lower. Progress on the oval should rise. Risk: a higher kp may increase steering_oscillation, which I will watch.\n\nHypotheses and next measurements. (1) If max_error falls below 0.06 but completion_time is above 3 s, raise base_speed to 1.5 with kp 2.5. (2) If max_error still reaches 0.06 with kp 2.5, try kp 3.0 and check whether steering_oscillation rises sharply. (3) If line_loss_events stay at 1 or more per run, test controller.line_loss = search_right as the only change. I need per-track max_error, line_loss_events, progress, completion_time and steering_oscillation."
+}

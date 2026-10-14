@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.2,
+    "ki": 0.0,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 3 (kp 2.5, kd 0.1, base_speed 1.4; score 49.59) against iteration 1 (kp 2.0, kd 0.2, base_speed 1.4; score 75.97). Only kp and kd differ between these two, and the drop came with kp rising and kd falling. Progress fell on the s-bend (0.29 to 0.15) and the oval (0.16 to 0.10). max_error stayed at 0.062 to 0.065, so kp 2.5 did not move the failure point. Iteration 2 (base 1.2, kd 0.1, kp 2.0) gave nearly the same oval result (0.1025 progress, identical per-metric values to iteration 3). That points to kd 0.1 as the cause of the progress loss, not base_speed. So kd 0.2 looks like it supplies damping that buys progress, and kd 0.1 gives back progress while lowering jitter. Kp 2.5 did not help max_error, so the kp step is not the lever. The evaluator's rule for a stuck max_error suggests changing sensor geometry.\n\nChange: return to the iteration 1 controller (kp 2.0, kd 0.2, base_speed 1.4, ki 0, line_loss last_direction, weights unchanged). This is the best raced design. The one change is sensor spacing, widened from x = -0.02..0.02 to x = -0.03..0.03 (step 0.015). Outer sensors then see the tape at larger lateral offsets, so the line should be held longer before the 0.06 m limit and the line-loss events on the s-bend and slalom (about 2 each) should drop. Keeping the controller fixed isolates the sensor effect against the iteration 1 baseline.\n\nExpected result: max_error below about 0.06 on at least one track, line_loss_events below 2 on the s-bend and slalom, and progress at or above iteration 1 (s-bend 0.29, oval 0.16). Risk: kd 0.2 gave steering_oscillation of 0.23 on the s-bend. If oscillation is high with max_error still near 0.06, the next step is kd 0.15 rather than more kp. If progress falls with spacing wider, return to the iteration 1 spacing and test sensor_size 0.016 instead.\n\nHypotheses: (H1) wider sensor spacing reduces line loss on sharp bends; (H2) kd 0.2 is needed to keep progress; (H3) max_error is set by the bend geometry and the sensor reach, not kp. Measurements wanted: max_error and where it peaks, line_loss_events per track, steering_oscillation, progress per track, and completion_time if any run finishes."
+}

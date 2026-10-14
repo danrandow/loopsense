@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.8,
+    "ki": 0.02,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.75,
+      -0.5,
+      0.0,
+      0.5,
+      0.75,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.03
+      },
+      {
+        "x": -0.04,
+        "y": 0.03
+      },
+      {
+        "x": -0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.04,
+        "y": 0.03
+      },
+      {
+        "x": 0.06,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 4 widened the array to 7 sensors at x = \u00b10.06 m, with base 1.2, kp 5.0, kd 0.8 and ki 0.02. Line-loss events fell from about 1 per run to 0, which supports the sensor-edge hypothesis for line loss. But max_error stayed at 0.063 m, so off-track exits continued. Oval finishes fell from 2 of 20 to 0, and the score dropped from 160.6 to 99.7. Progress on the oval fell from 0.68 to 0.40.\n\nThe likely cause of the regression is the weights, not the geometry. Iteration 4 changed the inner weights from \u00b10.5 at x = \u00b10.02 to \u00b10.33, and from \u00b11 at x = \u00b10.04 to \u00b10.67. Under the weighted-average signal, that roughly halves the steering gain for a given lateral offset. The robot therefore reacts more weakly on bends, and speed and gain changes in iterations 1 to 3 showed that steering authority is sensitive here.\n\nChange. Keep the proven 7-sensor array at \u00b10.06 m, which has removed line loss. Restore the inner steering gain with weights [-1, -0.75, -0.5, 0, 0.5, 0.75, 1]. The outer weights stay at \u00b11, and the new inner weights are between iteration 1's 0.5 and iteration 4's 0.33 and 0.67. Controller, geometry and line_loss are otherwise unchanged (base 1.2, kp 5.0, kd 0.8, ki 0.02, last_direction). This is a single-variable test against iteration 4 and tests whether the finish losses come from the weight pattern.\n\nExpected result: line_loss stays near 0, oval finishes recover toward iteration 1's level, and the score rises toward or above 160. max_error may still sit near 0.06 m, since iterations 1 to 4 showed that max_error does not respond to speed or gain. Hypotheses: (a) the finish losses in iteration 4 came from the reduced inner gain; (b) the remaining max_error of about 0.06 m comes from the fixed motor mismatch or from lag, because sensors at y = 0.03 m are ahead of the axle. The next race should check whether ki (to counter a constant mismatch bias) or moving the sensor row closer to the axle (y 0.00 to 0.01) reduces max_error.\n\nRisks: the wider array may still add noise, so watch steering_oscillation. If it rises above about 0.4 while max_error is below 0.05 m, trim kd to about 0.5 as the Evaluator advised."
+}
