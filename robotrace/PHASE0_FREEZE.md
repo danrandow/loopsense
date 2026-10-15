@@ -375,3 +375,50 @@ apparent noise, so at the same N=16 it should have more power to detect a real d
 an arm beats matched search, even where the mean-difference test cannot. This is a prediction, not a
 guarantee: it is being written down before the comparison is run specifically so it can be checked against
 what actually happens, not fitted to it afterward.
+
+**Outcome, recorded in `GATE8_REPORT.md`:** the prediction was wrong. Fisher's exact came back p=1.0 (15/16
+vs 16/16 wins — both arms win almost every race, so a win/loss count cannot see the difference), while the
+mean-difference CI showed a huge, obvious effect (opt-solo's improvement 422 points above opt-eval's, CI
+excluding 0 by a wide margin) specifically *because* the two arms differ in margin size, not win rate — the
+opposite of the failure mode this amendment was written to guard against. Left here unedited, not corrected
+after the fact.
+
+## §4e. Gate 9 pre-registration: solo-vs-eval replication (2026-10-15, committed before any Gate 9 race runs)
+
+**Question.** Gate 8 found opt-solo's paired improvement 422 points above opt-eval's (Welch 95% CI
+[−542, −302], decisive at N=16). That gap is large enough to warrant a direct, independent replication
+before any further gate treats it as established — same two templates, fresh races, fresh model calls,
+before anything is built on top of it.
+
+**Design.** 6 opt-eval races and 6 opt-solo races, interleaved in submission order (opt-eval, opt-solo,
+opt-eval, ...), run today, same `package-templates/opt-eval` and `package-templates/opt-solo` as Gate 8
+(no template changes), same model (`anthropic/claude-haiku-5.5` via OpenRouter), same 12-iteration race
+length, same primary_metric (fresh validation seeds 5000-5029 + the 9 fresh same-family tracks at
+`FRESH_TRACK_SEED = 777`). The matched-hill-climb baseline reuses `tools/baseline_search.py`'s `mutate()`
+exactly as in Gates 6-8 (3 replicates per race, started from that race's own iteration-0 design), but with
+fresh rng seeds (**21, 22, 23**, distinct from Gates 6-8's 1/2/3) — not because seed reuse across different
+races would actually leak anything (each hill-climb starts from a different, race-specific design), but
+because Dan asked for new rng seeds for this replication and there is no cost to honouring that.
+
+**Metric.** Paired improvement (final iteration − iteration 0) on primary_metric, exactly as in §4c/§4d.
+
+**Decision rule, stated before any Gate 9 data exists:** the replication **holds** if opt-solo's mean paired
+improvement exceeds opt-eval's with a Welch 95% CI on the difference that excludes 0. If the CI includes 0,
+the replication **does not hold at this power** — reported as that, not as evidence the Gate 8 effect was
+wrong, since n=6 per arm is a much smaller, less powerful sample than Gate 8's n=16.
+
+**Power, stated now.** Using Gate 8's own observed sds (opt-eval 184.27, opt-solo 160.96) as the planning
+estimate, the Welch SE at n=6 per arm is `sqrt(184.27²/6 + 160.96²/6) ≈ 100 points`, giving a 95% CI
+half-width of about 196 points — this replication can only detect a gap larger than roughly 200 points.
+Gate 8's observed gap (422 points) clears that bar with room to spare if it reproduces at anything close to
+its original size; a true gap under ~200 points would likely show as "does not hold at this power" even if
+real, exactly as the smaller gaps in §4c/§4d already do.
+
+**Cost.** Hard cap **$1.00** for this replication (the user's figure for "paid replication, cap $1.00"), on
+top of the free zero-cost items also run under Gate 9; the gate's own stated total cap is $1.20 and the free
+items spend $0. Per-race cost read from `usage.cost` on each OpenRouter response, same mechanism as Gate 8.
+Dashboard balance checked immediately before the first race starts; stop immediately if it falls below
+$4.00, using the tighter of (the $1.00 nominal cap, the floor-derived headroom) as the effective cap, same
+method as Gate 8's `EFFECTIVE_GATE_CAP`. Arms interleaved; a harness fault reruns once, as in Gates 6-8.
+
+This section is committed before any Gate 9 race runs.
