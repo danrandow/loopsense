@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.15,
+    "ki": 0.0,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Evidence from the development simulator (entityR2A, 60 trials): every trial on oval, s-bend and slalom ended off_track with zero completions. Progress was only 0.04 to 0.115, so the robot leaves the line early on each track. Max error is about 0.061, which is the off-track limit (max(0.06, 0.0125 + 0.12/4) = 0.06 m). Each run therefore fails by drifting past the limit after one line-loss event, not by stalling or slowing. RMS error (about 0.03) and steering oscillation (0.06 to 0.07) are modest, so the failure is a single large excursion, most likely at the first sharp bend, not steady jitter. Likely causes: (a) base_speed 1.5 is too fast for the proportional-only gain (kp 2, kd 0.01) to turn the robot back in time, and (b) kd is too small to damp the response, so the robot overshoots across the line and loses it. I keep geometry unchanged so this race isolates the controller. Changes: base_speed 1.5 to 1.2 to give more turning margin at the cost of some lap time; kp 2.0 to 2.5 for stronger correction on bends; kd 0.01 to 0.15 to damp overshoot across the tape. ki stays 0 to avoid integral windup on curves. Sensor weights and line_loss policy are unchanged. Expected result: fewer off-track ends, more progress per run (target above 0.5 on at least one track), and steering_oscillation staying low. Completion inside 3 s is unlikely at 1.2 m/s, so the main gain this iteration is survival. Next measurements wanted: per-track progress and max_error location, line_loss_events count, and whether the failure now happens on a specific bend type. If the robot still leaves on bends with low oscillation, next I raise kp further. If it oscillates across the line, I raise kd or lower kp."
+}

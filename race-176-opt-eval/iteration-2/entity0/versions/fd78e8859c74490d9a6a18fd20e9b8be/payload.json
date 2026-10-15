@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.2,
+    "ki": 0.0,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      2.0,
+      1.0,
+      0.0,
+      -1.0,
+      -2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.045,
+        "y": 0.05
+      },
+      {
+        "x": 0.0225,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": -0.0225,
+        "y": 0.05
+      },
+      {
+        "x": -0.045,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 1 (60 trials): oval finished 3 of 20, s-bend and slalom finished 0 of 40. Line-loss events averaged 1.25 on the oval and 1.9 on the s-bend, and max_error sat at about 0.061 to 0.063 m, right at the 0.06 m off-track limit. Body_width cannot widen that limit (0.0125 + body_width/4 stays below 0.06 for any allowed width), so the margin must come from keeping the line under the sensors.\n\nDiagnosis: the sensors span only x = \u00b10.03 m. Each 12 mm footprint reaches \u00b10.036 m from centre, so with the 12.5 mm tape half-width the line is lost once the robot is offset about 0.0485 m. The robot reaches 0.06 m before the off-track check fires, so the line is lost first on the bends, and last_direction search then carries it off the track. Widening the array is therefore the most direct fix.\n\nChanges:\n1. Sensor geometry: spread five sensors to x = 0.045, 0.0225, 0, -0.0225, -0.045 (spacing 22.5 mm, still under the 37 mm needed for overlap with a 25 mm tape). Coverage then reaches about \u00b10.0635 m, past the 0.06 m off-track limit. The sensor_weights [2,1,0,-1,-2] stay index-matched.\n2. kd: lower from 0.3 back to 0.2. Steering_oscillation rose from 0.15 to 0.24 on the s-bend and from 0.075 to 0.34 on the oval when kd went up, which suggests the higher derivative gain is amplifying jitter rather than damping it.\n3. base_speed 1.3, kp 2.5, ki 0, and line_loss last_direction are held. At 1.3 the oval finishes in about 1.97 s, so speed is not the limit on time; the gap is line retention.\n\nExpected result: line_loss_events fall toward 0 to 0.5, max_error drops below 0.05, and finishes appear on the s-bend and slalom, with oscillation below about 0.2. Hypotheses to test next: (a) the wider array is what fixes line loss, so line_loss_events should drop even though speed is unchanged; (b) kd 0.2 sits between the two prior values and should give lower oscillation than kd 0.3 without losing damping. If line loss persists with the wider array, the next step is to lower base_speed to about 1.0."
+}

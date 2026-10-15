@@ -1,0 +1,58 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.5,
+    "ki": 0.05,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.03
+      },
+      {
+        "x": -0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.04,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation"
+    ]
+  },
+  "rationale": "Evidence: the baseline (iteration 0) never finished on any development track. Every trial ended off_track, with max_error about 0.063 m, which is the 0.06 m off-track limit. Progress was 0.60 on the oval, 0.15 on the s-bend and 0.10 on the slalom. Line-loss events were 1.0 to 2.0 per run, so the tape was often lost on bends. Steering oscillation was low (0.14 to 0.26), so the robot is not jittering. It is drifting out of the line when it meets bends and loses sight of the tape.\n\nWhat I changed and why:\n1. Sensor spread widened from x = -0.02..+0.02 to x = -0.04..+0.04 (0.02 m spacing). The tape is 25 mm wide, so the old 10 mm spread often left the tape under only one or two sensors, and it was lost on sharp bends. A wider array sees the line earlier and keeps a non-zero reading through bends. The weights stay [-2,-1,0,1,2], so the steering signal now covers a wider lateral range and is less saturated at small errors.\n2. base_speed reduced from 1.6 to 1.4. The robot left the line at the first bends, so I trade some lap time for tracking. Completion is worth 500 points and the time term only 60, so finishing matters more. The race will show whether 1.4 is still fast enough to finish within 3.0 s.\n3. kd raised from 0.3 to 0.5 to damp the faster turn-in on the wider sensor array. kp stays at 3.0 because steering oscillation was low and there is no sign of an unstable response yet.\n4. Body, mass, wheels and line_loss are unchanged. body_width gives no extra off-track margin above 0.12 (the limit is max(0.06, 0.0125 + width/4), which is 0.06 for any width up to 0.18), so it is not worth changing.\n\nExpected result: fewer line-loss events (target 0 to 0.5 per run), larger progress on the s-bend and slalom, and at least one track completed. If the robot still goes off track with low line loss, the next step is to raise kp slightly (about 3.5) for faster correction. If it completes with time above about 2.8 s, raise base_speed by 0.2 in steps. Hypotheses to check: (a) the line-loss count falls when the sensor spread is widened; (b) the off-track events come from bend overshoot, so kd matters more than kp at this speed.\n\nMeasurements wanted: completion, progress, completion_time, max_error, rms_error, line_loss_events and steering_oscillation on each track, so I can separate tracking failures from speed limits."
+}

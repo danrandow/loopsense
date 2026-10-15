@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.6,
+    "ki": 0.05,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      2,
+      1,
+      0,
+      -1,
+      -2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.06,
+        "y": 0.03
+      },
+      {
+        "x": 0.03,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": -0.03,
+        "y": 0.03
+      },
+      {
+        "x": -0.06,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from the development race: every trial on all three tracks ended off_track with exactly one line-loss event, and max_error sat at about 0.06 m, which is the off-track limit. The robot lost the tape once and never recovered. Progress was only 0.24 on the oval, 0.14 on the s-bend and 0.10 on the slalom, so the failure happens early on each course. Steering oscillation (0.14 to 0.16) is moderate, so the main problem is not jitter but overshoot and a line loss. Likely causes: (1) kp 4 with weights up to 2 gives a turn of up to 8, about 2800 PWM of differential, which is aggressive and overshoots into line loss; (2) the sensors span only +/-0.04 m, so a lateral offset beyond about 0.05 m leaves no sensor on the tape and triggers line loss; (3) base_speed 1.8 is high for the tight bends. Changes: widen the sensor array to x = +0.06, +0.03, 0, -0.03, -0.06 m so the tape stays visible at larger offsets; reduce kp from 4.0 to 2.5 to cut overshoot; raise kd from 0.3 to 0.6 to damp the faster response; lower base_speed from 1.8 to 1.6 to give more time to correct on bends, while still near the roughly 1.5 m/s needed to finish. Other geometry is kept to isolate the effect. Expected result: no line loss on the oval and s-bend, a higher progress fraction, and possibly completion on the oval. Hypotheses to test next: (a) if line_loss_events stays at 1 with max_error near 0.06, the sensors still lose the tape and kd or kp needs further change; (b) if the robot completes but completion_time is above 3 s, base_speed should rise toward 1.8 again; (c) if steering_oscillation rises above 0.2, kd is too high or kp too low. Measurements wanted next: completion, progress, completion_time, rms_error, max_error, line_loss_events, steering_oscillation, control_effort."
+}

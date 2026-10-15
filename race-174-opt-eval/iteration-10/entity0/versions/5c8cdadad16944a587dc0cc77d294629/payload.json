@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.5,
+    "ki": 0.05,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 7 (outer sensors at y = 0.05, base_speed 1.6, kp 3.0, ki 0.05, kd 0.5, sensor_size 0.012) is the best raced design at 219.96, with 6 of 20 oval completions. Iteration 6 showed that moving the outer sensors forward from y = 0.03 to 0.05 lifted oval progress from 0.67 to 0.74 and the score from 154.1 to 173.5. Iteration 8 (base_speed 1.8) fell to 136.1 with every run off track, and iteration 9 (ki 0.15) fell to 171.9 with oval progress 0.66, below the 0.70 revert threshold. Line loss has stayed near 1.0 per run on every track in every raced iteration.\n\nChange: the one change is the outer sensors' y, from 0.05 to 0.06 at x = -0.04 and +0.04. The geometry block now states y = 0.06 explicitly, which fixes the mismatch the Evaluator flagged. Inner sensors stay at y = 0.03. Controller stays at iteration 7: kp 3.0, ki 0.05, kd 0.5, base_speed 1.6, sensor_size 0.012, weights [-2,-1,0,1,2], line_loss last_direction. Body, wheels and mass are unchanged.\n\nExpected result: oval progress of 0.76 or more and a score above 220, if earlier sensing of the tape at bend entry keeps progress rising as it did from y = 0.03 to 0.05. Risk: the sensors may lead too far and change signal phase, raising oscillation or off-track exits.\n\nRevert rule after the race: if oval progress is below 0.70 or s-bend progress is below 0.30, return the outer sensors to y = 0.05 (iteration 7) and use that design for the final iteration. If line_loss_events stay near 1.0 with progress unchanged, the next lever is a line_loss behaviour change (search_left or search_right), not more ki or kp.\n\nHypotheses: (a) the outer sensors at y = 0.06 see the tape earlier, so oval progress rises further. (b) Line loss stays near 1.0 because it comes from turn-in geometry rather than steady offset. Measurements wanted: completion, progress, completion_time, rms_error, max_error, line_loss_events, steering_oscillation and noise_robustness on each track, so the result reads directly against iteration 7."
+}

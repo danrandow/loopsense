@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.1,
+    "ki": 0.3,
+    "kp": 2.0,
+    "line_loss": "search_right",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": -0.015,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.015,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 4 changed only line_loss (last_direction to search_right) and left every other field as in iteration 3. Oval progress stayed at 0.2085, s-bend moved from 0.1258 to 0.1256, slalom stayed at 0.084, and the score moved from 57.6456 to 57.612. Every run still ended off track with exactly one line-loss event and max_error about 0.062 m. The recovery mode therefore does not change where the robot leaves the line, so H4 is rejected. The failure happens before recovery matters. Oscillation stayed low (0.13 to 0.15), so the robot is not weaving. The off-track limit is max(0.06, 0.0125 + body_width/4), which stays at 0.06 m for any allowed body width, so it cannot be relaxed through geometry. Iterations 1 and 2 also showed that gains and sensor span alone do not move the failure point.\n\nChange. Following the Evaluator's third branch, I keep search_right and the iteration 3 geometry and sensor layout, and lower kp from 2.5 to 2.0. This is a single-variable test of bend-entry turn authority. A proportional gain that is too high can overshoot on entry to a bend and push the outer sensors past the edge, so a weaker proportional response should reduce the peak lateral error.\n\nExpected result. max_error should fall below 0.062 m, and line_loss_events may drop from 1 toward 0 on the oval. Progress on the s-bend and slalom may rise. If progress and max_error are unchanged, turn authority is not the limit, and the next test should be sensor geometry (larger sensor_size or a wider span with 16 mm sensors) rather than further gain changes.\n\nHypotheses. H6: at base_speed 1.0 with kp 2.5, bend-entry overshoot drives the line loss. Measurements wanted: progress, line_loss_events, and max_error per track, and whether the failure point along the course moves."
+}

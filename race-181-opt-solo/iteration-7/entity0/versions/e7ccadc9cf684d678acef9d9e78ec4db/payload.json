@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 0.9,
+    "kd": 0.5,
+    "ki": 0.5,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.045,
+        "y": 0.04
+      },
+      {
+        "x": -0.0225,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.0225,
+        "y": 0.04
+      },
+      {
+        "x": 0.045,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 300 development trials (iterations 0 to 6) ended off_track with zero completions. Max error sits at about 0.061 m every time, which is the off-track limit max(0.06, 0.0125 + body_width/4). A wider body cannot raise that limit above 0.06 within the allowed range, so the fix has to come from tracking. RMS error (0.02 to 0.03) and steering oscillation (0.06 to 0.32) are modest, so failures are single excursions on bends, not jitter.\n\nTrend at fixed geometry (iterations 4 to 6): lowering kp and raising kd improved progress. Iteration 5 (kp 3.5, kd 0.3, ki 0.8) gave oval 0.28, slalom 0.07. Iteration 6 (kp 2.5, kd 0.4, ki 0.5, speed 0.9) gave oval 0.59, s-bend 0.37, slalom 0.11, and the best score so far (150.3). Iteration 6 is the reference.\n\nChange: keep the iteration 6 geometry exactly, so the controller change is isolated. Lower kp from 2.5 to 2.0 to reduce overshoot across the tape, following the iteration 5 to 6 trend. Raise kd from 0.4 to 0.5 to keep the response damped as proportional action falls. Keep ki at 0.5 and base_speed at 0.9, so the only moves are kp and kd.\n\nExpected result: progress up on oval and s-bend (target above 0.7 on oval), max_error still near the limit on slalom, and steering_oscillation no higher than about 0.35. Completion inside 3 s remains unlikely at 0.9 speed; survival and progress are the goal.\n\nHypotheses: (H1) overshoot is still the limit, so lower kp with more kd keeps increasing progress. (H2) if progress drops, kp 2.0 is too weak to hold the line on curves, and the next step is kp 2.25 with kd 0.5. (H3) if slalom stays near 0.1 progress, the limit is response to alternating curvature, and the next step is a narrower sensor spread (x = +/-0.03) or a lower base_speed.\n\nMeasurements wanted: progress and max_error per track, where max_error occurs, line_loss_events, steering_oscillation and control_effort, to separate overshoot from lag."
+}

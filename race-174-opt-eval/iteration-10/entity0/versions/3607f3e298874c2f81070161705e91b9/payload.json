@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.5,
+    "ki": 0.05,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.02,
+        "y": 0.03
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 7 (outer sensors at x = \u00b10.04, y = 0.05; inner three at y = 0.03; sensor_size 0.012; kp 3.0; ki 0.05; kd 0.5; base_speed 1.6) is still the best raced design at 219.96, with 6 of 20 oval completions. Iteration 9 tested ki 0.15 on that design and scored 171.9. Oval progress fell from 0.76 to 0.66, below the 0.70 revert threshold, and oval completions fell from 6 to 2. S-bend progress held at 0.37. Line loss stayed at about 1.0 per run on every track. So ki 0.15 is rejected: the revert rule has fired, and the integral term does not address the failure.\n\nThe forward-offset lever has been the only geometry change that raised progress. Moving the outer sensors from y = 0.03 to y = 0.05 (iteration 6, at base_speed 1.4) lifted oval progress from 0.67 to 0.74 and s-bend progress from 0.30 to 0.32, and the score from 154.1 to 173.5. Line loss did not fall, so the offset improves how far the robot gets rather than the loss count.\n\nChange. Revert controller.ki to 0.05, so the controller matches iteration 7. Move the two outer sensors further forward from y = 0.05 to y = 0.06, which is the next step the Evaluator named if line loss stays near 1.0 with ki ruled out. Inner sensors stay at y = 0.03. Sensor_size, kp, kd, base_speed 1.6, weights and line_loss last_direction are unchanged, so the result reads directly against 219.96.\n\nExpected result. Sensing the tape earlier on bend entry should hold or raise oval progress (target 0.78 or more) and s-bend progress (target 0.38 or more), with oval completions at 6 or more. Risk: the larger forward offset changes the signal phase and may raise oscillation above the 0.35 seen on the oval, or push s-bend exits. Revert rule: if oval progress falls below 0.70 or s-bend progress falls below 0.30, return the outer sensors to y = 0.05 and keep the rest. Hypotheses: (a) a further forward offset keeps the outer sensors on the tape longer, so progress rises; (b) line loss stays near 1.0, because the cause is off-track exits at bend entry, not sensing lead, so the next lever should be a line_loss behaviour change (search_left or search_right) rather than more ki or kp.\n\nMeasurements wanted: completion, progress, completion_time, rms_error, max_error, line_loss_events, steering_oscillation and noise_robustness on each track, to separate the offset effect from the speed and line-loss effects."
+}

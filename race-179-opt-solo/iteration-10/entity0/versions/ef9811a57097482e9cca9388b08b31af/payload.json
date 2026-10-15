@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 0.85,
+    "kd": 1.6,
+    "ki": 0.02,
+    "kp": 3.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      1.0,
+      0.5,
+      0.0,
+      -0.5,
+      -1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.5,
+    "sensor_positions": [
+      {
+        "x": 0.04,
+        "y": 0.07
+      },
+      {
+        "x": 0.02,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": -0.02,
+        "y": 0.07
+      },
+      {
+        "x": -0.04,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 6 is still the best design (score 866.3): oval 20/20 at 2.06 s, s-bend 20/20 at 2.36 s, slalom 13/20 finished with progress 0.94. Three later changes all scored lower. Iteration 7 (base_speed 0.95, kd 2.0) cut slalom finishes to 10/20 through off-track exits, so higher speed brings back reversal overshoot. Iteration 8 (base_speed 0.90, kd 1.6) gave 10/20 with 9 off-track exits, so speed is not a clean lever. Iteration 9 (sensor spread widened to +/-0.065 m) was the largest regression: slalom progress fell from 0.94 to 0.18 with 0/20 finishes, and s-bend fell to 12/20. Widening the spread lowers the steering signal per mm of offset, so the robot under-steers the reversals. That points to effective steering gain as the limit on the slalom, not sensor coverage.\n\nChange: return to the iteration 6 controller and geometry, with the sensor spread narrowed from +/-0.05 m to +/-0.04 m (x = 0.04, 0.02, 0, -0.02, -0.04 at y = 0.07 m). Narrowing the spread raises the steering signal per mm, which is the opposite of the change that failed in iteration 9. Everything else is held at iteration 6 (base_speed 0.85, kp 3.5, ki 0.02, kd 1.6, mass 0.5, sensor_size 0.016, wheel_track 0.12, wheel_radius 0.03, body 0.12 x 0.18, line_loss last_direction), so the effect of the spread can be read directly.\n\nExpected result: slalom progress and finish rate at or above iteration 6 (about 0.65 to 0.75 finish rate), with fewer off-track exits at reversals. Oval and s-bend should keep their 20/20 finishes. Score near 870 to 900 if it holds. Risks: a higher effective gain may bring back the steering oscillation seen at kp 4 (iteration 4), and the oval or s-bend could start to overshoot.\n\nHypotheses: (a) slalom failures are under-steering at reversals, so a narrower spread should reduce max_error and off-track exits; (b) if oval or s-bend oscillation rises above about 0.25, the effective gain is too high and the next step is to hold the spread at +/-0.045 m; (c) if the slalom finish rate does not change, the limit is the 3 s time budget at 0.85 speed and the next lever is line-loss search direction.\n\nMeasurements wanted next: per-track completion and completion_time (to check the 3 s budget on the slalom), slalom line_loss_events and max_error location, steering_oscillation and control_effort on all tracks, and rms_error."
+}

@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.2,
+    "ki": 0.8,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Evidence: all 60 trials in iteration 2 went off track on oval, s-bend and slalom with zero completions. Max error sits at about 0.061 m, which is the off-track limit max(0.06, 0.0125 + 0.12/4) = 0.06 m, so every run ends by one excursion. Going from ki 0 to ki 0.4 (iteration 1 to 2) more than doubled oval progress (0.233 to 0.483) and raised the mean score from 67 to 96. Rms error barely moved (0.027 to 0.024 on oval), so the integral action helped the slow steady bias but did not remove the excursions. Steering oscillation is still low (0.14 to 0.29), so this is not jitter. Change: keep geometry fixed to isolate the controller. Raise ki from 0.4 to 0.8 to remove the motor-mismatch offset faster (the integral is clamped at +/-2, so windup stays bounded). Lower base_speed from 1.2 to 1.0 to give more turning margin, since the robot leaves the line before it finishes any track. Keep kp 3.0 and kd 0.2 so the gain change is attributable to ki and speed. Expected result: fewer off-track ends, progress above 0.5 on oval and s-bend, and rms below 0.024. Completion inside 3 s is unlikely at 1.0 m/s; survival is the priority. Hypotheses: (H1) the remaining excursions come from the integral lagging on bends, so a higher ki with lower speed should help. (H2) if progress stalls at about 0.5 with rms unchanged, the cause is sensor geometry (the outer sensors at +/-0.03 m lose the tape on sharp bends), and the next step is to widen the sensor spread or change sensor_size. Measurements wanted: progress per track, location of max_error, line_loss_events, and steering_oscillation at the higher ki."
+}

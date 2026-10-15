@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.1,
+    "ki": 0.3,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.05
+      },
+      {
+        "x": -0.015,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.015,
+        "y": 0.05
+      },
+      {
+        "x": 0.03,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from the iteration 0 race (development simulator, 60 trials): every run ended off track, with progress of only 0.10 to 0.15, one line-loss event each, and max_error of about 0.062 m. The off-track limit is max(0.06, 0.0125 + body_width/4) = 0.06 m, so the robot reached the edge early and never got far. rms_error (0.025 to 0.029 m) is well below the limit, and steering_oscillation is low (0.08 to 0.14). The robot is therefore not weaving. It drifts steadily toward one edge and then drops off. A steady drift of this kind is the signature of the fixed left/right motor mismatch in the disturbance, which a proportional-only loop cannot fully remove. With ki = 0.05 the integral term is too weak to cancel it, and with kp = 2.0 the steady offset is still a few centimetres. I make two changes. First, I raise ki from 0.05 to 0.3, so the integral can cancel the constant bias. The integral is clamped at +/-2, so windup on the slalom stays bounded. Second, I raise kp from 2.0 to 2.5 to tighten tracking and keep max_error further from the 0.06 m limit. kd stays at 0.1 and I deliberately keep base_speed at 1.6, the sensor layout, and line_loss unchanged, so the cause of any change in the result is clear. Expected result: max_error falls below about 0.05 m, progress rises well past 0.15 on the oval and s-bend, and line_loss_events drops to 0 on the oval. If the robot still goes off track on the slalom, the next step is to widen the sensor span to x = +/-0.04 or to reduce base_speed. Hypotheses to check: (H1) the drift is a steady bias from the motor mismatch, so ki resolves it; (H2) the remaining failures are bend-entry overshoots, which kp and kd address. Measurements to watch: progress, max_error, line_loss_events, and steering_oscillation, which should stay low as kp rises."
+}

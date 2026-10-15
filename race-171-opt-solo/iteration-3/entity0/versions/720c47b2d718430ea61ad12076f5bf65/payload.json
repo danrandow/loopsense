@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 1.0,
+    "ki": 0.2,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.04
+      },
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      },
+      {
+        "x": 0.06,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence so far (iterations 0-2, 60 dev trials each): no run has finished. Every run ends off_track. max_error sits at 0.060 to 0.065 m, which is the off-track floor for this body (max(0.06, 0.0125 + 0.12/4)). rms_error is steady at about 0.028 to 0.033 m on every track, and steering_oscillation is low (0.15 to 0.27). Widening the array and enlarging the footprint (iteration 1) cut line-loss events and raised oval progress from 0.12 to 0.44, so sensing is no longer the main limit. Raising ki from 0.1 to 0.5 (iteration 2) changed almost nothing, and the score fell slightly (111.1 to 108.8). So a constant motor-mismatch bias is unlikely to be the dominant cause. The pattern fits a slow, under-damped sway that builds until the robot leaves the tape on bends, with the integral term adding overshoot. Two changes are made. First, kp rises from 4.0 to 5.0, so the correction per millimetre of lateral error is stronger (the signal is about offset/0.06, so turn is about 83 per metre of offset). Second, kd rises from 0.6 to 1.0 to damp the sway that a stronger kp will bring. ki is lowered from 0.5 to 0.2 to cut integral overshoot, since ki 0.5 gave no benefit. Geometry and base_speed are unchanged to isolate the controller effect. Expected result: max_error and rms_error fall below about 0.05 m and off-track exits drop. Progress should rise on the s-bend and slalom, where iteration 2 showed line-loss events. Completion time may stay similar. Risk: kp 5 with kd 1.0 could chatter, so if steering_oscillation exceeds about 0.4, the next step is kd 0.8 with kp 4.5. If the robot holds the line but is slow, the next step is base_speed up by 0.1 steps. Hypotheses: H1, under-damped sway, not bias, drives the off-track exit. H2, the integral term is adding overshoot. Measurements wanted next: max_error and rms_error to see whether the sway amplitude falls, progress to see how far runs get, and steering_oscillation to check for chatter from the higher kd."
+}

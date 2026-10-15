@@ -1,0 +1,58 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.2,
+    "ki": 0.0,
+    "kp": 8.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation"
+    ]
+  },
+  "rationale": "Evidence: the iteration 1 change (ki 0.6) barely moved the result. Score went from 27.3903 to 27.3568, and every track still ends off_track with one line-loss event per run. The race lasts only 3.0 s (300 steps), so the integral term can contribute very little. With a bias of about 0.05 in signal, the integral reaches roughly 0.15 after 3 s, and ki 0.6 adds only about 0.09 to turn. The integral was the wrong lever. The telemetry also shows steering_oscillation of about 0.07 with max_error pinned at the 0.06 m off-track limit, so the robot is not jittering. It is drifting under a steady offset that proportional gain has not corrected. A standing offset under proportional control is roughly bias/(kp times signal gain), so raising proportional gain is the direct fix. Sensor weights are normalised by the sum of readings, so scaling kp is equivalent to scaling the weights. Change: kp 5.0 to 8.0 (a 60 percent increase), kd 0.1 to 0.2 to damp the stronger response, ki 0.0 since it adds nothing in a 3 s race and risks windup. Geometry and base_speed are unchanged so this race isolates the gain change. Expected result: max_error falls below 0.06 m, line_loss_events drops to 0 on the oval and s-bend, and progress rises well above 0.125. Hypotheses: (1) if steering_oscillation rises above about 0.15 or max_error clusters on the slalom bends, kp is too high, so return to 6.0 and keep kd at 0.2. (2) if the robot now tracks the line but completion_time exceeds 3 s, raise base_speed to 1.6. (3) if progress still stalls at a fixed point with low oscillation, widen the outer sensors to x = \u00b10.06. Measurements requested: completion, progress, completion_time, rms_error, max_error, line_loss_events, steering_oscillation."
+}

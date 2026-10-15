@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 0.6,
+    "ki": 0.1,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.04
+      },
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      },
+      {
+        "x": 0.06,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 0 (development simulator, 60 trials, all tracks): every run ended off_track, with none finished. Progress stalled at 0.11 to 0.16, and each run logged one line-loss event. max_error was about 0.060 to 0.063 m, which is the off-track limit for this body (max(0.06, 0.0125 + 0.12/4) = 0.06 m). rms_error (about 0.03 m) and steering_oscillation (0.07 to 0.15) are modest. The robot is therefore losing the line once, early, and then leaving the track. It is not wobbling itself to death. The likely causes are (a) the outer sensors at x = +/-0.04 m are too close to the tape edge, so on curves the line leaves the array and the sum of readings drops below 0.05, and (b) base_speed 1.3 gives too much speed for kp 4 and kd 0.3 to hold the line through the bends.\n\nChanges: (1) Widen the sensor array to x = -0.06 to +0.06 m in 0.03 m steps, so the line stays under the array on sharper bends. Weights are scaled to +/-1 at the ends, keeping the signal in the same range. (2) Raise sensor_size from 0.012 to 0.016 m, so each sensor covers more of the 25 mm tape and fewer readings drop to zero. (3) Lower base_speed from 1.3 to 1.1 to reduce overshoot and give the controller time to correct. (4) Raise kd from 0.3 to 0.6 to damp the faster swings from the wider, more sensitive array. kp, ki, line_loss and the body are kept, so the change is isolated to sensing and speed/damping.\n\nExpected result: no or fewer line-loss events, and max_error held under 0.06 m, so runs should reach the middle of the course. Completion time may rise because of the lower base_speed. If the runs still leave the track, the next step is to test a lower kp with more kd. If the runs finish but are slow, raise base_speed in small steps (about 0.1). Hypotheses to check: H1, line loss at the outer sensors is the cause of the first off-track event. H2, speed is too high for the bends. Measurements wanted next: line_loss_events and max_error to see where the first loss happens, and completion_time with progress to judge the speed/stability trade-off."
+}

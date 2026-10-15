@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.3,
+    "ki": 0.8,
+    "kp": 3.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.045,
+        "y": 0.04
+      },
+      {
+        "x": -0.0225,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.0225,
+        "y": 0.04
+      },
+      {
+        "x": 0.045,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 180 development trials across iterations 0 to 4 ended off_track with zero completions. Max error sits at about 0.061 m, the off-track limit max(0.06, 0.0125 + body_width/4). Widening body_width cannot raise that limit above 0.06 within the allowed range, so the fix has to come from tracking. RMS error stays near 0.022 to 0.030 and steering oscillation is low (0.06 to 0.29), so this is a steady offset plus a single excursion, not jitter. Iteration 4 is the current reference. Its oval progress (0.33) is below iteration 2 (0.48), so the wider sensors and narrower track did not clearly help, and the change confounded ki and speed. Slalom progress stays near 0.08 on every iteration, so it remains the weakest track.\n\nChanges: (1) Keep the iteration 4 geometry (sensors at x = +/-0.045 m, 16 mm footprints, wheel_track 0.10, mass 0.6) so the controller change is judged against a fixed body. (2) kp 3.0 to 3.5. With ki near zero, the motor-mismatch offset is roughly bias/kp, so a higher kp shrinks it and gives more correction on bends. (3) kd 0.2 to 0.3 to damp the larger kp and limit overshoot across the tape. (4) ki 0.6 to 0.8, a moderate integral rise that removes the offset without the lag seen at ki 0.8 in iteration 3. (5) base_speed kept at 1.0 to keep the turning margin the iteration 3 and 4 runs used.\n\nExpected result: rms_error below 0.024, max_error on slalom and s-bend below 0.06, and progress above 0.2 on slalom. Completion within 3 s is still unlikely at 1.0 m/s. Hypotheses: (H1) the remaining excursions come from the proportional offset on bends, so a higher kp with more kd should cut max_error. (H2) if oscillation rises above 0.4 with no progress gain, kp is too high and the next step is kp about 3.0 with kd 0.4. (H3) if slalom progress is still near 0.08, the limit is the response to alternating curvature, and the next step is a shorter sensor spread or a lower base_speed. Measurements wanted next: progress and max_error per track, the location of max_error, line_loss_events, and steering_oscillation at the higher kp and kd."
+}

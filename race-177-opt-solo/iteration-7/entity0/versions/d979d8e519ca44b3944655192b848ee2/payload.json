@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.15,
+    "kd": 1.0,
+    "ki": 0.05,
+    "kp": 3.4,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.45,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.08
+      },
+      {
+        "x": -0.025,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.025,
+        "y": 0.08
+      },
+      {
+        "x": 0.05,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.04,
+    "wheel_track": 0.09
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 5 (base 1.15) and iteration 6 (base 1.28) both score about 745 to 746. The oval and s-bend finish with margin (2.19 s and 2.50 s). The slalom times out in 20 of 20 trials at about 0.87 progress in both runs, with almost no line loss (0 to 0.1 events) and low max_error (0.033 m). Raising base_speed from 1.15 to 1.28 moved slalom progress from 0.872 to 0.868, so commanded forward speed is not the limit. The robot is on the line but covers the course too slowly. Commanded speed is capped at base_speed/2 of full PWM, and the wheel command saturates on sharp bends, so more PWM does not help. Ground speed is wheel_radius times wheel rotation rate, so for the same PWM a larger wheel gives proportionally more ground speed. The turn rate also rises with radius (wheel speed difference scales with radius, divided by wheel_track), so the effective steering gain rises by about 33%.\n\nChanges: (1) wheel_radius 0.03 to 0.04 m, about 33% more ground speed per PWM count, which is the main lever for the 3 s time limit. (2) kp 4.2 to 3.4 and kd 1.2 to 1.0, to keep the steering response per unit signal close to the current tuning after the radius increase, so the line-keeping that already works is preserved. (3) base_speed held at 1.15 and all other values unchanged, so the effect of the radius change can be read directly.\n\nExpected result: slalom progress above 0.95, with the first slalom completions and completion_time around 2.6 to 2.9 s. Oval and s-bend should still finish, with completion_time reduced. Risks: a higher effective turn gain could cause oscillation (I expect steering_oscillation to stay below about 0.4), and a faster robot may leave the line on tight bends (off-track endings above about 6 of 20 would indicate this).\n\nHypotheses: H1, if slalom still times out with progress near 0.87, speed is limited by turning losses rather than top speed, so next test lower kp (about 2.8) with higher base_speed. H2, if off-track endings rise above about 6 of 20, the turn gain is too high, so reduce kp to about 3.0 and raise kd to about 1.2. H3, if line_loss_events are near 1 per run at one fixed position on the s-bend, the last_direction search is the limit, so test search_right.\n\nMeasurements wanted: slalom progress and completion_time for speed margin, max_error and line_loss_events for steering margin, and steering_oscillation with control_effort for damping."
+}

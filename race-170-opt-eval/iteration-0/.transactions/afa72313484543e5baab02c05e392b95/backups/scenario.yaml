@@ -1,0 +1,105 @@
+map:
+  id: race-170-opt-eval
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor
+    notes: 'A conservative first candidate: five 12 mm sensors spread across the line
+      with proportional weights, base_speed 1.2, kp 2.5, kd 0.2, and last-direction
+      line recovery. No race data exists yet, so the values are reasoned from the
+      contract, not tuned.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no race data, so this is a conservative baseline meant to finish
+      the course and produce measurements. Geometry: five line sensors spread across
+      the 0.08 m width (x = -0.04, -0.02, 0, 0.02, 0.04) and placed 0.05 m ahead of
+      the axle, so the controller sees the line before the wheels reach it. The 12
+      mm footprint is well under the 25 mm tape width, giving clean readings. Sensor
+      weights are proportional to x (-2, -1, 0, 1, 2), so the signal is the sensor-weighted
+      lateral position of the tape and has the right sign: a line to the left gives
+      a positive signal, which steers left. Controller: base_speed 1.2 targets roughly
+      the 1.5 m/s average needed to finish in 3 s, without going to full throttle
+      before the controller has been characterised. kp 2.5 gives a moderate steering
+      response (about 875 PWM per unit of signal, with a 350 PWM scale per turn unit).
+      ki 0 avoids integral windup on bends. kd 0.2 damps the response without amplifying
+      sensor noise much. line_loss last_direction makes the robot keep turning toward
+      where it last saw the line, which suits a single-sided loss at a sharp bend.
+      Expected result: the robot completes the oval and s-bend, with some oscillation
+      on the slalom. The measurements tell us whether the speed is too low to finish
+      in time (completion_time, progress), whether kp is too high or too low (steering_oscillation,
+      rms_error, max_error), and how often the line is lost (line_loss_events). Next
+      step: if it oscillates, lower kp or raise kd. If it runs wide on bends, raise
+      kp. If it fails to finish in time, raise base_speed.
+
+
+      - [Open this output](iteration-0/entity0/versions/3c09966bb8e1426db6ed0142a41d744d/payload.json)'
+  - id: entityR1
+    label: Baseline approved to race
+    notes: 'The candidate is valid and conservative, and no race data exists yet,
+      so it is approved as the iteration 0 baseline. The feedback is conditional on
+      what the race shows, mainly whether base_speed 1.2 is too slow for the 3.0 s
+      limit given the contract''s 1.5 m/s requirement.
+
+
+      ### Feedback
+
+
+      Iteration 0 has no race data, so this review checks validity and the reasoning
+      in the rationale, not performance. The candidate is valid: all five sensor positions
+      sit inside the allowed x and y ranges, the five sensor weights are within [-2,
+      2] with the signs the contract expects, and base_speed, kp, ki, kd and line_loss
+      are inside their limits. The main open question is speed. The contract says
+      the course must be covered in under 3.0 s, which needs about 1.5 m/s average
+      on a 4 to 5 m course. The rationale''s estimate that base_speed 1.2 gives about
+      1.5 m/s is unverified, because no earlier race exists to calibrate it. Your
+      own rationale also says base_speed is set conservatively, so the robot may be
+      too slow to finish. Do not change the candidate before this race. Once the race
+      reports completion_time and progress, use them as follows. If the run finishes
+      with spare time, keep base_speed and tune kp. If it covers most of the course
+      but runs out of time (completion 0, progress high), raise base_speed in steps
+      of about 0.2, keeping the speed that still tracks the line. If steering_oscillation
+      or max_error is high, lower kp or raise kd before raising speed. If line_loss_events
+      is high on the bends, check whether last_direction is correct for the loss pattern.
+
+
+      ### Requested changes
+
+
+      - If completion is 0 and progress is high at the 3.0 s limit, raise controller.base_speed
+      from 1.2 toward 1.4 to 1.6, because the contract needs an average of about 1.5
+      m/s to finish in time.
+
+      - If steering_oscillation or max_error is high, lower controller.kp (for example
+      from 2.5 to about 1.8) or raise controller.kd (for example from 0.2 to about
+      0.4) before changing speed.
+
+      - If the robot runs wide on bends (large max_error with no oscillation), raise
+      controller.kp in steps of about 0.5, and keep kd so the response stays damped.
+
+
+      - [Open this output](iteration-0/entityR1/versions/b7448539c00449c888d0d6ecd918adde/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/3c09966bb8e1426db6ed0142a41d744d/payload.json)'
+  - id: entity1
+    label: Approved Robot Build
+    notes: 'Approved Robot Build. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-0/entity1/versions/b7448539c00449c888d0d6ecd918adde/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/3c09966bb8e1426db6ed0142a41d744d/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

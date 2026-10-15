@@ -1,0 +1,58 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.4,
+    "ki": 0.0,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.08,
+        "y": 0.05
+      },
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      },
+      {
+        "x": 0.08,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation"
+    ]
+  },
+  "rationale": "Evidence from iteration 0 (development simulator, 60 trials, none finished): every run ended off track. Oval reached progress 0.35, s-bend 0.16, slalom 0.12, with about one line-loss event per run. max_error is about 0.06 m, which is the off-track limit, while rms_error is only about 0.025 to 0.03 m. The robot is therefore tracking well until a sudden loss of the line, and then leaves the track. The likely cause is geometry. The five sensors span only x = -0.04 to +0.04, so all readings drop to zero once the tape is about 0.058 m from centre. That is almost exactly the off-track limit, so the robot loses the line in the same instant it leaves the track, and last_direction then has to recover from a sensor-blind state. Change 1 (geometry): widen the sensor array to x = -0.08, -0.04, 0, 0.04, 0.08 (the allowed maximum). The outer sensors then see the tape well before the robot reaches the off-track limit, which should cut line-loss events. Change 2 (controller, compensating gain): with the same weights (-2, -1, 0, 1, 2), the signal per metre of lateral offset halves, so I double kp from 2.5 to 5.0 to keep the same steering authority, and double kd from 0.2 to 0.4 to keep the same damping ratio. ki stays 0. Speed: I keep base_speed at 1.2. Stability has to come before the time target, and the failures are off-track rather than too slow. Line loss stays last_direction. Expected result: fewer line-loss events, lower max_error, and longer progress on all three tracks, possibly with a first completion on the oval. Hypotheses to check: (a) line_loss_events falls to near zero and max_error drops below 0.05; (b) if oscillation rises with kp 5.0, the gain is too high and kd or kp should be trimmed; (c) if the robot is stable and finishes with spare time, raise base_speed toward 1.4 to 1.6 for the 3.0 s limit. Measurements requested: completion, progress, completion_time, rms_error, max_error, line_loss_events, steering_oscillation."
+}

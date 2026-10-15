@@ -35,3 +35,14 @@ is not in scope for this file — see `PHASE0_FREEZE.md` and race reports for th
 - Resolved the `max_steps` 300-vs-1200 ambiguity flagged in `SIMULATOR_REVIEW_AND_DESIGN_APPROACH.md` — see
   `PHASE0_FREEZE.md` §2. No code change: `config/experiment.yaml` (1200) is legacy and unread by any live race
   path; `race.yaml` (300) is what every race runs under and is achievable (designs finish in 1.9–2.4s).
+- **Found, not yet fixed: the per-call `cost_usd` mechanism (added for Gate 8) under-reported actual spend in
+  the Gate 9 replication batch.** Summed `cost_usd` across the 12 races' `events.jsonl` = $0.8770 (matching the
+  $0.134/M-token rate seen in every earlier gate); the OpenRouter account's own usage ledger moved by $1.3920
+  over the same window ($0.213/M tokens, ~60% above the established rate) — a real, unexplained gap, unlike
+  Gate 8 where the two matched to the cent. Checked for the one known mechanism that *could* drop cost silently
+  (an action that exhausts all repair attempts raises `ContractFailure`/`BudgetExhausted` without `spent_cost`,
+  so a failed call's cost never reaches `events.jsonl`) and ruled it out: zero `action_rejected` or
+  `budget_exhausted` events exist anywhere in this batch, only clean `action_completed`. Root cause not found
+  from already-logged data; not fixed, since fixing a cost-accounting path without understanding why it failed
+  risks hiding the next instance rather than catching it. Flagged to Dan in `GATE9_REPORT.md` as a safety-
+  relevant finding, not treated as resolved.

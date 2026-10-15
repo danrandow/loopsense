@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 0.6,
+    "ki": 0.5,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.04
+      },
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      },
+      {
+        "x": 0.06,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 1 (60 development trials, all tracks): iteration 1 was the best so far (score 111.1, up from 54.0). Oval progress rose from 0.12 to 0.44 and line-loss events fell to zero on the oval. Still no run finished, and every run ended off_track. max_error sits at 0.060 to 0.065 m, which is the off-track limit for this body. rms_error is steady at about 0.028 to 0.033 m on every track, and steering_oscillation is modest (0.16 to 0.27). A steady rms error of about 0.03 m with max error at the limit suggests a persistent lateral bias rather than pure jitter. The likely source is the fixed left/right motor mismatch in the disturbance. kp = 4 with ki = 0.1 cannot cancel a constant offset, so the robot settles off-centre and drifts out on bends. The wider sensor array and larger footprint in iteration 1 clearly helped, so I keep the geometry unchanged to isolate the effect of the controller.\n\nChange: raise ki from 0.1 to 0.5 so the integral term removes the steady bias from the motor mismatch. The integral is clamped to +/-2, so windup is bounded. Everything else (geometry, kp 4.0, kd 0.6, base_speed 1.1, last_direction line loss) is kept the same.\n\nExpected result: lower rms_error (target below 0.02 m) and max_error held clearly under 0.06 m, so off-track events fall and some runs should progress further on the s-bend and slalom. Completion time may stay similar. Risk: a higher ki can add slow overshoot on long bends; if steering_oscillation rises above about 0.35 or rms_error gets worse, the next step is to reduce ki to 0.3 and raise kd.\n\nHypotheses: H1, a persistent motor-mismatch bias is the main cause of rms_error (about 0.03 m) and the eventual off-track exit. H2, once bias is removed, speed (base_speed 1.1) can be raised in steps of about 0.1 to reach the roughly 1.5 m/s needed to finish in 3 s. Measurements wanted next: rms_error and max_error to test H1, plus progress, completion_time and steering_oscillation to judge how much speed can be added."
+}

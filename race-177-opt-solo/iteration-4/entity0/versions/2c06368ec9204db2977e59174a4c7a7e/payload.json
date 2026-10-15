@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 1.2,
+    "ki": 0.05,
+    "kp": 4.2,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.5,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.08
+      },
+      {
+        "x": -0.025,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.025,
+        "y": 0.08
+      },
+      {
+        "x": 0.05,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.09
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 3 (kp 4.2, kd 0.9, ki 0.05, base 1.2, wheel_track 0.09, sensors at y 0.08, 16 mm, mass 0.5): the oval (100% finish, max_error 0.011) and s-bend (100% finish, max_error 0.025, 2.49 s) pass with margin. The slalom still fails in 20 of 20 trials. It ends off track in 17 runs and times out in 3, reaching 49% progress with max_error 0.061 m against the 0.06 m limit. Steering oscillation on the slalom is low (0.31), so the robot is not jittering. It is lagging on tight alternating bends and drifting out. Line loss still happens about once per run, and control_effort on the slalom is high (13.8), which means the controller is working hard and still falling behind. Body width cannot help because the off-track limit is 0.06 m at every allowed width.\n\nChanges: (1) base_speed 1.2 to 1.1. The slalom failure looks like entering bends too fast (hypothesis H2 from iteration 3). The s-bend has time margin: at 2.49 s it can absorb about 10% slower speed and still finish under 3 s. (2) kd 0.9 to 1.2. Damping gives more phase lead on sharp alternations, and oscillation has margin (0.31 on the slalom, 0.30 on the oval, well below the 0.6 caution level). (3) Sensor spacing widened from 0.02 m to 0.025 m, so the outer sensors sit at x = \u00b10.05 m instead of \u00b10.04 m. This lets the array keep seeing tape when the robot is 4 to 5 cm off centre, which should cut the line-loss events that start each failure. Sensor size, weights, kp, ki, wheel_track, mass and line_loss stay as in iteration 3 so the effect of these changes can be read.\n\nExpected result: slalom progress rises well above 0.49, with fewer off-track endings and max_error below about 0.058 m. Oval and s-bend should still finish, with s-bend time rising to about 2.7 s. Hypotheses: H1, if the slalom still shows line_loss_events of about 1 at a fixed track position, the search mode (last_direction) is the cause, so test search_right next. H2, if steering_oscillation rises above about 0.6 with kd 1.2, the derivative is now too high, so drop kd to about 1.0. H3, if completion_time on the s-bend exceeds 2.9 s, base_speed is too low, so return to 1.15. Measurements wanted next: progress and completion_time for speed margin, max_error and line_loss_events for steering margin, and steering_oscillation and control_effort for damping."
+}

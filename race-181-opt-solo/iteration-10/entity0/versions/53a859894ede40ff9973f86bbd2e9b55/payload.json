@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 0.9,
+    "kd": 0.8,
+    "ki": 0.5,
+    "kp": 1.3,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.045,
+        "y": 0.04
+      },
+      {
+        "x": -0.0225,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.0225,
+        "y": 0.04
+      },
+      {
+        "x": 0.045,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: 300 development trials so far. Max error is pinned at about 0.061 m, the off-track limit, so failures are single tracking excursions on bends, not jitter. Across iterations 4 to 9, each step that lowered kp and raised kd raised progress on every track. Iteration 9 (kp 1.5, kd 0.7) is the best so far at 677.4: oval finishes 20/20 at 1.86 s, s-bend finishes 18/20 with progress 0.99, and slalom still fails with progress 0.43 and about 0.9 line-loss events per run. Slalom is the weakest track and the most likely model of the unseen final track.\n\nChange: keep the iteration 9 geometry exactly, so the controller change is isolated. Lower kp from 1.5 to 1.3 to continue reducing proportional overshoot across the tape. Raise kd from 0.7 to 0.8 to keep the response damped as proportional action falls. Keep ki at 0.5 and base_speed at 0.9, because oval already finishes in about 1.9 s, so speed is sufficient and steering is the limit.\n\nExpected result: slalom progress rises above 0.5 with fewer line-loss events, s-bend finish rate stays at or above 0.9, and oval stays at 1.0 finish with steering_oscillation at or below about 0.4.\n\nHypotheses: (H1) overshoot is still the limit, so lower kp with more kd keeps raising slalom progress. (H2) if s-bend or oval progress drops, kp 1.3 is too weak to hold the line on curves, and the next step is kp about 1.5 with kd 0.8 plus a narrower sensor spread (x = +/-0.03). (H3) if slalom progress stays near 0.43, the limit is response to alternating curvature, and the next step is a lower base_speed (0.7 to 0.8) or a change in sensor spacing.\n\nMeasurements wanted: progress, completion time and max_error per track, where max_error occurs, line_loss_events, steering_oscillation and control_effort, to separate overshoot from lag."
+}
