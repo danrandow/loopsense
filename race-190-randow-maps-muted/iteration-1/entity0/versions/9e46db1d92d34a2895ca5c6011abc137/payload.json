@@ -1,0 +1,48 @@
+{
+  "feedback_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "intent": "Test whether a further-forward, wider five-sensor array and a lighter, shorter, narrower-track body let the robot keep the line on bends. Changes: sensors moved to y = 0.06 m with x spanning +/-0.03 m; wheel_track 0.12 to 0.10 m; mass 0.8 to 0.6 kg; body_length 0.18 to 0.14 m. Expected result: fewer off_track endings and more progress on s-bend and oval, with the rate of progress gain as the main signal.",
+  "learning": "Next iteration, check: (a) whether max_error still reaches 0.06 m on the s-bend, which would mean turn authority is still the limit; (b) whether line_loss_events rise with the wider array, which would mean the outer sensors are losing the tape at the edges; (c) whether steering_oscillation grows with the lighter, more agile body, which would mean the response is now too fast and needs more damping from the geometry (larger wheel_track or mass); (d) whether progress rises on the oval, which would confirm that lookahead at y = 0.06 m helps. Also ask the Integrator whether the signal saturates at the array edges.",
+  "rationale": "The evidence from the development races is consistent: all 60 trials ended off_track, with progress of only 0.04 to 0.115 and max_error near 0.06 m, which is the off-track limit. RMS error is about 0.03 m and steering oscillation is small (0.07 to 0.16), so the robot is not jittering. It is drifting steadily outward, and the s-bend, the sharpest course, fails earliest. This points at turning authority and response on bends, and at how early the sensors see a bend, rather than at jitter.\n\nGeometry changes I am making, each tied to that evidence:\n1. Sensor lookahead: move the array from y = 0.04 to y = 0.06 m. Seeing the line further ahead gives the controller more lead time before the robot reaches a bend.\n2. Wider array: spread sensors to x = -0.03 to +0.03 m (0.015 m spacing). The current +/-0.02 m span loses the line sooner once the robot drifts, and a wider span keeps a usable signal at larger offsets.\n3. Agility: reduce wheel_track from 0.12 to 0.10 m and mass from 0.8 to 0.6 kg, and shorten body_length from 0.18 to 0.14 m. Together these lower yaw inertia (mass times (length^2 + width^2)/12) and make the same wheel differential produce a faster turn, which should help on the tight s-bend.\n\nOff-track limit: body_width does not change the 0.06 m floor. The alternative, tape_half_width + body_width/4, is 0.0575 m at the maximum body width of 0.18 m, so body_width stays at 0.12 m.\n\nExpected result: a larger progress value on the s-bend and oval, with fewer off_track endings. I do not expect completion yet, since the speed needed for the 3 s limit is still a risk."
+}

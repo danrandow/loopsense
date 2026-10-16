@@ -1,0 +1,117 @@
+map:
+  id: race-191-randow-maps-muted
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor row
+    notes: 'Symmetric 5-sensor row at 15 mm spacing with a 12 mm footprint, 50 mm
+      ahead of the axle, on a 120 mm track and 0.8 kg body. There is no race evidence
+      yet, so this is a contract-based baseline meant to be measured and then revised.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no race telemetry and no Integration Feedback yet, so this proposal
+      rests on the contract alone. A 5-sensor row spaced 15 mm apart covers the 25
+      mm tape at any lateral offset up to about 27 mm, so the line stays visible across
+      the sensor array during moderate errors. Sensors sit 50 mm ahead of the axle
+      so the signal leads the wheels, which helps on curves. The 12 mm footprint is
+      small enough to resolve the edge of the tape without washing out the signal.
+      The track is 120 mm, a middle value that gives a reasonable turn rate and yaw
+      inertia without making the robot too twitchy. Mass is 0.8 kg, and the 30 mm
+      wheel radius gives enough speed for the 1.5 m/s average the 3 s limit requires.
+      Body width of 120 mm keeps the off-track limit at max(0.06, 0.0125+0.03)=0.0425
+      m, which is looser than the line itself. I expect a complete run on the development
+      tracks, with the main risk being oscillation on the slalom because the sensor
+      row is wide relative to the bends. This is a baseline for measurement, not a
+      tuned design.
+
+
+      - [Open this output](iteration-0/entity0/versions/f759b92deedf41009820f1a4ce78bfdc/payload.json)'
+  - id: entity1
+    label: Complete Robot Package
+    notes: 'Complete Robot Package. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no race telemetry, so the controller is a conservative baseline
+      for the supplied geometry, which I have kept unchanged. The five sensors sit
+      at x = +0.03, +0.015, 0, -0.015, -0.03 m, so I set sensor_weights proportional
+      to each sensor''s lateral position, scaled to about +/-1.2. The signal is then
+      roughly the line''s lateral offset in metres times about 40, with positive meaning
+      the tape is left, which steers left as the contract requires. kp = 1.5 gives
+      a turn of about 1.8 PWM-thousandths per unit signal at the edge of the row,
+      which should correct a 27 mm offset without saturating. kd = 0.15 damps the
+      yaw response, which I expect to matter most on the slalom, where the row is
+      wide relative to the bends. ki = 0 because the integral adds lag and the motor
+      mismatch is small (about 2 percent). base_speed = 1.6 is below full voltage,
+      which leaves headroom for the 1.5 m/s average the 3 s limit requires while keeping
+      the robot stable through bends. line_loss = last_direction, so the robot keeps
+      turning toward the side it last saw the tape rather than driving straight off.
+      I expect the baseline to complete the oval and s-bend, with the main risk being
+      oscillation on the slalom, and I will use the telemetry to set kp, kd and base_speed
+      separately.
+
+
+      - [Open this output](iteration-0/entity1/versions/a4f5a785ed614a0d89ab293f5280c8be/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/f759b92deedf41009820f1a4ce78bfdc/payload.json)'
+  - id: entityR1
+    label: Integration Feedback
+    notes: 'Integration Feedback. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      ### Feedback
+
+
+      Written before this robot has raced, so no outcome is stated for it. This is
+      the first iteration, so the feedback rests on the contract alone. The baseline
+      uses a 5-sensor row spaced 15 mm apart, which covers the 25 mm tape across most
+      lateral offsets. The controller therefore relies on the outer sensors to give
+      a usable signal at large errors. The sensor row sits 50 mm ahead of the axle,
+      which gives lead on bends but also means the signal reacts to the line before
+      the wheels do, so the controller needs damping. If the next race shows line
+      loss on the s-bend or slalom, with the robot leaving the tape at a specific
+      curvature, the forward offset or the spacing is the likely constraint. Try a
+      larger forward offset (y = 0.06 to 0.07) first, because it adds lead without
+      changing the sensor footprint. If the race shows steady oscillation on the slalom
+      with no line loss, the track width or sensor spread is the constraint, so try
+      a wider track (0.14 m) to lower yaw response, or a narrower sensor row (x spacing
+      0.01 m) to reduce the signal gain.
+
+
+      ### Requested changes
+
+
+      - If line loss occurs on the s-bend or slalom: move the sensor row forward,
+      from y = 0.05 to y = 0.065 m, to add lead ahead of the axle, because the baseline
+      was placed at 50 mm with no evidence yet on its lead.
+
+      - If steering oscillation is high on the slalom without line loss: raise wheel_track
+      from 0.12 to 0.14 m to lower the yaw response, since the 120 mm baseline has
+      no measured yaw behaviour yet.
+
+      - If the signal saturates or shows dead zones across the tape width: narrow
+      the sensor spread, changing the outer sensors from x = +/-0.03 to +/-0.02 m,
+      to keep every sensor within the tape at moderate offsets.
+
+
+      - [Open this output](iteration-0/entityR1/versions/a4f5a785ed614a0d89ab293f5280c8be/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/f759b92deedf41009820f1a4ce78bfdc/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

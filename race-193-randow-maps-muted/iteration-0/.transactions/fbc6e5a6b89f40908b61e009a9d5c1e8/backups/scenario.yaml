@@ -1,0 +1,116 @@
+map:
+  id: race-193-randow-maps-muted
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor
+    notes: 'Symmetric five-sensor baseline with 12 mm sensors spread across 48 mm,
+      placed 40 mm ahead of the axle, on a 0.12 m track with 0.8 kg mass. No race
+      data yet, so this is a neutral starting point to test the stated hypotheses.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no race telemetry and no integration feedback yet, so this is
+      a neutral baseline rather than a tuned design. Five sensors are spread across
+      0.048 m, which covers the 25 mm tape with margin at any lateral offset up to
+      about 24 mm, so the line stays visible on bends. The sensors sit 0.04 m ahead
+      of the axle so the controller sees the line before the wheels reach it. The
+      12 mm footprint is small enough to resolve edges and large enough to avoid dropouts.
+      The track width of 0.12 m and the 0.03 m wheel radius give a moderate turn authority
+      with stable yaw. The body width of 0.12 m gives an off-track limit of max(0.06,
+      0.0125+0.03)=0.06 m, which is a little generous. Mass 0.8 kg keeps inertia low
+      for quick response. Expected result: completion on the development tracks with
+      modest line error. This is a hypothesis to test, not a proven optimum.
+
+
+      - [Open this output](iteration-0/entity0/versions/427b2b39c417455ab19def4acbe891af/payload.json)'
+  - id: entity1
+    label: Complete Robot Package
+    notes: 'Complete Robot Package. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      ### Rationale
+
+
+      This is iteration 0, so there is no race telemetry or earlier integration feedback.
+      I kept the Builder''s baseline geometry exactly (five sensors at y=0.04, x from
+      -0.024 to 0.024, 12 mm footprints, track 0.12 m, wheel radius 0.03 m, mass 0.8
+      kg) so the controller is designed for that geometry. Sensor weights are the
+      sensor''s lateral position scaled to [-2, 2] (x/0.012, clipped), so a positive
+      signal (tape on the left) steers left, as the contract requires. Sensor spacing
+      of 0.012 m matches the 0.012 m footprint, so the tape always covers at least
+      one or two sensors. kp=3 gives a maximum turn of 6 (about 2100 PWM of differential),
+      which is strong enough for the bends without saturating. kd=0.3 damps oscillation
+      from the 10 ms loop. ki=0.05 is small to avoid windup on long bends. base_speed=1.6
+      gives 80% PWM, which should reach the roughly 1.5 m/s needed to finish in 3
+      s, leaving headroom for slowing on tight bends. line_loss=''last_direction''
+      keeps the robot turning toward the side it last saw the tape, which suits a
+      line that leaves on one side. Expected result: completion on the development
+      tracks with moderate line error. This is untested and will be revised after
+      the race.
+
+
+      - [Open this output](iteration-0/entity1/versions/0ce9a7207ca94bc98259ed6e3004bb05/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/427b2b39c417455ab19def4acbe891af/payload.json)'
+  - id: entityR1
+    label: Integration Feedback
+    notes: 'Integration Feedback. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      ### Feedback
+
+
+      No race evidence exists yet: this is iteration 0 and the Builder''s baseline
+      has never raced, so every claim below is a reasoned expectation, not a measurement.
+      Compensation I had to make: the sensor weights are scaled from lateral position
+      (x/0.012, clipped to [-2, 2]) because the five sensors span only 0.048 m, and
+      the 12 mm footprint means adjacent sensors overlap the tape together. Controller
+      choices that depend on geometry: kp=3 and kd=0.3 were set because the 0.12 m
+      track and 0.8 kg mass give moderate yaw authority. If the next race (iteration
+      0 results) shows steering_oscillation high or max_error rising on bends, then
+      the forward offset is too large or the sensors respond too late: reduce sensor
+      y from 0.04 toward 0.02 and reduce the track to 0.10 m so the turn response
+      is quicker. If line_loss_events are high on the tight bends (the robot leaves
+      the tape at the edge of the 0.048 m spread), then widen the spread to about
+      0.064 m (x of ±0.032 is outside the allowed range, so use ±0.030 with 5 sensors)
+      to see the line for longer. If completion_time is over 3 s with no oscillation
+      or loss, then reduce mass toward 0.6 kg to speed acceleration, since the controller
+      can keep base speed at 1.6 without extra correction.
+
+
+      ### Requested changes
+
+
+      - If steering_oscillation is high in the next race, move all sensor y values
+      from 0.04 to 0.02 (forward offset down) and keep the rest fixed, because a sensor
+      closer to the axle reacts later and reduces the overshoot the controller must
+      damp.
+
+      - If line_loss_events are high on tight bends, widen the sensor lateral spread
+      to x = ±0.030 (about 0.06 m total span) in place of ±0.024, since the baseline
+      0.048 m span loses the tape when the line drifts at the edge of the sensor array.
+
+      - If completion_time exceeds 3 s without line loss, reduce mass from 0.8 to
+      0.6 kg, since lower yaw inertia and mass should let the robot reach the 1.5
+      m/s average speed sooner.
+
+
+      - [Open this output](iteration-0/entityR1/versions/0ce9a7207ca94bc98259ed6e3004bb05/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/427b2b39c417455ab19def4acbe891af/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

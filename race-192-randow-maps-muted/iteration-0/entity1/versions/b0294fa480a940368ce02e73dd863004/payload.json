@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 1.8,
+    "kd": 0.3,
+    "ki": 0.05,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      2,
+      1,
+      0,
+      -1,
+      -2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.14,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": 0.024,
+        "y": 0.05
+      },
+      {
+        "x": 0.012,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": -0.012,
+        "y": 0.05
+      },
+      {
+        "x": -0.024,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "learning": "Baseline with no prior telemetry. Next iteration: if line_loss_events is high or max_error approaches 0.06 m, raise kp or sensor spread; if steering_oscillation is high, raise kd or lower kp; if completion_time is above 3 s with no losses, raise base_speed or reduce mass.",
+  "notes": "Baseline complete robot: the Builder's symmetric five-sensor array with a proportional-derivative controller, weights matched to sensor order, and last-direction line recovery. Based on contract physics only, since no race evidence exists yet.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Iteration 0 has no race data, so the controller is derived from the contract rather than from measured telemetry. The sensor layout is kept exactly as the Builder proposed. Sensor x offsets run +0.024 (left) to -0.024 (right), and a positive signal steers left, so weights are set in the same order as the sensors: [2, 1, 0, -1, -2]. The signal is then the reading-weighted average of those positions, which tracks the line offset directly. With readings near 0 or 1, the signal stays within about +/-2. kp = 2.5 gives a moderate steering response: a typical 0.3 signal gives turn 0.75, or about 260 PWM of differential. kd = 0.3 damps the oscillation expected from a 50 mm forward sensor lead. ki = 0.05 is kept small to avoid integral windup on long bends. base_speed = 1.8 gives PWM 3685 (about 90 percent), which targets the 1.5 m/s average needed to finish in 3 s while leaving headroom for turns. line_loss is 'last_direction', so the robot searches toward the side it last saw the tape. Measurements requested cover completion, timing, error, line loss and jitter, so the Builder can compare the baseline against later geometry changes. I expect the oval and s-bend to be the most reliable cases, with the slalom as the hardest. This has not been tested."
+}

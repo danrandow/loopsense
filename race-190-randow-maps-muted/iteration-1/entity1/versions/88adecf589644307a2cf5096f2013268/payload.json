@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.2,
+    "ki": 0.15,
+    "kp": 3.2,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "learning": "Check whether max_error still reaches 0.06 m on the s-bend (turn authority still limiting), whether steering_oscillation rises with kp 3.2 and kd 0.2 on the lighter body (too fast, needs more damping), and whether progress increases on the oval.",
+  "notes": "Adapts the Builder's wider, lighter, shorter geometry with higher steering gain (kp 3.2), a small integral to cancel the fixed motor mismatch (ki 0.15), and more damping (kd 0.2). The raised kp responds to iteration 0, where every trial went off_track with max_error near 0.06 m and low oscillation, so the bend response was too weak rather than jittery.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 0 (60 development trials, all ended off_track): progress was only 0.04 to 0.115, max_error reached about 0.061 m (the 0.06 m off-track floor), and rms_error was about 0.03 m. Steering oscillation was low (0.07 to 0.16), so the robot is not jittering. It drifts steadily outward and fails earliest on the s-bend. The controller is too soft to hold the line on bends, not too aggressive. Changes made for this geometry: (1) The sensor positions and wheel_track, mass and body_length follow the Builder's new geometry, which has lower yaw inertia, so the same turn command produces a faster turn. Because of that, I did not raise kp as far as the geometry alone would suggest. (2) kp goes from 2.0 to 3.2 to give more turn authority on bends. The sensor lateral spread is now +/-0.03 m, so the signal is smaller per unit of offset and needs more gain to produce the same wheel differential. (3) ki goes from 0 to 0.15. The contract's fixed left/right motor mismatch causes a steady drift that a small integral term removes, and the integral is clamped at +/-2, so windup is limited. (4) kd goes from 0.05 to 0.2 to damp the faster response from the lighter, shorter body. (5) sensor_weights are scaled to the new lateral positions, still -2,-1,0,1,2 for x = -0.03..+0.03 m, keeping the signal sign-correct (positive = left). base_speed stays at 1.6 because progress, not speed, is the limiting failure; completion is still a risk at about 1.5 m/s. line_loss stays last_direction, which kept the robot turning toward the side it last saw the line. Expected result: more progress on the s-bend and oval with fewer off_track endings. I do not claim this result yet."
+}
