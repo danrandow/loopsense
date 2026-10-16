@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 1.0,
+    "ki": 0.1,
+    "kp": 4.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.12,
+    "body_width": 0.12,
+    "mass": 0.5,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.08
+      },
+      {
+        "x": -0.025,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.025,
+        "y": 0.08
+      },
+      {
+        "x": 0.05,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors"
+    ]
+  },
+  "rationale": "Evidence: iteration 7 (kp 4.5, ki 0.02, kd 1.0, base_speed 1.1, mass 0.5, body_length 0.12, wheel_track 0.12, five sensors at y 0.08 with x = \u00b10.05/\u00b10.025/0) finished 60/60 trials at 929.76, the best verified score. Iteration 8 (speed 1.2) showed the slalom losing 2 of 20 runs to off-track, so speed 1.1 is the safe ceiling. The score is close to its ceiling: about 500 for completion, 250 for progress, about 105 from one line-loss event per run, about 65 from rms_error (about 0.011 to 0.016), and about 7 to 12 from time. The largest remaining controllable term is rms_error. The development tracks show rms of 0.0056 on the oval and 0.0162 on the s-bend, and the fixed left/right motor mismatch is a steady bias that the proportional term alone must absorb. Change: ki 0.02 to 0.10, so the integral term slowly cancels the steady mismatch offset. The integral is limited to \u00b12, so the added turn is at most about 0.2 (about 70 PWM), which is small and should not wind up on bends. Everything else is unchanged (geometry, kp 4.5, kd 1.0, base_speed 1.1, sensor layout and weights, line_loss), so the effect of ki is isolated. Expected result: rms_error falls by roughly 10 to 20 percent on the oval and s-bend, worth about 1 to 3 points, with completion, slalom margin (max_error about 0.023 against a 0.06 limit) and steering_oscillation (about 0.2 to 0.25) unchanged. Risk: a larger ki could overshoot on the slalom's alternating bends; if slalom completions fall below 20/20 or max_error exceeds 0.035, revert to ki 0.02 (iteration 7 design). Hypotheses not acted on: (1) the single line-loss event per run most likely occurs at the start or finish when the outer sensors leave the tape, so it is probably not fixable by gains alone; (2) if rms_error does not change with ki, the s-bend error comes from curvature lag rather than bias, and kd or sensor lead is the next lever. Measurements requested: completion, progress and completion_time to confirm no regression; rms_error and max_error to test the bias hypothesis; line_loss_events to locate the loss event; steering_oscillation for stability; controller_errors to confirm no exceptions."
+}

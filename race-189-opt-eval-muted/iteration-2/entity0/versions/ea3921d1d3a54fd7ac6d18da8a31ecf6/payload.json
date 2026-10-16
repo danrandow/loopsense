@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.1,
+    "ki": 0.05,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1.3,
+      -0.6,
+      0,
+      0.6,
+      1.3,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.05
+      },
+      {
+        "x": -0.016,
+        "y": 0.05
+      },
+      {
+        "x": -0.008,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.008,
+        "y": 0.05
+      },
+      {
+        "x": 0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.024,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.008,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials in iterations 0 and 1 ended off_track with no finishes. Progress was only 0.04 to 0.21, max_error sat at about 0.061 to 0.064 (just past the 0.06 m limit), and line_loss_events were 1 to 2 per run. Steering error was not the main failure. Iteration 1 (kp 2.0, kd 0.2, 8 mm sensors) scored 65.9, better than iteration 0 (kp 3.0, kd 0.05, 12 mm sensors, 26.0), but steering_oscillation rose with the higher kd. The off-track limit is max(0.06, 0.0125 + body_width/4), so body_width cannot widen it past 0.06 within the allowed range. The robot must therefore keep its error under 0.06 m.\n\nDiagnosis: the outer sensors at x = \u00b10.016 barely overlap the 25 mm tape edge (it reaches x = \u00b10.0125), so the robot has little warning and loses the line once it drifts sideways. Sensors at y = 0.03 also react late at speed.\n\nChanges: (1) Seven sensors at 8 mm spacing from x = -0.024 to +0.024, with 8 mm footprints. This widens the detection window to about \u00b10.036 m of offset, so the line is less often lost on a drift and the signal stays informative. (2) Sensors moved to y = 0.05 so steering starts earlier and offsets the motor lag at speed. (3) Weights [-2, -1.3, -0.6, 0, 0.6, 1.3, 2] keep the signal proportional to lateral error and bounded by 2. (4) base_speed 1.5 to 1.6 to close the progress gap, still under full PWM. (5) kp 2.0 to 2.5 for a firmer correction now that sensing is wider. (6) kd 0.2 to 0.1 to cut the jitter that kd 0.2 introduced. (7) ki kept low at 0.05 to avoid lag on bends. Mass 0.7, track 0.12, radius 0.03, and line_loss 'last_direction' are kept so the change in sensing and gains can be isolated.\n\nExpected result: max_error below 0.06 on oval and s-bend, fewer line-loss events (target 0 or 1), lower steering_oscillation than iteration 1, and progress above 0.5. Hypotheses to test: H1, the 12 mm to 8 mm sensor change with seven sensors removes most line loss. H2, the forward sensor offset reduces overshoot at bends. H3, lower kd reduces oscillation without losing damping. Next measurements to check these: line_loss_events per track, max_error on s-bend and slalom, steering_oscillation, and progress. If the robot stays on track but is slow, raise base_speed; if it still drifts, try raising kp before raising kd."
+}

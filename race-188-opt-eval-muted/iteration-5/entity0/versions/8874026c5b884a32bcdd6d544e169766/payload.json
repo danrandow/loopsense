@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.8,
+    "ki": 0.5,
+    "kp": 4.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.33,
+      -0.67,
+      0.0,
+      0.67,
+      1.33,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 4 is the best design so far (score 483.7). Oval finished 20 of 20 runs (mean 1.99 s, progress 0.997), so the 1.3 base speed and the current gains work on gentle bends. S-bend finished 3 of 20 (progress 0.71, steering_oscillation 0.41, the highest so far), and slalom never finished (progress 0.32, off track in all 20 runs). The weak point is fast alternating bends, where the loop is still underdamped and responds too slowly to direction changes. Iteration 4 also showed that ki (0.02 to 0.5) and kd (0.3 to 0.6) together cut max_error and line losses, so the integral and derivative terms are doing useful work.\n\nChanges, all in the controller: (1) kp 4.0 to 4.5 for more steering authority on rapid direction changes, since slalom progress is limited by slow response rather than by jitter. (2) kd 0.6 to 0.8 to damp the extra proportional gain, because s-bend oscillation is already high and kp 5 with kd 0.3 previously caused overshoot. (3) ki stays at 0.5, which iteration 4 showed is helping. base_speed stays at 1.3, because s-bend needs about 2.8 s and a lower speed would push it past the 3 s limit. Geometry is unchanged, so the effect of the controller change can be read directly.\n\nExpected result: slalom progress rises above 0.5 and some slalom runs complete, s-bend completions increase, and oval stays at 20 of 20. Hypotheses: (a) with kd 0.8, steering_oscillation on s-bend falls back below 0.4 even with the higher kp, so kd is damping rather than adding lag; (b) if oval steering_oscillation rises above 0.35 or oval completions drop, kp 4.5 is too aggressive and should return to 4.0 with kd kept at 0.8. Measurements wanted next: completion and completion_time by track, progress and max_error on slalom and s-bend (to see where the robot leaves the line), rms_error and line_loss_events (to judge the effect of kp), and steering_oscillation (to judge kd)."
+}

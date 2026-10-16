@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.9,
+    "ki": 0.5,
+    "kp": 4.8,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.33,
+      -0.67,
+      0.0,
+      0.67,
+      1.33,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.07
+      },
+      {
+        "x": -0.02,
+        "y": 0.07
+      },
+      {
+        "x": -0.01,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.01,
+        "y": 0.07
+      },
+      {
+        "x": 0.02,
+        "y": 0.07
+      },
+      {
+        "x": 0.03,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 6 (12 mm sensors at +/-3 cm, y 0.06, kp 4.8, kd 0.9, ki 0.5, base 1.3) is the best design so far at 696.6. It finished 20/20 on oval and 20/20 on s-bend. Slalom was 0/20 with progress 0.47 and 1.25 line-loss events per run. Iteration 7 (kp 5.0, kd 1.0) lost s-bend finishes (17/20) and scored 675, so kp 5 is past the useful range. Iteration 8 widened the sensors to 16 mm at +/-4 cm and reverted the controller to iteration 6 values. Slalom progress fell to 0.37 and s-bend finishes fell to 14/20, so the wider, larger footprint hurt. Its score of 622 is below iteration 6.\n\nDiagnosis. The controller is near its useful limit at kp 4.8. Slalom is limited by response lag on fast direction changes, not by jitter, and the 16 mm footprint blurs the centroid on tight bends. The 12 mm, +/-3 cm array is the better sensing layout.\n\nChanges. (1) Geometry reverts to the iteration 6 sensing: 12 mm footprints at +/-3 cm, 1 cm spacing, seven sensors. (2) The only change is moving the sensors forward from y 0.06 to 0.07 m, giving more look-ahead so steering responds earlier at speed. This targets the lag that limits slalom, and it stays inside the allowed y range (max 0.08). (3) Controller is unchanged from iteration 6 (kp 4.8, kd 0.9, ki 0.5, base 1.3, last_direction, same weights), so the effect of the look-ahead change can be read directly against the 696.6 baseline.\n\nExpected result. Oval and s-bend hold near iteration 6 (20/20 each). Slalom progress rises modestly, toward 0.55 or more, with a small chance of a first slalom completion. Risk: moving the sensors forward adds lag in the signal at low speed, which could raise max_error on s-bend.\n\nHypotheses. (a) Extra look-ahead reduces the slalom off-track rate and line losses, because the line is seen before the wheels reach it. (b) If s-bend finishes drop below 18/20, the forward shift is hurting and y should return to 0.06.\n\nMeasurements wanted: completion and completion_time by track; progress and max_error on slalom (where the line is lost); line_loss_events and rms_error on s-bend and slalom (effect of look-ahead); steering_oscillation on oval (confirms no added jitter)."
+}

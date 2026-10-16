@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.3,
+    "ki": 0.4,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.016,
+        "y": 0.03
+      },
+      {
+        "x": -0.008,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.008,
+        "y": 0.03
+      },
+      {
+        "x": 0.016,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.008,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 80 development trials (iterations 0 to 3) ended off_track with no finishes. Progress stayed between 0.04 and 0.21. Max_error sits at 0.061 to 0.064 on nearly every design, just past the 0.06 m limit, and each run logs 1 to 2 line-loss events. So the robot loses the tape at a bend and cannot recover. Steering error (rms about 0.02 to 0.03) is small until the moment of loss, and steering_oscillation is low (about 0.10), which points to sluggish correction rather than jitter. Iteration 3 (ki 0.8, base 1.3) was the best so far (68.4), so the integral term and lower speed helped a little. Raising kd from 0.05 to 0.2 raised jitter in iteration 1, so I will not push kd far.\n\nChanges, all in the controller and geometry held fixed to isolate the effect: (1) kp 2.0 to 3.0, a firmer correction at bends where error grows fastest. (2) kd 0.2 to 0.3, a modest rise for damping that stays below the level that caused jitter. (3) ki 0.8 to 0.4, because the integral may be winding up on bends. The bias it removes is real but it adds lag. (4) base_speed 1.3 kept, since speed is not yet the proven limit. Sensors, weights, mass and line_loss are unchanged.\n\nExpected result: max_error below 0.06 on oval and s-bend, line_loss_events at 1 or fewer, and progress above 0.3. Hypotheses: H1, the loss at bends comes from too little proportional gain. H2, the integral term of 0.8 adds lag that costs control on bends. Measurements needed next: max_error and line_loss_events per track to locate where the line is lost, progress to see whether the run gets further, and steering_oscillation to check that kp 3.0 with kd 0.3 stays stable. If the robot still loses the line at bends, the next step is a wider sensor span or a forward sensor shift; if it holds the line but is slow, raise base_speed."
+}

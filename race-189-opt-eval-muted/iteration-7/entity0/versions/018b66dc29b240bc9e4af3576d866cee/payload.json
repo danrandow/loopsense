@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.35,
+    "ki": 0.4,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.02,
+        "y": 0.03
+      },
+      {
+        "x": -0.01,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.01,
+        "y": 0.03
+      },
+      {
+        "x": 0.02,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 180 development trials across iterations 0 to 5 ended off_track with no finishes. Best so far is iteration 6 (115.8): oval progress 0.49, s-bend 0.25, slalom 0.11. Max_error sits at 0.061 to 0.064 on almost every design, just past the 0.06 m limit, and line loss happens 1 to 2 times per run. Steering oscillation rose with kd (0.28 on oval at kd 0.45), so kd 0.45 is adding jitter without stopping the excursion. Body width cannot widen the off-track limit past 0.06 m, so the robot must keep its error inside that band.\n\nDiagnosis: the robot loses the tape once it drifts about 0.03 to 0.036 m off-centre, because the 8 mm footprints only see the tape edge at the outer sensors. Once the tape is lost, the last_direction search at throttle 0.35 cannot recover before the 0.06 m limit. Both the sensing span and the damping have been varied, but the 8 mm footprint is the one setting that has not been tested with the best gains.\n\nChanges, relative to iteration 6: (1) sensor_size 0.008 to 0.012 m, with five sensors kept at x = -0.02 to +0.02 (spacing 0.01 m) and y = 0.03. A larger footprint makes each sensor cover the tape edge from further away, so the line is held further off-centre and the signal stays informative. Iteration 0 used 12 mm, but with different gains and a 12 mm spacing that blurred the edge, so this isolates the footprint effect with the tuned gains. (2) kd 0.45 to 0.35, to cut the jitter seen in iteration 6 while keeping some damping. (3) mass 0.7 to 0.6 kg, to lower yaw inertia so the wheels respond faster at bends. (4) base_speed kept at 1.3 (iteration 4 value), to recover some progress lost at 1.2. kp 3.0, ki 0.4, weights [-2,-1,0,1,2] and line_loss last_direction are kept to isolate the sensing and damping change.\n\nExpected result: line_loss_events at 1 or fewer per run, max_error below 0.06 on oval and s-bend, steering_oscillation below 0.25, and progress at or above iteration 6 on oval (about 0.5).\n\nHypotheses: H1, a 12 mm footprint at 10 mm spacing sees the tape edge early enough to prevent loss at bends. H2, kd 0.35 keeps damping while reducing the jitter seen at kd 0.45. H3, mass 0.6 reduces the lag in turning response. Measurements needed next: line_loss_events and max_error per track (to see whether loss still occurs and where), progress and completion_time on s-bend and slalom, and steering_oscillation to check jitter. If the robot holds the line but is too slow, raise base_speed toward 1.5. If max_error still reaches 0.06 with no line loss, raise kp before adding more kd."
+}

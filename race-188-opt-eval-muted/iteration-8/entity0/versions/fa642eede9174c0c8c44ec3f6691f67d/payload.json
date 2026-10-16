@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.9,
+    "ki": 0.5,
+    "kp": 4.8,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.33,
+      -0.67,
+      0.0,
+      0.67,
+      1.33,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.0267,
+        "y": 0.06
+      },
+      {
+        "x": -0.0133,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.0133,
+        "y": 0.06
+      },
+      {
+        "x": 0.0267,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 6 (kp 4.8, kd 0.9, ki 0.5, base 1.3, seven 12 mm sensors at +/-3 cm) is the best design so far at 696.6. Oval finishes 20/20 and s-bend finishes 20/20. Slalom finishes 0/20, with progress 0.47, 1.25 line-loss events per run and off-track in every run. Slalom is now the main source of lost score. Iteration 7 raised kp to 5.0 and kd to 1.0. Slalom progress rose only slightly (0.47 to 0.53), s-bend finishes fell from 20/20 to 17/20, and the total score fell to 675. So kp 5 is past the useful range, and the controller is near its limit.\n\nDiagnosis: slalom loses the line about 1.25 times per run. That points to sensor coverage, not gain. With 12 mm footprints spanning +/-3 cm, the line can leave the array on fast direction changes, so the signal drops below the 0.05 threshold and the robot runs on the last-direction search. Widening the array should keep tape under at least one sensor during larger lateral excursions.\n\nChanges: (1) Controller reverted to iteration 6 values (kp 4.8, kd 0.9, ki 0.5, base_speed 1.3, last_direction), since iteration 7 showed no gain from kp 5. (2) Geometry: sensor footprint 12 mm to 16 mm, and the array widened from +/-3 cm to +/-4 cm at 1.33 cm spacing. Sensor weights are unchanged, so the signal scale stays inside +/-2. Seven sensors and y = 0.06 are kept. The wider footprint ensures the outer sensors see the tape at larger offsets.\n\nExpected result: line_loss_events on slalom fall from about 1.25 toward 0.5 or lower, slalom progress rises above 0.6, and the first slalom completions appear. Oval and s-bend should hold near their iteration 6 results. Risk: the larger footprint blurs the centroid on tight bends, which may raise max_error on s-bend.\n\nHypotheses: (a) line losses on slalom come from the array being too narrow, so wider coverage cuts line_loss_events and raises slalom progress. (b) The 16 mm footprint does not add steering oscillation on oval (the steering_oscillation should stay at or below about 0.3). Measurements wanted: completion and completion_time by track, progress and max_error on slalom (to locate where the line is lost), line_loss_events and rms_error (to test coverage), and steering_oscillation (to check whether the blur adds jitter)."
+}

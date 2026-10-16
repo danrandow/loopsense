@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 0.8,
+    "ki": 0.02,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.18,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.075,
+        "y": 0.06
+      },
+      {
+        "x": -0.05,
+        "y": 0.06
+      },
+      {
+        "x": -0.025,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.025,
+        "y": 0.06
+      },
+      {
+        "x": 0.05,
+        "y": 0.06
+      },
+      {
+        "x": 0.075,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 3 (score 361.4) and iteration 5 (349.6) both finish every oval trial at about 1.86 to 1.89 s, but every s-bend and slalom trial goes off track at max_error about 0.062 to 0.063 m. The off-track limit is max(0.06, 0.0125 + 0.18/4) = 0.06 m, and body_width is already at its maximum, so geometry cannot widen the margin. Iteration 5 (sensors at y = 0.08) did not change the bend failures, so sensor lead is not the main limit. Iteration 4 (kd 1.0) cost oval finishes and did not fix the bends, so kd stays at 0.8. Iteration 2 changed four things at once and hurt the oval, so its wider span was never tested cleanly. Slalom shows about 1 line-loss event per run with progress stuck near 0.10, which points to the tape leaving the five-sensor span (x = -0.06 to +0.06) at large lateral error.\n\nChange (the only change from iteration 3): seven sensors at x = -0.075, -0.05, -0.025, 0, 0.025, 0.05, 0.075 m, y = 0.06, size 0.012 m. The 0.025 m spacing keeps at least one 12 mm footprint on the 25 mm tape across the whole span, so the tape cannot hide between sensors. Outer weights rise to +/-1.5, so the steering signal is stronger at large error. Controller gains stay as in iteration 3 (base_speed 1.1, kp 2.5, ki 0.02, kd 0.8, last_direction). This is the same design proposed in iterations 6 and 7, which never raced. I am carrying it forward because it is the one untested hypothesis that targets the measured line-loss failure. The earlier iterations are not repeated.\n\nExpected result: slalom and s-bend line_loss_events fall toward 0, s-bend max_error drops below 0.055 m, and s-bend progress rises above 0.3. Oval should still finish near 1.9 s.\n\nRisks: the outer weights raise the effective gain by about 1.5x (signal can reach 1.5, so turn can reach about 3.75). Oval steering_oscillation may rise above 0.3. If so, reduce kp to about 2.0 or the outer weights to about 1.2 in the next iteration. If line loss disappears but the robot still exits, the limit is turn authority, and the next lever is kp near 3.0 with this wider array.\n\nHypotheses: (a) line loss at large error causes the bend failures; (b) the signal-scale change needs kp retuning. Measurements wanted: per-track completion, progress, max_error, line_loss_events, steering_oscillation and completion_time."
+}

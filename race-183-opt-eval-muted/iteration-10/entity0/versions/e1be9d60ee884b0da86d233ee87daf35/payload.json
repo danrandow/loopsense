@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 0.8,
+    "ki": 0.02,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.18,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.08,
+        "y": 0.06
+      },
+      {
+        "x": -0.054,
+        "y": 0.06
+      },
+      {
+        "x": -0.027,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.027,
+        "y": 0.06
+      },
+      {
+        "x": 0.054,
+        "y": 0.06
+      },
+      {
+        "x": 0.08,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 8 (score 430.6, best) and iteration 9 (412.4) both finish the oval 20 of 20 at about 1.87 s. Slalom is stuck at progress 0.18 with about one line-loss event per run and max_error about 0.063 m, just over the 0.06 m off-track limit. Body width is already at its maximum, so the margin has to come from the sensors or the controller. Iteration 9 tested kp 3.0 on its own and lowered the s-bend score (progress 0.59 to 0.53, no finishes), so higher kp is not the lever. The seven-sensor span (x = -0.075 to +0.075) helped the s-bend a lot, which points to sensor coverage at large lateral error as the main limit. Slalom still loses the tape at about 0.06 m, which suggests the outer edge of the array is still too close to the line for those excursions.\n\nChange: keep the iteration 8 controller (base_speed 1.1, kp 2.5, ki 0.02, kd 0.8, weights [-1.5,-1,-0.5,0,0.5,1,1.5], last_direction) and widen the array to the sensor limit of +/-0.08 m. The seven sensors move to x = -0.08, -0.054, -0.027, 0, 0.027, 0.054, 0.08 at y = 0.06 with size 0.012. The spacing of about 0.027 m is still under the 25 mm tape plus footprint, so the tape cannot slip between sensors. This is the only change from iteration 8, and it tests span alone.\n\nExpected result: slalom line_loss_events fall toward 0.5 or below, slalom max_error falls under 0.058 m, and slalom progress rises above 0.25. S-bend progress should hold near 0.6 or better. Oval should still finish near 1.9 s.\n\nRisks: the outer sensors may read the tape less often at small error, which could add jitter on the oval (steering_oscillation above 0.25). If the oval degrades, the next step is outer weights of about 1.2.\n\nHypotheses: (a) slalom exits come from the tape leaving the array at large error, so widening the span should cut line loss and raise slalom progress. (b) If slalom still stalls near 0.18 with line loss at 1, the limit is entry into the slalom, and the next lever is sensor y position or the line_loss mode.\n\nMeasurements wanted: per-track completion, progress, max_error, line_loss_events, steering_oscillation and completion_time."
+}

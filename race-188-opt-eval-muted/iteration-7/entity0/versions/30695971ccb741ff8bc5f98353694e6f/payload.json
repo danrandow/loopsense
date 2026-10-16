@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 1.0,
+    "ki": 0.5,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.33,
+      -0.67,
+      0.0,
+      0.67,
+      1.33,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 6 is the best design so far (score 696.6). Oval finishes 20 of 20 (mean 1.98 s, max_error 0.0095). S-bend finishes 20 of 20 (mean 2.42 s, steering_oscillation 0.33). Slalom still never finishes (0 of 20, progress 0.47, 1.25 line-loss events per run), so it is the main source of lost score. Across iterations 4 to 6, each step up in kp with a matching step up in kd (4.0/0.6, 4.5/0.8, 4.8/0.9) cut max_error and line losses on s-bend and raised slalom progress, with no oval regression. The diagnosis is that slalom is limited by slow response to rapid direction changes, not by jitter. Oval steering_oscillation (0.23) and s-bend (0.33) still have headroom.\n\nChanges, controller only, geometry unchanged so the effect is isolated: (1) kp 4.8 to 5.0 for more steering authority on fast alternating bends. (2) kd 0.9 to 1.0 to keep the extra proportional gain damped; iteration 2 showed kp 5 with kd 0.3 overshoots, so the damping ratio should be kept at or above the level that worked at kp 4.8. (3) ki 0.5, base_speed 1.3 and line_loss last_direction are unchanged. ki is removing the motor-mismatch bias, and base_speed 1.3 keeps s-bend inside the 3 s limit (about 2.4 s now).\n\nExpected result: slalom progress rises above 0.5 and the first slalom completions appear. Oval stays at 20 of 20 and s-bend completions hold at 100%. Hypotheses: (a) kd 1.0 keeps oval and s-bend steering_oscillation at or below about 0.35 despite the higher kp, so kd is damping rather than adding lag. (b) If oval completion drops or oval steering_oscillation exceeds 0.35, kp 5.0 is too aggressive and should return to 4.8. Sensor coverage (line losses on slalom) is the next suspect if progress stalls near 0.5; a wider sensor footprint would be the next geometry test. Measurements wanted: completion and completion_time by track, progress and max_error on slalom (where the robot leaves the line), line_loss_events and rms_error (effect of kp), and steering_oscillation (effect of kd)."
+}

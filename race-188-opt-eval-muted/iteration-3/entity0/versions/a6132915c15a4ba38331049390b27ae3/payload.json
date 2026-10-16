@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.5,
+    "ki": 0.3,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.33,
+      -0.67,
+      0.0,
+      0.67,
+      1.33,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 2 (kp 5, kd 0.3, ki 0.02, base 1.4, seven 12 mm sensors at \u00b13 cm) ran 60 development trials with no finishes. Every run ended off_track, with progress 0.12 to 0.28 (best on oval) and max_error about 0.065 m, just past the 0.06 m limit. Steering oscillation rose from 0.08-0.15 to 0.15-0.24 when kp went to 5, so the extra gain is adding overshoot rather than fixing the drift. Line losses were 1.0 to 1.75 per run. Score rose from 50 to 76 mainly through oval progress.\n\nDiagnosis: the robot drifts steadily off the line. A fixed left/right motor mismatch (the same for every design on a given seed) creates a steady bias. With ki at 0.02, the controller cannot cancel that bias, so the offset settles at a level that eventually crosses the limit. Higher kp alone causes overshoot and jitter. The off-track limit cannot be widened: max(0.06, 0.0125 + body_width/4) stays at 0.06 for every allowed body_width (the largest gives 0.0575).\n\nChanges: (1) kp 5 to 4 to cut overshoot. (2) kd 0.3 to 0.5 to damp the oscillation the higher kp was causing. (3) ki 0.02 to 0.3 so the integral cancels the constant motor-mismatch bias. The integral is clamped at \u00b12, which limits windup on bends. (4) base_speed 1.4 to 1.3, a small cut to reduce slip while keeping pace for the 3 s finish. (5) Sensors moved forward from y 0.05 to 0.06 for more look-ahead, so steering responds earlier at speed. Sensor layout, footprint, weights and line_loss policy are unchanged to isolate the controller effect.\n\nExpected result: lower max_error (target below 0.05 m), fewer line-loss events, and progress above 0.4 on oval and s-bend, which would bring the first completions. Hypotheses: (a) the drift is a bias that ki removes, so rms_error should fall and steady offset should vanish on straights; (b) kd 0.5 damps the jitter, so steering_oscillation should drop below 0.15. Measurements to check next: completion and completion_time (is 1.3 fast enough?), progress and max_error (where the robot leaves the line), rms_error and line_loss_events (does the integral help?), steering_oscillation (is kd damping or adding lag?), and controller_errors."
+}

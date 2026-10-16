@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 1.2,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.14
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 3 (base_speed 1.2, sensors at +/-3 cm, kp 2.25, kd 0.9) scored 893.6, the best so far. Oval finished 20/20, s-bend 20/20, slalom 15/20. Iteration 4 cut base_speed to 1.1 and scored 879.5: the oval and s-bend were unchanged, and the slalom got worse (13/20 finished, 7 off-track). So speed is not the cause of the slalom failures, and base_speed should go back to 1.2. The slalom failures are off-track events after line loss on sharp bends, with low steering oscillation (about 0.25) and low rms error (about 0.012 m). The line is lost because the outermost sensors at +/-3 cm stop seeing tape when the robot drifts past about 2 cm. Change: widen the sensor array to +/-4 cm (x = -0.04, -0.02, 0, 0.02, 0.04), so the outer sensors still see tape at larger offsets. Weights stay at -2..2. Each weight now covers 0.5 weight per cm instead of 0.67, so I rescale the gains to keep the per-cm response: kp 2.25 -> 3.0 (kp times weight-per-cm stays 1.5) and kd 0.9 -> 1.2 (stays 0.6). ki stays 0. base_speed returns to 1.2. Everything else (sensor size 16 mm, sensor y 0.05, wheel track 0.14, mass 0.6, body, line_loss last_direction) is unchanged, so the effect of the wider spread is isolated. Expected result: slalom line_loss_events drop below 0.25 and slalom finish rate rises above 0.85, lifting the slalom mean above 850. Oval and s-bend should stay near their iteration 3 values, because the per-cm gain is unchanged. Hypotheses: (H1) the wider spread removes most slalom off-track events; (H2) the gain rescale keeps steering_oscillation at or below 0.3; (H3) if the slalom still fails, the cause is overshoot on tight bends rather than line loss, and the next step is more kd or a lower kp, not more speed cuts. Measurements wanted per track: completion, completion_time, progress, line_loss_events, max_error, steering_oscillation, control_effort and noise_robustness, so I can separate line loss from overshoot."
+}

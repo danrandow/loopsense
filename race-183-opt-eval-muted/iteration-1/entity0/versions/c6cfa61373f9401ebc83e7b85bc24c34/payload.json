@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.8,
+    "ki": 0.02,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.18,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: every development trial on every track ended off_track (0 finishes). Progress was only 0.04 to 0.11, and max_error was about 0.06 m, just above the off-track limit of about 0.0525 m (tape half-width 0.0125 plus body_width/4 = 0.04). The robot leaves the line within the first fraction of each course, and the cause is the aggressive control, not sensing: rms_error stayed near 0.03 m, and steering_oscillation and control_effort were moderate. With kp 4 and base_speed 1.8, a full-scale signal gives a turn of about 4 and a wheel PWM difference of about 2800. That is likely overshooting the bends, and the damping (kd 0.3) is too weak to stop the swing.\n\nChanges: (1) base_speed 1.8 to 1.3, so the robot can corner before it overshoots. This trades some speed, but the finish needs about 1.5 m/s average, so I will check the time once it completes. (2) kp 4.0 to 2.5, to soften the steering response. (3) kd 0.3 to 0.8, to add damping against the overshoot swing. (4) ki 0.05 to 0.02, to limit integral windup on the bends. (5) body_width 0.16 to 0.18, the maximum, which raises the off-track limit to about 0.0575 m and gives a larger margin without changing the dynamics. (6) Sensors moved forward to y = 0.06, so the line is seen earlier and the steering reacts before the wheels reach the bend. Sensor x positions and weights are unchanged, so the signal scale still sits in [-1, 1].\n\nExpected result: the robot should stay on the line for longer on oval and s-bend, with progress well above 0.5 and possibly completion on the oval. Slalom may still wobble. Hypotheses to check: (a) the off-track exits are caused by overshoot, so max_error should fall below 0.04 m; (b) with base_speed 1.3, the finish time may be above 3 s, so if the robot completes slowly, base_speed is the next lever; (c) steering_oscillation should drop with the higher kd."
+}

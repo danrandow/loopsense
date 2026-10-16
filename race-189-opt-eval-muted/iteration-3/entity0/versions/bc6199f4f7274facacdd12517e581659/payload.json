@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.2,
+    "ki": 0.8,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.016,
+        "y": 0.03
+      },
+      {
+        "x": -0.008,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.008,
+        "y": 0.03
+      },
+      {
+        "x": 0.016,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.008,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials across iterations 0 to 2 ended off_track with no finishes. Max_error sits at 0.061 to 0.064 on every design, just past the 0.06 m limit. That near-constant value suggests a systematic drift toward one side, not random oscillation. The fixed left/right motor mismatch in the simulator is the likely source. Iteration 1 scored best (65.9) with kp 2.0, kd 0.2, base 1.5, 8 mm sensors at y=0.03 and ki 0.05. Iteration 2 moved to seven sensors at y=0.05 with higher kp and lower kd, and scored worse (49.9), so the sensor change did not help.\n\nChanges: (1) Keep iteration 1 geometry (five 8 mm sensors at x = -0.016 to +0.016, y=0.03, mass 0.7), since it is the best evidence so far. (2) Raise ki from 0.05 to 0.8 so the integral term can cancel the constant motor mismatch and remove the steady drift that pushes max_error past 0.06. The integral is capped at +/-2, which limits windup. (3) Lower base_speed from 1.5 to 1.3. This reduces centrifugal drift on bends and gives the integral time to settle. (4) Keep kp 2.0, kd 0.2 and the weights, so the ki change is isolated.\n\nExpected result: max_error drops below 0.06 on oval and s-bend, line_loss_events fall toward 1 per run, and progress rises above 0.2. Hypotheses: H1, the drift is a steady bias that ki removes. H2, lower speed reduces off-track events on bends. Measurements to check next: max_error and rms_error per track (a bias shows as a large rms with a stable sign), line_loss_events, and progress. If the robot now holds the line but finishes too slowly, raise base_speed; if the drift remains, try ki near 2 with lower kp."
+}
