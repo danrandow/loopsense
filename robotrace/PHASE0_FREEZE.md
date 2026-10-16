@@ -422,3 +422,53 @@ $4.00, using the tighter of (the $1.00 nominal cap, the floor-derived headroom) 
 method as Gate 8's `EFFECTIVE_GATE_CAP`. Arms interleaved; a harness fault reruns once, as in Gates 6-8.
 
 This section is committed before any Gate 9 race runs.
+
+## §4f. Gate 11 pre-registration: opt-eval-muted causal test (2026-10-16, committed before any Gate 11 race runs)
+
+(Dan's message called this "§4e" — §4e is already Gate 9's replication section above; using §4f to avoid
+collision, noted here rather than silently renumbering Gate 9's.)
+
+**Question.** Gates 9-10 established that opt-solo beats opt-eval, and that opt-eval's Evaluator advice is
+almost entirely controller-gain tuning. This gate asks a causal question directly: is the Evaluator's
+*feedback text itself* (as opposed to the mere presence of a second agent, or anything else about the
+two-call structure) what holds opt-eval back relative to opt-solo?
+
+**Design.** `package-templates/opt-eval-muted`: byte-identical to `opt-eval` in actors, actions
+(instructions), entities, and action runtime bindings (checked programmatically: `actors`, `actions`,
+`entities` dicts compare equal). The only topology change is two edges: `edge1R1U` (entityR1 used by
+action0) removed, and `edge1R1G`'s `direction: return` tag dropped (required for the topology validator's
+return-pair check to pass once the used-by edge is gone — has no other effect; `direction` is read in
+exactly one place in the codebase, that validator, confirmed by search). The Evaluator still runs, still
+writes `entityR1` and the decision that gates `entity1`'s release, and the release mechanism (`_apply_release`
+in `executors.py`) does not go through this edge at all, so it is unaffected. The Optimizer's instructions
+are unchanged, including the sentence telling it to "Read the Evaluator Feedback" — it will say that and not
+receive it, exactly as asked.
+
+8 races, 12 iterations each, same primary_metric and paired-improvement measure as Gates 7-9 (fresh
+validation seeds 5000-5029 + 9 fresh same-family tracks, final iteration minus iteration 0).
+
+**Comparison arms (already collected, zero new cost):** opt-eval n=16 (mean improvement +242.46, sd
+184.27) and opt-solo n=16 (mean improvement +664.70, sd 160.96), both from Gate 8.
+
+**Decision rule, stated before any Gate 11 data exists:**
+- **"Feedback text is the cause"** if muted's mean improvement is within 100 points of opt-solo's (+664.70)
+  AND the Welch 95% CI for muted vs. opt-eval excludes 0.
+- **"Not the feedback text"** if muted's mean improvement is within 100 points of opt-eval's (+242.46) AND
+  the Welch 95% CI for muted vs. opt-solo excludes 0.
+- **Otherwise: "inconclusive"**, reported with the N (per arm) that would be needed to resolve it at the
+  observed sd, using the same power formula as every earlier gate.
+
+**Power, stated now.** Using 170 as a planning sd for muted (the rough midpoint of opt-eval's 184 and
+opt-solo's 161), the Welch SE for muted (n=8) vs. either existing n=16 arm is
+`sqrt(170²/8 + 184²/16) ≈ 76 points`, giving a 95% CI half-width of about 148 points. Gate 8's actual gap
+(422 points) clears that with room to spare, so this design has a reasonable chance of landing a clean
+verdict rather than "inconclusive" if the true muted mean is close to either endpoint — but a muted mean
+genuinely in between (say ~450) could land inside 100 points of neither anchor and inside neither CI's
+exclusion zone, which is exactly what "inconclusive" is for.
+
+**Cost.** `/api/v1/credits` (not `/api/v1/auth/key` — see `GATE10_REPORT.md`) is the balance source for
+every check in this gate. Reserve $0.50 against in-flight requests: stop issuing new calls when the
+`/credits` balance is within $0.50 of zero. No $4.00 floor (removed by Dan at Gate 9/10). Per-race cap
+$0.30. 4-way concurrency, `/credits` checked after each batch. Estimated total cost ~$1.00 for 8 races.
+
+This section is committed before any Gate 11 race runs.
