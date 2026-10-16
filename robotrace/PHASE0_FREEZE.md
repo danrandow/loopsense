@@ -472,3 +472,56 @@ every check in this gate. Reserve $0.50 against in-flight requests: stop issuing
 $0.30. 4-way concurrency, `/credits` checked after each batch. Estimated total cost ~$1.00 for 8 races.
 
 This section is committed before any Gate 11 race runs.
+
+## §4g. Gate 12 Part B pre-registration: randow-maps-muted causal test (2026-10-16, committed before any
+Gate 12 race runs)
+
+(Dan's message called this "§4f" -- §4f is Gate 11's section above; using §4g, same renumbering convention
+as Gate 11's own note.)
+
+**What the Builder receives each iteration, checked directly against the topology before building anything**
+(answering Dan's "first report" requirement): `action0` (Geometry Builder) reads `entityPub0` (design
+constraints), `entityR1` (Integration Feedback), and `entityR2A` (Geometry Race Data -- race telemetry
+addressed to the Builder, confirmed in Gate 9 to be byte-identical to the Integrator's own race-data copy).
+**The Builder does not lose all telemetry once Integration Feedback is muted** -- `entityR2A` is a separate
+edge and stays. Proceeding without stopping, per Dan's own condition. Worth flagging though: `entityR1`'s
+own topology description calls it "their main way to learn what the Integrator needs," since the Builder
+never sees the controller at all -- muting it removes the Builder's only channel for controller-side
+context, even though raw race telemetry remains.
+
+**Gate 11 defect check, done before building anything (not just after, this time):** randow-maps' workflow
+has no release/gate structure at all -- `action1`'s runtime has no `release` field, unlike opt-eval's. There
+is no approve/revise loop to break: `action0`'s reentry policy is `once_per_iteration` (not `on_new_inputs`),
+so unlike opt-eval-muted, removing entityR1 cannot silently break a re-entry trigger -- there is no
+input-triggered re-entry for this action to break. Confirmed topologically before writing any code, and
+again by a 6-mock-iteration smoke test (all 6 completed cleanly, no stalls), before any paid call.
+
+**Build.** `randow-maps-muted`: `actors`, `actions` (instructions), and `entities` dicts compare
+byte-identical to `randow-maps` (checked programmatically, same as Gate 11's template). The only topology
+change: the entityR1-used-by-action0 edge removed, and its paired generates-edge's now-unmatched
+`direction: return` tag dropped (same reason as both earlier muted templates).
+
+**Design.** 8 races, 12 iterations each, same paired-improvement measure (primary_metric, final iteration
+minus iteration 0) as Gates 7-11.
+
+**Comparison arms (existing, zero new cost):** randow-maps n=16 (mean improvement +160.90, sd 179.72, from
+Gate 8) and opt-solo n=16 (mean improvement +664.70, sd 160.96, from Gate 8).
+
+**Decision rule, stated before any Gate 12 data exists:**
+- **"Feedback text is the cause"** if muted's mean improvement is within 100 points of opt-solo's (+664.70)
+  AND the Welch 95% CI for muted vs. randow-maps excludes 0.
+- **"Not the feedback text"** if muted's mean improvement is within 100 points of randow-maps' (+160.90) AND
+  the Welch 95% CI for muted vs. opt-solo excludes 0.
+- **Otherwise: "inconclusive."**
+
+**Balance, checked before committing to run anything:** `/credits` remaining is **$1.2321** right now (it
+settled since Gate 11's run -- the lag Gate 11 found means this figure includes Gate 11's $0.71 plus
+apparently more that hadn't posted yet when Gate 11 ended). Reserve $0.50 leaves **$0.73 of real headroom**
+against an $1.40 estimate for 8 races at randow-maps' historical ~$0.13-0.18/race -- **tighter than the
+estimate assumed.** Per-race cap $0.35 (Dan's figure) stays the real-time guard, summed from each race's own
+response-usage cost, exactly as instructed. Races will run in small sequential/limited-concurrency waves
+with a cumulative-cost check against the $0.73 headroom before each new race starts; **if the headroom runs
+out before 8 races complete, this gate reports N<8 as a safety stop, not a race run.** This is stated now,
+before any race runs, specifically so a short-N outcome is not read as a surprise or an error.
+
+This section is committed before any Gate 12 race runs.
