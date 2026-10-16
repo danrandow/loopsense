@@ -1,7 +1,7 @@
 # Gate 12: is the advice actually bad, and a second (partial) causal test
 
 Written 2026-10-17. Part A is pre-registration-free, zero-cost, offline simulator work. Part B's
-pre-registration is `PHASE0_FREEZE.md` §4g, committed `[see commit log]` before any Gate 12 race ran.
+pre-registration is `PHASE0_FREEZE.md` §4g, committed `4265ef5d7` before any Gate 12 race ran.
 
 ## Flag first: Part B stopped at N=4 (+2 partial), not N=8 — a hard external block, not a graceful stop
 
