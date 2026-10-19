@@ -8,7 +8,7 @@ working alone, under a fixed 12-iteration budget with no simulator tool access. 
 tried**: a lone agent (opt-solo) decisively beats both two-agent topologies tested (opt-eval and
 randow-maps) and a third, more elaborate critique structure (opt-eval-pre2, two advisory rounds before
 racing) on the pre-registered out-of-sample metric, and **the first critique-and-revise round degrades the
-design 96.5% of the time** (85/88 iterations, mean −344) — traced to the critic confidently, and sometimes
+design 96.5% of the time** (across 85 iterations, mean −344) — traced to the critic confidently, and sometimes
 wrongly, asserting the current design doesn't work. Giving a team explicit permission to hold geometry and
 decline advice (randow-maps-dialogue) produced a large behavioural shift (3x more holding) but not yet a
 statistically confirmed score change at n=8.
