@@ -525,3 +525,13 @@ out before 8 races complete, this gate reports N<8 as a safety stop, not a race 
 before any race runs, specifically so a short-N outcome is not read as a surprise or an error.
 
 This section is committed before any Gate 12 race runs.
+
+**Gate 13 Part 2 addendum (2026-10-19, committed before any Gate 13 race runs):** completing this
+pre-registration to the original n=8. 4 races already completed in full (190-193); race-192 is the "zero
+race" (improvement 0.0) -- confirmed in `GATE13_REPORT.md` to be a genuine net-zero result (the design cycled
+back to be byte-identical to its own iteration-0 design by the end), not a harness fault, so the §4c
+rerun-once rule does not apply to it. Races 194-195 stopped partway (6 of 12 iterations) when the API key's
+provisioned limit was hit (Gate 12); they stay reported separately, not pooled into this n=8. 4 new races
+(202-205) will complete the set. Both `/credits` ($10.4667) and `/auth/key`'s `limit_remaining` ($19.4186)
+checked and well above the $2.00 stop threshold before starting -- both have been raised by Dan since Gate
+12. Decision rule applied exactly as written above, unchanged.
