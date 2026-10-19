@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 1.5,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.67,
+      -0.33,
+      0.0,
+      0.33,
+      0.67,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.08
+      },
+      {
+        "x": -0.02,
+        "y": 0.08
+      },
+      {
+        "x": -0.01,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.01,
+        "y": 0.08
+      },
+      {
+        "x": 0.02,
+        "y": 0.08
+      },
+      {
+        "x": 0.03,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.14
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: across 10 races, every trial ended off_track, with zero completions. Progress has never exceeded about 0.17, max_error sits at 0.060 to 0.067 (just past the 0.06 m limit), and every run logs 1 to 2 line-loss events with steering_oscillation of 0.14 to 0.18. Body width cannot widen the limit, so the failure is in steering and sensing.\n\nWhat the history shows: moving the sensor row forward (y 0.04 to 0.06 to 0.08, with sensor_size 0.016, wheel_track 0.14, kp 3.0) was the only change that moved the score materially (about 40 to 58). Iterations 7 and 8 scored identically (58.1734) even though kd, wheel_track and base_speed changed, so those gains are not what limits the result. Iteration 9 widened the sensor span to plus or minus 0.06 m at 0.02 m spacing and scored worse (55.13, slalom 44.2 to 37.7). The narrower plus or minus 0.03 m span is therefore the better layout. Iteration 2 (kp 2.5, wider spacing) was also worse, so I do not lower kp further.\n\nChange, relative to the best-scoring design (iteration 7/8): (1) Restore the plus or minus 0.03 m span at 0.01 m spacing, with the sensors at y = 0.08 m. This was the best-scoring sensor layout, and iteration 9 showed the wider span hurts. (2) sensor_size 0.016 to 0.012. The 0.016 footprints overlap heavily at 0.01 m spacing, which blurs the signal and may keep line-loss and drift readings ambiguous at the edges. I expect a sharper, more local reading. This is the only sensor change, so its effect is attributable. (3) kd 1.0 to 1.5, to damp the steering oscillation of about 0.17, which is the most consistent symptom. (4) kp 3.0, ki 0.0, base_speed 1.5, wheel_track 0.14, mass 0.6, wheel_radius 0.03 and line_loss 'last_direction' are unchanged, so the controller baseline stays fixed.\n\nExpected result: a modest gain over 58.17, with fewer line-loss events and a longer run on the line, and progress above about 0.2. Completion is still unlikely. The main risk is that the smaller footprint gives noisier signal on the outer sensors and that kd 1.5 adds derivative noise, which would show as higher steering_oscillation. If the score drops, the sensor footprint is the wrong lever and the next step is to return to 0.016 and test base_speed."
+}

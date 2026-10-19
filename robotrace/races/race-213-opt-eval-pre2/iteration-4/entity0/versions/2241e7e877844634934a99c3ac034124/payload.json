@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 1.2,
+    "ki": 0.0,
+    "kp": 2.6,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.032,
+        "y": 0.05
+      },
+      {
+        "x": -0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.032,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. The only race data is from iteration 2 (score 419.7): kp 2.0, ki 0, kd 1.2, base_speed 1.3, five 12 mm sensors at x = -0.024 to +0.024, y = 0.05, weights -2..2, last_direction line loss. It finished 20/20 on the oval (mean 955, 1.91 s), finished 1/20 on the s-bend (progress 0.52) and 0/20 on the slalom (progress 0.15, 1.3 line-loss events per run). Off-track was the only end condition on the hard tracks. The iteration-3 draft (wider 0.04 m array, 16 mm sensors, kp 3.0) was never raced, so its claimed slalom fix is untested. I am not adopting its full change.\n\nDiagnosis. The oval gain setting is stable, so the gain level is not the main problem. The slalom fails early, with 1.3 line-loss events per run, which points to the tape leaving the sensor row during quick direction changes. The sensors currently see the tape only out to about \u00b10.042 m of lateral offset. Line loss then hands control to the last direction, which overshoots. I will widen the array moderately, to \u00b10.032 m, and keep the 12 mm footprint so the change is isolated.\n\nChanges. (1) Sensor x positions move to -0.032, -0.016, 0, 0.016, 0.032 at y 0.05. Tape stays visible to about \u00b10.05 m of offset. (2) Wider spacing lowers the signal per metre of offset from about 83 to about 62, so kp rises from 2.0 to 2.6 to keep steering authority roughly constant. (3) kd stays high at 1.2 for damping, since kd/kp is about 0.46, close to the stable oval setting. (4) base_speed drops from 1.3 to 1.2 to give more time to correct on slalom bends. The oval margin is about 1 s, so it should still finish. (5) ki stays 0, weights and last_direction stay the same.\n\nExpected result. Oval should still finish, with time around 2.0 to 2.2 s. Slalom line-loss events should fall below 1 per run and progress should rise above 0.3. The s-bend completion rate should improve. Main risk: the wider array could make the oval oscillate more. I will check steering_oscillation and line_loss_events on the oval and slalom first."
+}

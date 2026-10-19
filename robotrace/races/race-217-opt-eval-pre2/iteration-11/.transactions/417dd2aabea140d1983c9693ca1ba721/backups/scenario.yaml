@@ -1,0 +1,241 @@
+map:
+  id: race-217-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 11
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 10.
+dimensions:
+  time_horizon: prepared
+  iteration: '11'
+overrides:
+  entities:
+  - id: entity0
+    label: kp 3.5 on best layout
+    notes: 'Starts from the best-scoring design (iteration 10, 58.85) and raises kp
+      from 3.0 to 3.5 with kd held at 1.5, to add steering authority at the bends.
+      All 60 trials in the record ended off-track, and progress has never exceeded
+      about 0.17, so the expected gain is small.
+
+
+      ### Rationale
+
+
+      Evidence: all 60 development trials in every iteration ended off_track, with
+      no completions. Progress has never exceeded about 0.17, and max_error sits at
+      0.060 to 0.067, just past the 0.06 m limit. Body width cannot widen that limit,
+      so the limiting factor is steering and sensing.
+
+
+      What the history shows: the sensor row moved forward (y 0.04, then 0.06, then
+      0.08) with sensor_size 0.016, wheel_track 0.14 and kp 3.0 was the only change
+      that moved the score materially (about 40 to 58). Iterations 7 and 8 scored
+      identically (58.1734) despite changes to kd, wheel_track and base_speed. Iteration
+      9 widened the span to plus or minus 0.06 m and scored worse (55.13), so the
+      plus or minus 0.03 m span is the better layout. Iteration 10 (sensor_size 0.012,
+      kd 1.5, kp 3.0) is the best design so far at 58.8527, with the best oval and
+      slalom progress.
+
+
+      Change, relative to iteration 10: (1) kp 3.0 to 3.5. Oscillation is about 0.17
+      and the robot drifts past 0.06 m at the sharper bends, so I add a little steering
+      authority. kd stays at 1.5 to damp the extra gain. (2) Everything else is held
+      fixed, including sensor layout, sensor_size 0.012, base_speed 1.5, wheel_track
+      0.14, mass 0.6, ki 0.0 and line_loss ''last_direction''. This keeps the change
+      attributable to one controller variable.
+
+
+      Expected result: a small gain over 58.85, with progress above about 0.18 and
+      max_error slightly lower. Completion is still unlikely. The main risk is that
+      kp 3.5 adds overshoot, which would show as higher steering_oscillation and an
+      earlier off-track exit. If that happens, the fallback is the iteration 10 design.
+
+
+      - [Open this output](iteration-11/entity0/versions/2a79ac8095a44cbd96a891356b9bed45/payload.json)
+
+      - Based on: [entityR2A](iteration-11/entityR2A/versions/carried-5dff049e6df67016/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Critiques the kp 3.5 draft: kp was never isolated at the current sensor
+      layout, the proposed drift mechanism is unsupported, and ki and motor mismatch
+      are ignored. Evidence is the 10-iteration outcome table, including identical
+      scores at kp 4 and kp 5 and identical scores for kd 1.0 and 1.5.
+
+
+      - [Open this output](iteration-11/entityC1/versions/b40db5c8c7304ca1aff765b5b3d0b762/payload.json)
+
+      - Based on: [entity0](iteration-11/entity0/versions/2a79ac8095a44cbd96a891356b9bed45/payload.json),
+      [entityR2A](iteration-11/entityR2A/versions/carried-5dff049e6df67016/payload.json)'
+  - id: entity1
+    label: 'Single-change: sensor'
+    notes: 'Keeps the best raced design (58.17) and changes only sensor_size from
+      0.012 to 0.016, so the race isolates the footprint effect. Revert to 0.012 if
+      the score falls, since the 0.012 footprint is the reference.
+
+
+      ### Rationale
+
+
+      Evidence: the best raced design is iteration 7 (58.1734; oval 63.49, s-bend
+      66.85, slalom 44.19; no completions). Iterations 7 and 8 gave identical scores
+      to four decimals while kd, wheel_track and base_speed changed, so those controller
+      values have no measurable effect in this regime. The round-1 critique is right
+      that my draft was confounded: it changed kd, wheel_track, kp, mass and sensor_size
+      at once, and it stated a baseline that had never raced. Its kd 1.5 is also unsupported,
+      because the loop gives 100*kd per unit of signal change per step.
+
+
+      What I kept: the raced iteration 7 controller (kp 4.5, ki 0, kd 0.1, base_speed
+      1.5, linear weights, last_direction), the sensor row at y 0.08 with x from -0.03
+      to +0.03 at 0.01 m spacing, wheel_track 0.12 and mass 0.8. What I rejected:
+      kd 1.5, wheel_track 0.14 to 0.16, kp 3.0, mass 0.6 and the ±0.06 m span, all
+      of which are unraced or were confounded. Iteration 9 (±0.06 m span at 0.02 m
+      spacing) scored 55.13, so that span is worse.
+
+
+      What I changed: one variable only, sensor_size 0.012 to 0.016, with every other
+      value as in iteration 7. The critique notes that 0.012 was never tested against
+      0.016 in this layout. A larger footprint keeps the sum of readings higher when
+      a tape edge falls between sensors, which should reduce line-loss events. The
+      0.016 footprint overlaps neighbours more, so it may blur the edge reading. This
+      race tests which effect dominates.
+
+
+      Falsifiable targets relative to 58.17: line_loss_events at or below 1 on the
+      s-bend and slalom; oval line_loss_events at or below 2 and oval max_error below
+      0.06; progress at or above 0.16 on all tracks. Reversal rule: if the score falls
+      below 58.17, or any track''s max_error rises above its raced value, return sensor_size
+      to 0.012 and keep the iteration 7 design as the fallback for the final stage.
+
+
+      - [Open this output](iteration-10/entity1/versions/1957afd88be84a7a80faed4e4ac2e9c9/payload.json)
+
+      - Based on: [entity0](iteration-10/entity0/versions/683c9ccd6b574353b3c32a0c62383233/payload.json),
+      [entityC1](iteration-10/entityC1/versions/433675c8623546f6a4b26835e16491d5/payload.json),
+      [entityR2A](iteration-10/entityR2A/versions/carried-5e127d19ab73539f/payload.json)'
+  - id: entityC2
+    label: Round-2 Critique
+    notes: 'Round-2 Critique. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-10/entityC2/versions/5e2dde4bf78b4747927d34d0b18b312b/payload.json)
+
+      - Based on: [entity1](iteration-10/entity1/versions/1957afd88be84a7a80faed4e4ac2e9c9/payload.json),
+      [entityR2A](iteration-10/entityR2A/versions/carried-5e127d19ab73539f/payload.json)'
+  - id: entity2
+    label: Sensor footprint 0.016
+    notes: 'Keeps the raced iteration 7 design and changes only sensor_size to 0.016,
+      so the result is attributable to footprint. Drops the non-discriminating progress
+      and line-loss targets, and keeps a reproducible reversal rule to the 0.012 fallback
+      if score or any max_error worsens.
+
+
+      ### Rationale
+
+
+      Evidence: iteration 7 (sensor_size 0.012, raced 58.1734) is the best raced design.
+      Iteration 9 showed that shrinking the footprint to 0.008 lowers the score to
+      55.13, so smaller footprints are worse. Iterations 7 and 8 gave identical scores,
+      so kd, wheel_track and base_speed have no measurable effect in this regime.
+
+
+      What I accepted from the round-2 critique: the change is attributable only if
+      one variable moves from the raced baseline, so I keep sensor_size as the only
+      change. I also accept that the proposed mechanism is untested and that the two
+      oval line-loss events have persisted across layout, gain, footprint and speed
+      changes. That points to a fixed early cause, such as the seeded motor mismatch
+      or the start transient, not to the footprint.
+
+
+      What I rejected or changed: the critique says the line-loss and progress targets
+      do not discriminate. I accept that and drop them as success criteria. I keep
+      the reversal rule because it is clear and reproducible with fixed seeds. I do
+      not change the controller or geometry to address the motor mismatch in this
+      race, because that would confound the sensor test again. I will note it as the
+      next candidate cause.
+
+
+      What I changed: nothing relative to my revision. The design keeps sensor_size
+      0.016 with the iteration 7 controller and geometry. I expect the score to move
+      only slightly. If the larger footprint blurs the edge reading, s-bend and slalom
+      max_error should rise. If it keeps more reading sum when the edge falls between
+      sensors, oval line_loss_events should fall. I predict the score stays within
+      about 1 point of 58.17 with no large change on any track.
+
+
+      Reversal rule: if the score falls below 58.17, or any track''s max_error rises
+      above its raced value (oval 0.0652, s-bend 0.0665, slalom 0.0624), the final
+      stage uses sensor_size 0.012 with the iteration 7 design as the fallback.
+
+
+      - [Open this output](iteration-10/entity2/versions/f4869560037144978601cce55566917d/payload.json)
+
+      - Based on: [entity1](iteration-10/entity1/versions/1957afd88be84a7a80faed4e4ac2e9c9/payload.json),
+      [entityC2](iteration-10/entityC2/versions/5e2dde4bf78b4747927d34d0b18b312b/payload.json),
+      [entityR2A](iteration-10/entityR2A/versions/carried-5e127d19ab73539f/payload.json)'
+  - id: entityR2A
+    label: Score 58.85
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 58.85.
+      Per trial — oval-1: 67.3 (off_track); oval-2: 67.3 (off_track); oval-3: 67.3
+      (off_track); oval-4: 67.3 (off_track); oval-5: 67.3 (off_track); oval-6: 67.3
+      (off_track); oval-7: 67.3 (off_track); oval-8: 67.3 (off_track); oval-9: 67.3
+      (off_track); oval-10: 67.3 (off_track); oval-11: 67.3 (off_track); oval-12:
+      67.3 (off_track); oval-13: 67.3 (off_track); oval-14: 67.3 (off_track); oval-15:
+      67.3 (off_track); oval-16: 67.3 (off_track); oval-17: 67.3 (off_track); oval-18:
+      67.3 (off_track); oval-19: 67.3 (off_track); oval-20: 67.3 (off_track); s-bend-1:
+      64.8 (off_track); s-bend-2: 64.8 (off_track); s-bend-3: 64.8 (off_track); s-bend-4:
+      64.8 (off_track); s-bend-5: 64.8 (off_track); s-bend-6: 64.8 (off_track); s-bend-7:
+      64.8 (off_track); s-bend-8: 64.8 (off_track); s-bend-9: 64.8 (off_track); s-bend-10:
+      64.8 (off_track); s-bend-11: 64.8 (off_track); s-bend-12: 64.8 (off_track);
+      s-bend-13: 64.8 (off_track); s-bend-14: 64.8 (off_track); s-bend-15: 64.8 (off_track);
+      s-bend-16: 64.8 (off_track); s-bend-17: 64.8 (off_track); s-bend-18: 64.8 (off_track);
+      s-bend-19: 64.8 (off_track); s-bend-20: 64.8 (off_track); slalom-1: 44.2 (off_track);
+      slalom-2: 44.2 (off_track); slalom-3: 44.2 (off_track); slalom-4: 44.2 (off_track);
+      slalom-5: 44.2 (off_track); slalom-6: 44.2 (off_track); slalom-7: 44.2 (off_track);
+      slalom-8: 44.2 (off_track); slalom-9: 44.2 (off_track); slalom-10: 44.2 (off_track);
+      slalom-11: 44.2 (off_track); slalom-12: 44.2 (off_track); slalom-13: 44.2 (off_track);
+      slalom-14: 44.2 (off_track); slalom-15: 44.2 (off_track); slalom-16: 46.2 (off_track);
+      slalom-17: 44.2 (off_track); slalom-18: 44.2 (off_track); slalom-19: 44.2 (off_track);
+      slalom-20: 46.2 (off_track).
+
+
+      - [Open this output](iteration-10/entityR2A/versions/23988d9812e04753bf7f17b606475194/payload.json)
+
+      - Based on: [entity2](iteration-10/entity2/versions/f4869560037144978601cce55566917d/payload.json)'
+  - id: entityOut
+    label: Score 58.85
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 58.85.
+      Per trial — oval-1: 67.3 (off_track); oval-2: 67.3 (off_track); oval-3: 67.3
+      (off_track); oval-4: 67.3 (off_track); oval-5: 67.3 (off_track); oval-6: 67.3
+      (off_track); oval-7: 67.3 (off_track); oval-8: 67.3 (off_track); oval-9: 67.3
+      (off_track); oval-10: 67.3 (off_track); oval-11: 67.3 (off_track); oval-12:
+      67.3 (off_track); oval-13: 67.3 (off_track); oval-14: 67.3 (off_track); oval-15:
+      67.3 (off_track); oval-16: 67.3 (off_track); oval-17: 67.3 (off_track); oval-18:
+      67.3 (off_track); oval-19: 67.3 (off_track); oval-20: 67.3 (off_track); s-bend-1:
+      64.8 (off_track); s-bend-2: 64.8 (off_track); s-bend-3: 64.8 (off_track); s-bend-4:
+      64.8 (off_track); s-bend-5: 64.8 (off_track); s-bend-6: 64.8 (off_track); s-bend-7:
+      64.8 (off_track); s-bend-8: 64.8 (off_track); s-bend-9: 64.8 (off_track); s-bend-10:
+      64.8 (off_track); s-bend-11: 64.8 (off_track); s-bend-12: 64.8 (off_track);
+      s-bend-13: 64.8 (off_track); s-bend-14: 64.8 (off_track); s-bend-15: 64.8 (off_track);
+      s-bend-16: 64.8 (off_track); s-bend-17: 64.8 (off_track); s-bend-18: 64.8 (off_track);
+      s-bend-19: 64.8 (off_track); s-bend-20: 64.8 (off_track); slalom-1: 44.2 (off_track);
+      slalom-2: 44.2 (off_track); slalom-3: 44.2 (off_track); slalom-4: 44.2 (off_track);
+      slalom-5: 44.2 (off_track); slalom-6: 44.2 (off_track); slalom-7: 44.2 (off_track);
+      slalom-8: 44.2 (off_track); slalom-9: 44.2 (off_track); slalom-10: 44.2 (off_track);
+      slalom-11: 44.2 (off_track); slalom-12: 44.2 (off_track); slalom-13: 44.2 (off_track);
+      slalom-14: 44.2 (off_track); slalom-15: 44.2 (off_track); slalom-16: 46.2 (off_track);
+      slalom-17: 44.2 (off_track); slalom-18: 44.2 (off_track); slalom-19: 44.2 (off_track);
+      slalom-20: 46.2 (off_track).
+
+
+      - [Open this output](iteration-10/entityOut/versions/23988d9812e04753bf7f17b606475194/payload.json)
+
+      - Based on: [entity2](iteration-10/entity2/versions/f4869560037144978601cce55566917d/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+  - id: action4
+  - id: action5
+measurements: {}

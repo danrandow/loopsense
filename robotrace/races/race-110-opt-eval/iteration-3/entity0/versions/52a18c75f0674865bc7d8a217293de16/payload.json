@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.15,
+    "ki": 0.4,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.07,
+        "y": 0.05
+      },
+      {
+        "x": -0.035,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.035,
+        "y": 0.05
+      },
+      {
+        "x": 0.07,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Evidence. Iteration 2 (ki 0.4, all else as R1) scored 38.47, essentially identical to R1 at 38.61. Every trial in both races still ended off_track with 0 finishes. max_error stayed at 0.0607 to 0.0615 on every track, and each trial logged exactly one line_loss_event. Adding integral action changed nothing measurable, so the constant-bias hypothesis (H3) is rejected. Lowering kp and widening the footprint (iteration 1) also barely moved max_error. Across all three iterations, max_error is pinned just above the 0.06 m off-track limit, whatever the gains. The one consistent event is a single line loss per trial, followed by drift off the line.\n\nHypothesis. The sensor array is too narrow for the bends. The sensors span x = -0.04 to +0.04 m, plus footprint, so the tape leaves the array when the robot's lateral error or heading error is about 0.02 to 0.03 m. The line is then lost, and last_direction with throttle 0.35 cannot recover before the robot reaches 0.06 m. A wider span (x = \u00b10.07 m) should keep the tape under at least one sensor through the same bends and so avoid the line loss. Lateral error should then stay below 0.06 m.\n\nChange. I widened the sensor span to x = -0.07, -0.035, 0, 0.035, 0.07 m, keeping five sensors, y = 0.05 m and the 16 mm footprint. The weights stay at -1, -0.5, 0, 0.5, 1, so the signal range is unchanged. I kept kp 2.0, kd 0.15, ki 0.4 (neutral in iteration 2, so it is harmless and keeps the test to one variable), base_speed 1.4 and line_loss last_direction. This is a single-variable geometry test. Speed and line_loss are held back until line loss is resolved.\n\nExpected result. line_loss_events falls toward 0, max_error drops below 0.06, and progress rises well above 0.14. If line loss persists with the wider array, the next test is line_loss = search_left or search_right, and then sensor y placement.\n\nMeasurements wanted: max_error and rms_error per track, line_loss_events, progress, completion, steering_oscillation and completion_time. These show whether the span, rather than the gains, is the driver."
+}

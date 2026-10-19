@@ -1,6 +1,8 @@
 """Calibration helper: finish rates per track for each design and a small-body variant.
 usage: survey_tracks.py ROBOTRACE_DIR REPO_ROOT OUT.json DESIGNS.json MAX_DESIGNS TRACKS.json N_SEEDS FIRST_SEED
-Uses the config of race-40-c-randow-maps; designs come from collect_designs.py."""
+Uses the config of race-40-c-randow-maps; designs come from collect_designs.py.
+Race data moved to robotrace/races/ -- pass REPO_ROOT=.../robotrace/races (not the git repo root) so
+race-40-c-randow-maps/config/race.yaml resolves; same for collect_designs.py's REPO_ROOT argument."""
 import sys, json, glob, copy, yaml, itertools
 from multiprocessing import Pool
 RT, ROOT, OUT = sys.argv[1], sys.argv[2], sys.argv[3]

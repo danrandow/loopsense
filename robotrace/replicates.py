@@ -19,6 +19,9 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+# Default workspace for race output -- see robotrace/races/README.md. Distinct from ROOT (the repo root),
+# which other code (e.g. tests/test_replicates.py) still uses to locate robotrace/package-templates/.
+DEFAULT_WORKSPACE = Path(__file__).resolve().parent / "races"
 SEEDS_PER_REPLICATE = 20  # development seeds per track; each replicate gets its own block so trajectories can diverge
 MAX_REPLICATES = 8
 ENTRANTS = ("randow-maps", "opt-eval")
@@ -132,12 +135,12 @@ def main() -> None:
     r.add_argument("--max-output-tokens", type=int, default=4000)
     r.add_argument("--total-tokens", type=int, default=1_000_000)
     r.add_argument("--iteration-tokens", type=int, default=300_000)
-    r.add_argument("--workspace", type=Path, default=ROOT)
+    r.add_argument("--workspace", type=Path, default=DEFAULT_WORKSPACE)
     r.set_defaults(func=run)
     c = sub.add_parser("compare", help="compare finished races")
     c.add_argument("races", nargs="*")
     c.add_argument("--base", default="")
-    c.add_argument("--workspace", type=Path, default=ROOT)
+    c.add_argument("--workspace", type=Path, default=DEFAULT_WORKSPACE)
     c.add_argument("--out")
     c.set_defaults(func=compare)
     args = parser.parse_args()

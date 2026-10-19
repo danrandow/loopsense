@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import html
 
-SPEC = "/robotrace/MAP_DRIVEN_ARCHITECTURE_SPEC.md"
+SPEC = "/robotrace/docs/MAP_DRIVEN_ARCHITECTURE_SPEC.md"
 
 # key -> label, scope (where the value applies), summary (one line), details (paragraph).
 FIELD_DOCS: dict[str, dict[str, str]] = {

@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.8,
+    "kd": 0.1,
+    "ki": 0.02,
+    "kp": 1.2,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "learning": "No prior race data. Next revision should use line_loss_events and max_error to decide whether to raise kp (if the robot drifts on bends) or lower base_speed (if it leaves the track or loses the line on sharp bends), and steering_oscillation to decide whether to raise kd or lower kp.",
+  "notes": "Baseline package: the Builder's geometry unchanged, with a moderate proportional controller, weights matched to sensor lateral position, and last_direction line-loss recovery. Gains and base speed are untuned starting points and should be revised from race telemetry.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Iteration 0 has no race telemetry, so the controller is built from the contract and the Builder's baseline geometry (five sensors at x = -0.03 to 0.03 m, y = 0.06 m; 12 mm footprint; wheel_track 0.12 m; wheel_radius 0.03 m). The steering signal is a reading-weighted average of the sensor weights, so weights proportional to sensor x give a signal that is roughly the line's lateral offset in sensor units. Weights [-2,-1,0,1,2] keep the sign convention right: a line under the left sensors (positive x) gives a positive signal, which steers left. Base speed is set to 1.8 (PWM about 3685) because the course must be covered in under 3 s, roughly 1.5 m/s average, and 2 is the saturation point. Gains are moderate: kp 1.2 gives turn of about 1.2 at full signal, which is a 420 PWM-count wheel difference, enough to correct without saturating. kd 0.1 damps oscillation on the signal and ki 0.02 is small so the integral does not wind up on long bends. line_loss uses last_direction so the robot searches toward the side it last saw the line. Expected result: a completing run is plausible, but speed, line-loss count and oscillation are unknown until the race reports them."
+}

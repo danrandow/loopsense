@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 1.2,
+    "ki": 0.2,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.07
+      },
+      {
+        "x": -0.03,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.03,
+        "y": 0.07
+      },
+      {
+        "x": 0.06,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: 180 development trials (iterations 0 to 2, plus 60 more in iteration 3 with ki 0.5) all ended off track with no finishes. Max error sits at about 0.064 m, just above the 0.06 m off-track limit, while rms error is steady at 0.024 to 0.030 m. Line-loss events run 1 to 2 per run, and steering oscillation is 0.13 to 0.21. Scores have stayed between 65.00 and 65.25 across every gain change, so the controller tweaks made so far have not been the binding constraint. The likely structural problem is that the outer sensors at x = +/-0.05 only see the tape when the robot is already far off, and the array then loses the line entirely near the 0.05 m error, which is where the excursions end. Iteration 3 also showed that ki 0.5 does not remove the failure.\n\nChanges: (1) Geometry: widen the sensor array to x = -0.06, -0.03, 0, 0.03, 0.06 (within the 0.08 limit). This keeps at least one sensor on the tape out to about 0.07 m of error, so the line is less likely to be lost before the controller can correct. Keep y = 0.07 for lookahead and sensor_size 0.016 for coverage. Keep the wheel and body geometry unchanged to isolate the sensor change. (2) Controller: lower base_speed from 1.4 to 1.3 to give the tight bends and slalom more margin, since speed reduction is the main lever left for keeping the robot inside the 0.06 m limit. Reduce kp from 3.0 to 2.5 because the wider sensor spacing raises the signal scale per unit of offset (weights are unchanged, but the outer sensors now read sooner). Keep kd at 1.2 to damp jitter, and set ki to 0.2, a middle value between the 0.02 and 0.5 tested, so the integral trims the motor-mismatch bias without the overshoot risk seen at 0.5. Keep last_direction line loss.\n\nExpected result: fewer line-loss events (target 0 to 1 per run) and max_error below 0.06, so some runs should go further and occasionally finish the oval and s-bend. Progress should rise above 0.3 on the oval. Completion on the slalom remains uncertain. The main risk is that 1.3 is slow enough to hurt completion time, so the next revision should check whether progress is limited by speed or by excursions."
+}

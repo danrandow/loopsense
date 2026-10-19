@@ -1,0 +1,122 @@
+map:
+  id: race-135-randow-maps
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor
+    notes: 'Symmetric five-sensor array at 15 mm spacing, 12 mm footprints, 50 mm
+      ahead of the axle, with mid-range track, wheel and mass values. No race data
+      yet, so this is a conservative starting point chosen from the contract ranges
+      to measure line-following limits.
+
+
+      ### Rationale
+
+
+      This is iteration 0, so there is no race telemetry or Integrator feedback yet.
+      The geometry is a conservative baseline built from the contract. Five sensors
+      at 15 mm spacing, from x = -0.03 to +0.03, cover a 0.06 m band, which is about
+      2.4 times the 25 mm tape width. That keeps the line visible through moderate
+      lateral error, and the centre sensor gives a clean reading near the centre line.
+      The sensors sit 0.05 m ahead of the axle, so the robot sees the line before
+      the wheels reach it, which leaves room for steering lag. Sensor size is 0.012
+      m, close to the tape width, so each footprint is mostly on or off the tape and
+      the readings stay sharp. Wheel track is 0.12 m and wheel radius 0.03 m, mid-range
+      values that give moderate turn authority without excessive yaw sensitivity.
+      Body width is 0.12 m, which sets the off-track limit at max(0.06, 0.0125 + 0.03)
+      = 0.06 m. That is a safe margin against the 25 mm tape. Mass is 0.8 m, which
+      keeps inertia moderate for quick speed changes. The expected result is a first
+      completion on the oval, with the main failure modes (line loss on tight bends,
+      overshoot) exposed for the Integrator to measure.
+
+
+      - [Open this output](iteration-0/entity0/versions/e637a84635854a2bbcb99eceebacb946/payload.json)'
+  - id: entity1
+    label: Baseline robot package
+    notes: 'Builder''s baseline geometry with a proportional controller: sensor weights
+      scaled with x, kp 4, base_speed 1.6, last_direction recovery. No race data yet,
+      so the design rests on the contract alone.
+
+
+      ### Rationale
+
+
+      This is iteration 0, so there is no race telemetry or earlier Integrator feedback.
+      I kept the Geometry Builder''s baseline geometry unchanged so the first race
+      tests the proposal as written. The five sensors are at x = -0.03, -0.015, 0,
+      0.015, 0.03 (positive = left). I set the sensor weights to x/0.03, giving -1,
+      -0.5, 0, 0.5, 1. A tape under the right-hand sensors then gives a negative signal,
+      which steers right, and the signal stays within ±1. With |signal| ≤ 1, kp =
+      4 gives turn up to ±4, or about ±1400 PWM per wheel, which is enough authority
+      for the bends without saturating. The integral gain is small (ki = 0.05) to
+      avoid windup on the long bends. kd = 0.3 damps the response at the sensor lead
+      distance of 0.05 m ahead of the axle. base_speed = 1.6 gives about 3685 PWM,
+      which should be enough to average the roughly 1.5 m/s needed to finish in 3
+      s, while leaving some margin for the slalom. Line loss uses ''last_direction''
+      so the robot searches toward the side it last saw the line. The observation
+      request keeps the Builder''s requested measurements and adds controller_errors
+      so exceptions are visible. Expected result: first completion attempt on the
+      oval, with line-loss events and rms error as the main unknowns.
+
+
+      - [Open this output](iteration-0/entity1/versions/5ebb8467492742e795ab6138604c992f/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/e637a84635854a2bbcb99eceebacb946/payload.json)'
+  - id: entityR1
+    label: Iteration 0 feedback
+    notes: 'No earlier race exists, so the feedback gives contract-based conditional
+      changes: widen the sensor span on line loss, move sensors closer to the axle
+      on oscillation, and try a smaller sensor footprint on high rms error.
+
+
+      ### Feedback
+
+
+      No earlier race exists, so this feedback rests only on the contract and on what
+      the Integrator had to set for this geometry. Five sensors at 15 mm spacing span
+      0.06 m, which is 2.4 times the 25 mm tape. Sensor weights were scaled linearly
+      with x so that the signal stays within ±1. This left kp at about 4, a moderate
+      value, so the controller does not need extra gain to hold the line. If the next
+      race shows line_loss_events on the sharpest bends, widen the sensor span toward
+      the ±0.08 limit, because the outer sensors are what keep the line in view before
+      it leaves the array. If steering_oscillation is high, the controller is over-gained
+      for the sensor lead; reduce the lead by moving sensor y closer to the axle (for
+      example 0.03 m) rather than adding derivative action, because the sensor lead
+      sets how much lag the loop sees. If completion_time is too long and the run
+      completes with no line loss, the geometry is not the limit; raise base_speed,
+      not geometry. If rms_error is high but there is no oscillation or line loss,
+      sensor footprints are probably too large for the 25 mm tape, so try sensor_size
+      0.008.
+
+
+      ### Requested changes
+
+
+      - If line_loss_events are above zero on the oval or s-bend, widen the sensor
+      span to x = ±0.04 (five sensors at 0.02 spacing) to keep the outer sensors on
+      the tape before the robot leaves it. Evidence: none yet; this is a contract-based
+      prediction to test first.
+
+      - If steering_oscillation is high in the next race, move sensor y from 0.05
+      to 0.03 to reduce the lead the loop sees, keeping the other geometry fields
+      fixed. Evidence: none yet; this is a contract-based prediction.
+
+      - If rms_error is high with no line loss or oscillation, try sensor_size 0.008
+      to tighten the footprint on the 25 mm tape. Evidence: none yet; this is a contract-based
+      prediction.
+
+
+      - [Open this output](iteration-0/entityR1/versions/5ebb8467492742e795ab6138604c992f/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/e637a84635854a2bbcb99eceebacb946/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

@@ -1,0 +1,231 @@
+map:
+  id: race-125-randow-maps
+  schema: v0.2
+  scenario: Iteration 9
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 8.
+dimensions:
+  time_horizon: prepared
+  iteration: '9'
+overrides:
+  entities:
+  - id: entity0
+    label: Track 0.09 m, 16 mm
+    notes: 'Narrows wheel_track from 0.10 to 0.09 m with the sensing and mass unchanged,
+      a smaller step than the 0.08 m minimum. Iteration 8 raised s-bend progress to
+      0.1604 and score to 60.32 with all oscillation below 0.16, but slalom oscillation
+      (0.157) is close to the trigger, so a 25 percent turn-rate jump is too risky.
+
+
+      ### Rationale
+
+
+      Iteration 8 (wheel_track 0.10 m, everything else as iteration 7) scored 60.32,
+      up from 57.50. The change helped on every track. The s-bend rose from 0.1496
+      to 0.1604 progress with max_error 0.0613 m. The oval rose from 0.161 to 0.167
+      with rms_error 0.0193. Slalom progress rose from 0.1064 to 0.110. Line-loss
+      events were 1.0 on the s-bend and slalom and 0.95 on the oval, so no new loss
+      appeared. All steering_oscillation values stayed below 0.16: oval 0.109, s-bend
+      0.145, slalom 0.157. Slalom oscillation is now close to the trigger.
+
+
+      The s-bend gain is small, about 7 percent, and it does not yet clearly clear
+      0.16. The Integrator''s rule allows a test at 0.08 m, the contract minimum.
+      I do not think that is the right step. Turn rate scales roughly with 1/wheel_track,
+      so 0.10 to 0.08 m adds about 25 percent more turn rate. Going from 0.12 to 0.10
+      m (about 20 percent) raised slalom oscillation by about 0.012. A further 25
+      percent step would likely push slalom oscillation to about 0.17, past the trigger,
+      and cost the controller stability it needs.
+
+
+      I therefore choose wheel_track 0.09 m as a cautious step. It probes whether
+      s-bend progress keeps rising with turn rate, with a smaller expected increase
+      in oscillation. Mass stays at 0.8 kg, since the 0.6 kg mass in iteration 4 was
+      confounded and the gain from mass is not isolated. Sensing stays at seven contiguous
+      16 mm sensors at x = ±0.048 m and y = 0.08 m, because pitch and forward lead
+      have been tested and are not the limit.
+
+
+      Expected result: s-bend progress about 0.16 to 0.165, oval about 0.165 with
+      line loss near 0.95, and slalom oscillation about 0.15 to 0.165. If slalom oscillation
+      exceeds 0.16 with line loss unchanged, the Integrator should reduce kp before
+      further geometry change. If the s-bend is flat or worse, revert to wheel_track
+      0.10 m, which is the best measured geometry so far (score 60.32).
+
+
+      - [Open this output](iteration-9/entity0/versions/66ee51ef600e488ba09d6b3dc01f8afa/payload.json)
+
+      - Based on: [entityR1](iteration-9/entityR1/versions/carried-46f818d0eb2041ad/payload.json),
+      [entityR2A](iteration-9/entityR2A/versions/carried-acf11799c14267ad/payload.json)'
+  - id: entity1
+    label: Narrow track 0.09, kp 4.6
+    notes: 'Tests wheel_track 0.09 m at y = 0.08 m with kp lowered to 4.6 to offset
+      the higher turn gain. The evidence is iteration 8, where wheel_track 0.10 m
+      raised s-bend progress to 0.1604 with slalom oscillation at 0.157.
+
+
+      ### Rationale
+
+
+      Iteration 8 (wheel_track 0.10 m, y 0.08 m, kp 5.0) raised s-bend progress to
+      0.1604 and the oval to 0.167, with slalom steering_oscillation at 0.157, close
+      to the 0.16 trigger. Forward lead has plateaued (iterations 6 and 7), so the
+      drivetrain is the remaining lever. The Builder''s proposal narrows wheel_track
+      to 0.09 m at mass 0.8 kg, sensors unchanged at 16 mm, x = ±0.048 m, y = 0.08
+      m. Narrowing the track raises effective turn gain by roughly 11 percent, which
+      would push slalom oscillation toward or past 0.16. To keep the steering gain
+      near the iteration 8 level I scale kp by 1/1.11, giving kp 4.6 (from 5.0). Iteration
+      3 showed kp alone does not move the s-bend, so this is a stability adjustment,
+      not a progress lever. ki 0.05, kd 0.3, base_speed 1.5 and last_direction line
+      loss are unchanged. Weights stay proportional to x so a positive signal steers
+      left. Expected: s-bend progress about 0.16 to 0.165, slalom oscillation below
+      0.16. These are predictions only.
+
+
+      - [Open this output](iteration-9/entity1/versions/75658c42817049ac8bea9cd90d9d9e89/payload.json)
+
+      - Based on: [entity0](iteration-9/entity0/versions/66ee51ef600e488ba09d6b3dc01f8afa/payload.json),
+      [entityR2B](iteration-9/entityR2B/versions/carried-acf11799c14267ad/payload.json)'
+  - id: entityR1
+    label: 'Feedback: track and kp'
+    notes: 'Conditional steps for the next race: a further track narrowing if s-bend
+      improves with oscillation under 0.16, a kp reduction if slalom oscillation reaches
+      0.16, and a revert to 0.10 m if the s-bend is flat. Each is tied to iterations
+      3, 4, 7 and 8.
+
+
+      ### Feedback
+
+
+      Written before this candidate has raced. Iteration 8 (wheel_track 0.10 m, y
+      0.08 m, kp 5.0) scored 60.32, with s-bend progress 0.1604 and oval 0.167, and
+      slalom steering_oscillation 0.157, the binding constraint. Iterations 6 and
+      7 showed forward lead is on a plateau, so further drivetrain change is the remaining
+      test. Iteration 3 showed kp alone does not move the s-bend, so I expect the
+      gain from track width, not kp, to drive any progress change. I have built this
+      candidate at wheel_track 0.09 m with kp 4.6 to hold the effective turn gain
+      near iteration 8. Decide the next step from the race. If s-bend progress rises
+      above 0.1604 and slalom steering_oscillation stays below 0.16, keep the layout
+      and test wheel_track 0.08 m at mass 0.8 kg. If slalom oscillation rises to 0.16
+      or above with line loss unchanged, the Integrator should reduce kp further before
+      any more geometry change, and the geometry fallback is wheel_track 0.10 m. If
+      s-bend progress is flat near 0.16 or worse, revert to wheel_track 0.10 m and
+      treat the drivetrain as exhausted at this sensing.
+
+
+      ### Requested changes
+
+
+      - If s-bend progress rises above 0.1604 with slalom steering_oscillation below
+      0.16, keep y = 0.08 m and try wheel_track 0.08 m at mass 0.8 kg. Evidence: iteration
+      8 moved s-bend from 0.1496 to 0.1604 when wheel_track fell from 0.12 m to 0.10
+      m.
+
+      - If slalom steering_oscillation rises to 0.16 or above with line_loss_events
+      unchanged, keep wheel_track at 0.09 m and let the Integrator reduce kp before
+      further geometry change. If geometry must change, use wheel_track 0.10 m. Evidence:
+      iteration 8 slalom oscillation was 0.157 at wheel_track 0.10 m, and iteration
+      7 was 0.144 at 0.12 m.
+
+      - If s-bend progress is flat near 0.16 or worse, revert to wheel_track 0.10
+      m and keep the 16 mm contiguous layout at x = ±0.048 m, y = 0.08 m. Evidence:
+      iteration 4''s 20 mm pitch cut slalom progress from 0.106 to 0.035 and did not
+      improve the s-bend, so widening the pitch is not a fallback.
+
+
+      - [Open this output](iteration-9/entityR1/versions/75658c42817049ac8bea9cd90d9d9e89/payload.json)
+
+      - Based on: [entity0](iteration-9/entity0/versions/66ee51ef600e488ba09d6b3dc01f8afa/payload.json),
+      [entityR2B](iteration-9/entityR2B/versions/carried-acf11799c14267ad/payload.json)'
+  - id: entity2
+    label: Score 61.75
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 61.75.
+      Per trial — oval-1: 70.8 (off_track); oval-2: 70.8 (off_track); oval-3: 70.8
+      (off_track); oval-4: 72.8 (off_track); oval-5: 71.8 (off_track); oval-6: 74.9
+      (off_track); oval-7: 74.9 (off_track); oval-8: 71.8 (off_track); oval-9: 71.8
+      (off_track); oval-10: 73.9 (off_track); oval-11: 71.8 (off_track); oval-12:
+      71.8 (off_track); oval-13: 71.8 (off_track); oval-14: 71.8 (off_track); oval-15:
+      72.8 (off_track); oval-16: 74.9 (off_track); oval-17: 70.8 (off_track); oval-18:
+      71.8 (off_track); oval-19: 71.8 (off_track); oval-20: 73.9 (off_track); s-bend-1:
+      68.8 (off_track); s-bend-2: 68.8 (off_track); s-bend-3: 68.8 (off_track); s-bend-4:
+      68.7 (off_track); s-bend-5: 68.7 (off_track); s-bend-6: 68.8 (off_track); s-bend-7:
+      68.7 (off_track); s-bend-8: 68.7 (off_track); s-bend-9: 68.8 (off_track); s-bend-10:
+      68.8 (off_track); s-bend-11: 68.8 (off_track); s-bend-12: 68.7 (off_track);
+      s-bend-13: 68.8 (off_track); s-bend-14: 68.8 (off_track); s-bend-15: 68.7 (off_track);
+      s-bend-16: 68.8 (off_track); s-bend-17: 68.8 (off_track); s-bend-18: 68.8 (off_track);
+      s-bend-19: 68.7 (off_track); s-bend-20: 68.8 (off_track); slalom-1: 44.1 (off_track);
+      slalom-2: 44.1 (off_track); slalom-3: 44.1 (off_track); slalom-4: 44.1 (off_track);
+      slalom-5: 44.1 (off_track); slalom-6: 44.1 (off_track); slalom-7: 44.1 (off_track);
+      slalom-8: 44.1 (off_track); slalom-9: 44.1 (off_track); slalom-10: 44.1 (off_track);
+      slalom-11: 44.1 (off_track); slalom-12: 44.1 (off_track); slalom-13: 44.1 (off_track);
+      slalom-14: 44.1 (off_track); slalom-15: 44.1 (off_track); slalom-16: 44.1 (off_track);
+      slalom-17: 44.1 (off_track); slalom-18: 44.1 (off_track); slalom-19: 44.1 (off_track);
+      slalom-20: 44.1 (off_track).
+
+
+      - [Open this output](iteration-9/entity2/versions/0c47aa9b39234cdb9c1adfe0d33e00de/payload.json)
+
+      - Based on: [entity1](iteration-9/entity1/versions/75658c42817049ac8bea9cd90d9d9e89/payload.json)'
+  - id: entityR2A
+    label: Score 61.75
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 61.75.
+      Per trial — oval-1: 70.8 (off_track); oval-2: 70.8 (off_track); oval-3: 70.8
+      (off_track); oval-4: 72.8 (off_track); oval-5: 71.8 (off_track); oval-6: 74.9
+      (off_track); oval-7: 74.9 (off_track); oval-8: 71.8 (off_track); oval-9: 71.8
+      (off_track); oval-10: 73.9 (off_track); oval-11: 71.8 (off_track); oval-12:
+      71.8 (off_track); oval-13: 71.8 (off_track); oval-14: 71.8 (off_track); oval-15:
+      72.8 (off_track); oval-16: 74.9 (off_track); oval-17: 70.8 (off_track); oval-18:
+      71.8 (off_track); oval-19: 71.8 (off_track); oval-20: 73.9 (off_track); s-bend-1:
+      68.8 (off_track); s-bend-2: 68.8 (off_track); s-bend-3: 68.8 (off_track); s-bend-4:
+      68.7 (off_track); s-bend-5: 68.7 (off_track); s-bend-6: 68.8 (off_track); s-bend-7:
+      68.7 (off_track); s-bend-8: 68.7 (off_track); s-bend-9: 68.8 (off_track); s-bend-10:
+      68.8 (off_track); s-bend-11: 68.8 (off_track); s-bend-12: 68.7 (off_track);
+      s-bend-13: 68.8 (off_track); s-bend-14: 68.8 (off_track); s-bend-15: 68.7 (off_track);
+      s-bend-16: 68.8 (off_track); s-bend-17: 68.8 (off_track); s-bend-18: 68.8 (off_track);
+      s-bend-19: 68.7 (off_track); s-bend-20: 68.8 (off_track); slalom-1: 44.1 (off_track);
+      slalom-2: 44.1 (off_track); slalom-3: 44.1 (off_track); slalom-4: 44.1 (off_track);
+      slalom-5: 44.1 (off_track); slalom-6: 44.1 (off_track); slalom-7: 44.1 (off_track);
+      slalom-8: 44.1 (off_track); slalom-9: 44.1 (off_track); slalom-10: 44.1 (off_track);
+      slalom-11: 44.1 (off_track); slalom-12: 44.1 (off_track); slalom-13: 44.1 (off_track);
+      slalom-14: 44.1 (off_track); slalom-15: 44.1 (off_track); slalom-16: 44.1 (off_track);
+      slalom-17: 44.1 (off_track); slalom-18: 44.1 (off_track); slalom-19: 44.1 (off_track);
+      slalom-20: 44.1 (off_track).
+
+
+      - [Open this output](iteration-9/entityR2A/versions/0c47aa9b39234cdb9c1adfe0d33e00de/payload.json)
+
+      - Based on: [entity1](iteration-9/entity1/versions/75658c42817049ac8bea9cd90d9d9e89/payload.json)'
+  - id: entityR2B
+    label: Score 61.75
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 61.75.
+      Per trial — oval-1: 70.8 (off_track); oval-2: 70.8 (off_track); oval-3: 70.8
+      (off_track); oval-4: 72.8 (off_track); oval-5: 71.8 (off_track); oval-6: 74.9
+      (off_track); oval-7: 74.9 (off_track); oval-8: 71.8 (off_track); oval-9: 71.8
+      (off_track); oval-10: 73.9 (off_track); oval-11: 71.8 (off_track); oval-12:
+      71.8 (off_track); oval-13: 71.8 (off_track); oval-14: 71.8 (off_track); oval-15:
+      72.8 (off_track); oval-16: 74.9 (off_track); oval-17: 70.8 (off_track); oval-18:
+      71.8 (off_track); oval-19: 71.8 (off_track); oval-20: 73.9 (off_track); s-bend-1:
+      68.8 (off_track); s-bend-2: 68.8 (off_track); s-bend-3: 68.8 (off_track); s-bend-4:
+      68.7 (off_track); s-bend-5: 68.7 (off_track); s-bend-6: 68.8 (off_track); s-bend-7:
+      68.7 (off_track); s-bend-8: 68.7 (off_track); s-bend-9: 68.8 (off_track); s-bend-10:
+      68.8 (off_track); s-bend-11: 68.8 (off_track); s-bend-12: 68.7 (off_track);
+      s-bend-13: 68.8 (off_track); s-bend-14: 68.8 (off_track); s-bend-15: 68.7 (off_track);
+      s-bend-16: 68.8 (off_track); s-bend-17: 68.8 (off_track); s-bend-18: 68.8 (off_track);
+      s-bend-19: 68.7 (off_track); s-bend-20: 68.8 (off_track); slalom-1: 44.1 (off_track);
+      slalom-2: 44.1 (off_track); slalom-3: 44.1 (off_track); slalom-4: 44.1 (off_track);
+      slalom-5: 44.1 (off_track); slalom-6: 44.1 (off_track); slalom-7: 44.1 (off_track);
+      slalom-8: 44.1 (off_track); slalom-9: 44.1 (off_track); slalom-10: 44.1 (off_track);
+      slalom-11: 44.1 (off_track); slalom-12: 44.1 (off_track); slalom-13: 44.1 (off_track);
+      slalom-14: 44.1 (off_track); slalom-15: 44.1 (off_track); slalom-16: 44.1 (off_track);
+      slalom-17: 44.1 (off_track); slalom-18: 44.1 (off_track); slalom-19: 44.1 (off_track);
+      slalom-20: 44.1 (off_track).
+
+
+      - [Open this output](iteration-9/entityR2B/versions/0c47aa9b39234cdb9c1adfe0d33e00de/payload.json)
+
+      - Based on: [entity1](iteration-9/entity1/versions/75658c42817049ac8bea9cd90d9d9e89/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}

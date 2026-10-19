@@ -20,7 +20,9 @@ import yaml
 
 
 TEMPLATES = Path(__file__).resolve().parents[1] / "package-templates"
-ROOT = Path(__file__).resolve().parents[2]
+# Default workspace for race output -- race-*/dry-run-* packages and their pair/leaderboard/report/replay
+# files live under robotrace/races/ (moved there from the repo root; see robotrace/races/README.md).
+ROOT = Path(__file__).resolve().parents[1] / "races"
 
 
 

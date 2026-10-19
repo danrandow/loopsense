@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.2,
+    "ki": 0.0,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": -0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from iteration 0 (no earlier race; development simulator only, all 60 trials): the robot never finished on any track. Every trial ended off_track, with progress 0.04 to 0.115 and max_error 0.061 on every track, just above the 0.06 m off-track limit. Each trial also logged one line-loss event, so the robot left the tape early and never recovered. The failure is early and systematic, not a slow finish, so the first priority is staying on the line.\n\nWhat I think is wrong: (1) base_speed 1.8 is too fast for the tightest bends. Steering authority is kp*350 PWM per unit signal, and the robot cannot correct before it leaves the tape. (2) The sensors are spread at x = -0.04 to +0.04 with 12 mm footprints. A sensor at x = \u00b10.04 sees tape only once the robot is more than about 2.15 cm off centre, so when the robot starts drifting the outer sensors give no signal and the response is delayed. (3) kd = 0.05 gives little damping, so the robot overshoots after each correction.\n\nChanges: base_speed 1.8 to 1.4 (a moderate reduction that keeps some progress toward the 1.5 m/s average). Sensor x positions tightened to -0.02, -0.01, 0, 0.01, 0.02 at y = 0.04, so every sensor sees tape within about 1 cm of the centre line and the signal responds earlier. Weights stay -2, -1, 0, 1, 2 (5 sensors, 5 weights). kp 1.5 to 2.0 for firmer correction; with the signal limited to \u00b12 the largest turn is about 4, or about 1400 PWM. kd 0.05 to 0.2 for damping against overshoot. ki stays 0. line_loss stays last_direction, since it was not the cause.\n\nExpected result: the robot should hold the line through the bends and finish the oval and s-bend with 0 to 1 line-loss events, with completion_time near 3 s or slightly above. Hypotheses to check: (H1) the early exit was caused by speed, so progress should rise sharply when base_speed drops. (H2) tighter sensor spacing removes the dead zone, so max_error should fall well below 0.06. (H3) kd 0.2 will damp oscillation without adding noise problems. Measurements I want next: progress and completion per track, max_error and where in the course it peaks, line_loss_events, steering_oscillation (to test H3), and completion_time (to see whether speed can rise again). If max_error stays near 0.06 with low oscillation, the next step is a lower base_speed or higher kp. If oscillation is high, the next step is a lower kd."
+}

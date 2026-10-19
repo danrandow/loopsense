@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.5,
+    "ki": 0.02,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.67,
+      -0.33,
+      0.0,
+      0.33,
+      0.67,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": -0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials across three cases ended off_track with zero completions. Progress ranged from 0.04 to 0.17, and max_error sat at about 0.06 to 0.067, just over the 0.06 m limit. Iterations 0 and 1 differed in sensor size, kp, kd, ki and base_speed, yet scored almost identically (39.8523 vs 39.8521), so gain tuning alone is not moving the result. Iteration 2 was worst (26.37). It widened sensor spacing to 0.02 m, lowered kp to 2.5, and removed ki. Its progress fell on every track, which suggests under-steering: too little proportional authority, and a coarser signal from wider spacing. Iteration 0, with the highest kp (5.0), was the best. Telemetry is aggregated, so the failure mode cannot be pinned down exactly, but the evidence points to the steering signal being too coarse and too weak.\n\nChanges: (1) Sensor array: move back to 7 sensors at 0.01 m spacing (x = -0.03 to +0.03, y = 0.04) with sensor_size 0.012. A finer spacing and more sensors give a smoother, less saturating signal across the 25 mm tape, and the outermost sensors still reach +/-0.03 m. (2) Weights: linear ramp -1.0, -0.67, -0.33, 0, 0.33, 0.67, 1.0, so the signal grows smoothly with offset. (3) kp 5.0 (back to the best-scoring value, now on a smoother signal). (4) kd 0.5, between the iteration-0 and iteration-1 values, to damp jitter without adding lag. (5) ki 0.02, a small value to correct steady offsets without windup. (6) base_speed 1.5, close to the roughly 1.5 m/s needed to finish and slightly below iteration 0's 1.8 to reduce overshoot on the sharpest bends. Geometry, wheel track, mass and line_loss 'last_direction' are kept, so the change is attributable to the sensor array and the weights.\n\nExpected result: fewer off_track exits and a higher progress than iteration 2, with rms_error below 0.06 on the oval and s-bend. Completion is still uncertain. I expect a modest gain over the 39.85 baseline, not a large one. The telemetry from this race should show whether the finer array fixed the early divergence."
+}

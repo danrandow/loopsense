@@ -1,0 +1,58 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.3,
+    "ki": 0.02,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.1,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials (oval, s-bend, slalom; 20 each) ended off_track with 0 finishes. Progress reached only 0.10 to 0.14, and max_error hit about 0.06 m, which is the off-track limit. Steering oscillation was low (0.07 to 0.14), so the failure is drift away from the line, not jitter. Each run logged about one line-loss event early on.\n\nDiagnosis: with 2 cm sensor spacing and 12 mm footprints, the gaps between footprints are wider than the 25 mm tape can bridge. A 1 cm lateral offset is handled, but an offset of 2 to 3 cm can lose the line, and the robot then drifts out. Meanwhile kp=3 with signal up to +/-2 gives up to 2100 PWM of differential, and base_speed 1.6 gives little time to correct. The robot is over-driven for its sensing.\n\nChanges: (1) Sensors at x = -0.03, -0.015, 0, 0.015, 0.03 with sensor_size 0.016, so footprints overlap and cover the tape continuously across the whole band. The outer sensors still see the line before it leaves the track. Sensor y stays at 0.04. (2) Weights stay proportional to x (-2, -1, 0, 1, 2), so the sign convention is unchanged. (3) base_speed 1.6 to 1.2 so the robot can correct on bends; the 3 s limit may be missed, so this is a trade-off. (4) kp 3.0 to 2.0 to reduce over-steering. (5) kd 0.15 to 0.3 to damp the faster response. (6) ki 0.05 to 0.02 to limit windup on the bends. (7) Mass, wheels and body unchanged, so the geometry change is limited to sensing.\n\nExpected result: longer progress (target over 0.5) and fewer off-track ends, with line_loss_events near 0 and rms_error below 0.03 m. If the run now completes but slowly, raise base_speed in small steps. Hypotheses to test: (H1) sensor coverage is the main cause of line loss; (H2) kp 2.0 with kd 0.3 is stable at 1.2 m/s. Measurements requested: progress per track, line_loss_events, max_error, and steering_oscillation, so I can tell whether drift is from sensing or from speed."
+}

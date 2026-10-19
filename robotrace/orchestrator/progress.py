@@ -27,7 +27,8 @@ from urllib.parse import parse_qs, urlparse
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[2]
+# Default root for race output -- see race_service.py's ROOT and robotrace/races/README.md.
+ROOT = Path(__file__).resolve().parents[1] / "races"
 QUIET_AFTER_S = 180  # a model call plus repairs normally lands well inside this
 RECENT_EVENTS = 8
 RECENT_PROBLEMS = 4

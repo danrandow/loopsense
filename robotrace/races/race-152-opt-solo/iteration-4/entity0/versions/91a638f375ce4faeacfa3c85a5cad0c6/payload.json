@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.7,
+    "ki": 3.0,
+    "kp": 4.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.18,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 180 development trials across iterations 0 to 3 ended off_track at progress 0.10 to 0.27. Max error sits at about 0.06 m, which is the off-track limit. Body width cannot widen that limit (max(0.06, 0.0125 + 0.18/4) = 0.06). RMS error is 0.02 to 0.03 m and steering oscillation is low (0.07 to 0.17), so the robot is not jittering. It settles into a steady offset and drifts off. The integral term is the lever that has helped so far. Going from ki 0 to 1 to 2 raised oval progress from 0.12 to 0.21 to 0.27 and cut oval RMS from 0.030 to 0.020 to 0.022. This supports H1: a steady bias from the fixed motor mismatch and the sensor geometry is the main failure. Hypotheses: (H1) more integral authority keeps reducing the steady offset; (H2) on the tighter s-bend and slalom, the robot slides outward at 1.4 m/s, so a lower base_speed should improve survival; (H3) kd 0.6 is still too low to damp the transient overshoot that sets max_error at the limit. Changes, all on the controller so the geometry stays fixed for a clean read: ki 2.0 to 3.0 (integral clamped at +/-2, so the maximum integral contribution rises from 4 to 6); kp 4.0 to 4.5 for slightly stronger correction at the array edge; kd 0.6 to 0.7 for more damping; base_speed 1.4 to 1.3 to cut centrifugal slide on bends. Expected result: lower steady offset and max_error below 0.06 on the oval, higher progress on the s-bend and slalom, and a first chance of survival on at least one track. The trade-off is about 7 percent more completion time, which only matters once the robot can finish. Risks: higher ki may overshoot on sustained curves, and higher kd may amplify sensor noise. If progress rises but runs still end off track with low RMS, the next step is to test ki 4 with the bias term. If progress is high but completion is zero because of time, base_speed should rise toward 1.6. Measurements requested: all metrics, including completion_time, control_effort and noise_robustness, to separate bias from transient overshoot."
+}

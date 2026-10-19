@@ -9,7 +9,7 @@ Dan has spent ~5 days and has not seen an agent team learn. You own the work end
 1. Can ONE LLM agent improve a robot design from feedback in this simulator, beyond a free non-LLM search / random hill-climb baseline?
 2. Only if yes: does the LoopSense (randow-maps) team beat opt-eval, over many replicates?
 
-## Evidence so far (see robotrace/SIMULATOR_REVIEW_AND_DESIGN_APPROACH.md, robotrace/k4_haiku.txt, race-40-replicates.md)
+## Evidence so far (see robotrace/docs/SIMULATOR_REVIEW_AND_DESIGN_APPROACH.md, robotrace/scratch/k4_haiku.txt, robotrace/races/race-40-replicates.md)
 - tools/baseline_search.py (no tokens, ~129 s) reaches 100% finish on all six tracks. Sensor layout is the decisive lever.
 - Haiku 5.5 K=4 hill-climb (+130) is about equal to random best-of-4 (+111). Sonnet 5.5 was no better than Haiku in small probes. Model strength is NOT shown to be the constraint.
 - Race agents get ~6-12 iterations of summarised feedback and cannot run the simulator; the search used ~400 evaluations.

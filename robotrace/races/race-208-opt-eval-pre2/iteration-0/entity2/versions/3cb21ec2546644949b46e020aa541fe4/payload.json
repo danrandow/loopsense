@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.8,
+    "kd": 0.2,
+    "ki": 0.3,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: no race telemetry exists yet. Every value rests on the public contract and the round-1 and round-2 critiques, so the expected results below are predictions, not measurements.\n\nWhat I kept from my revision:\n- base_speed 1.8. The critique is right that the speed gain is unquantified and that the time bonus is small (about 2 to 8 points across 2.6 to 2.9 s). The decisive factor is completion, which is worth 500 points. A 3.0 s limit on a 4 to 5 m course needs about 1.5 m/s average, and 1.8 PWM demand leaves some margin for slowdowns on bends and for battery sag. I accept the risk that the real average speed falls short. The next iteration's completion_time will show whether 1.8 is needed.\n- sensor y 0.06 m. This adds look-ahead for bends, which is the main lever against line loss at speed.\n- ki 0.3. The integral is clamped at +/-2, so its contribution is capped at about 0.6 turn. I accept the critique's point that it accumulates through bends and is not reset on line loss, and I am keeping ki at a low value so the bias it carries stays small. I will check max_error and line_loss_events in the race.\n- kd 0.2. The critique says the smoothing claim is unevidenced. I agree the claim was overstated, so I am describing kd as a guess. Rather than change it blind, I keep it and let steering_oscillation decide the next step.\n- sensor_size 0.016, sensor x positions and weights [-2,-1,0,1,2], kp 2.5, line_loss last_direction, body_width 0.12, wheel_track, wheel_radius, mass and body_length unchanged. body_width only sets the off-track limit, and I will watch max_error against the 0.06 m limit.\n\nWhat I changed in response to the critique:\n- Coverage claim corrected. At 20 mm pitch with 16 mm footprints there are 4 mm gaps, not zero gaps. A 25 mm tape is therefore always covered by at least one sensor, but the coverage is not as complete as my earlier wording implied.\n- Expected results are now stated as uncertain: completion 1 with completion_time about 2.6 to 2.9 s, rms_error below about 0.03 m, and few line-loss events. These are predictions only.\n- Contingency rules added. If completion is 0 with the robot still on the track, raise base_speed only if completion_time shows slack; if the robot leaves the track on the slalom, lower kp and base_speed together. If steering_oscillation is high, lower kp before touching kd or base_speed.\n\nRejected: the critique's suggestion to reduce base_speed to 1.5 for the time bonus. The speed margin protects completion, which is worth far more than the bonus.\n\nSignal nonlinearity is acknowledged but kp stays at 2.5 because there is no data to justify a change."
+}

@@ -1,0 +1,49 @@
+{
+  "feedback_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.07
+      },
+      {
+        "x": -0.012,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.012,
+        "y": 0.07
+      },
+      {
+        "x": 0.024,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "intent": "Changed: the sensor row moves forward from y = 0.06 m to y = 0.07 m, with x = -0.024 to +0.024 m at 12 mm spacing. Everything else is held at the iteration 9 values (12 mm sensors, wheel_track 0.12 m, wheel_radius 0.03 m, body 0.12 by 0.16 m, mass 0.8 kg), so the race isolates the forward offset on the kd 0.8 controller. Expected result: slalom max_error and progress improve, with slalom finishes becoming possible, and s-bend and oval finish rates hold. Keep y = 0.07 m only if the oval finish rate stays at or above about 0.9 and slalom max_error falls below 0.06 m. If the oval finish rate drops below about 0.8, return to y = 0.06 m, which is the iteration 9 base and the best raced score. I am not considering any sensor-size, track or mass change.",
+  "learning": "Iteration 9 (y = 0.06 m with kd 0.8) gave 620.55, so the controller change was the largest single gain so far. Iteration 10 isolates the forward offset on that controller. Compare slalom max_error (0.066 m at y = 0.06 m) and s-bend oscillation (0.34) against iteration 9. If slalom max_error falls below 0.06 m, the forward row is the next base. If it does not, slalom is probably limited by the controller's response to sharp alternations, not by sensing geometry, and the Integrator should be the one to address it.",
+  "rationale": "Iteration 9 is the best raced result so far at 620.55. The gain came mainly from the Integrator's controller change (kd 0.8) on the y = 0.06 m forward row. Oval finished 20 of 20, and s-bend finished 17 of 20 with mean max_error 0.040 m, which is now below the 0.06 m off-track limit. Slalom still ends off-track in all 20 trials, with mean max_error 0.066 m and progress 0.19, so slalom is now the limiting track. Steering oscillation on the s-bend is 0.34, close to the level the Integrator flagged.\n\nThe Integrator's rule was to test y = 0.07 m only if s-bend max_error stayed above 0.06 m with oscillation near 0.36. The s-bend max_error condition is no longer met on the iteration 9 evidence, but slalom max_error is still above the limit. Forward moves have improved progress on every track so far (y 0.04 to 0.06 raised oval finishes from 0.70 to 0.95 and slalom progress from 0.12 to 0.16 to 0.19). Slalom is the track that most needs more forward look-ahead, so I am proposing one more forward step as a single-variable test. The off-track limit cannot be raised by body width (0.0125 + 0.18/4 = 0.0575 m, still below 0.06 m), and sensor_size 0.016 and the 0.10 m track have both been shown to hurt the oval, so I am not reopening them.\n\nI am taking the Integrator's conditional test now, because the controller result it was waiting for is in. The main risk is that the controller, now retuned with kd 0.8, is tuned to y = 0.06 m, so the oval finish rate may fall. If it does, I will return to y = 0.06 m with the same controller."
+}

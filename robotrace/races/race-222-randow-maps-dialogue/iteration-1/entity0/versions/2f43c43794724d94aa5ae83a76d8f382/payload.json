@@ -1,0 +1,49 @@
+{
+  "feedback_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.04
+      },
+      {
+        "x": -0.025,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.025,
+        "y": 0.04
+      },
+      {
+        "x": 0.05,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "intent": "Changed the sensor span: x pitch from 0.012 m to 0.025 m, so the row spans \u00b10.05 m instead of \u00b10.024 m. Kept sensor count (5), sensor size (12 mm), look-ahead (y = 0.04), wheels, body and mass, so the race isolates the sensing change. I expect line_loss_events to drop to near zero on the oval and s-bend, max_error to stay under the 0.06 m limit, and progress to rise well above 0.12. I am considering, without committing yet, a 16 mm footprint if the outer sensors are too weak on the slalom, and a longer look-ahead (y near 0.06) only if oscillation becomes the limit once line loss is removed.",
+  "learning": "Hypothesis to test: with the baseline, line loss (not tracking error) ends every run, because the outer sensors stop seeing the tape beyond about 0.0425 m offset. If line_loss_events fall to 0 and runs end by completion or by stall rather than off_track, this confirms the coverage mechanism. If runs still end off_track with line loss, the cause is either the line-loss behaviour or the controller gain, and the next step is to check the Integrator's controller rather than geometry. Ask the Integrator to report the signal range and whether the outer sensors saturate at the new \u00b10.05 m spacing.",
+  "rationale": "Iteration 0 raced on the baseline geometry (five 12 mm sensors at x = -0.024 to +0.024, y = 0.04) and scored 26.04. Every trial on every track ended off_track, with progress of only 0.04 to 0.12 and exactly one line-loss event each. RMS error was low (about 0.03), so the robot tracked well while it had the line. Its max_error of about 0.061 sits just above the 0.060 m off-track limit. The body-width rule gives max(0.06, 0.0125 + body_width/4), and with a 0.12 m body that is 0.06, so widening the body does not help.\n\nThe sensor footprints explain the failure. A 12 mm sensor at x = \u00b10.024 reaches only about 0.030 m from centre, and the 12.5 mm tape half-width means a line offset of more than about 0.0425 m is no longer seen by any sensor. Once the robot drifts that far, line is lost, the throttle drops to 0.35, and the robot runs off the track. This is a coverage limit in the geometry, not a tuning problem.\n\nThe Integrator advised holding this geometry for iteration 1 and narrowing the span if outer readings saturate. Their advice was written without outcome evidence, and this race data shows the binding limit is line loss at the edge, not saturation. So I am deviating: I am widening the sensor span to \u00b10.05 m with 12 mm footprints, which covers the line out to about 0.069 m offset. The centre sensors and the 40 mm look-ahead are kept, so the controller should still see the line early. Wheels, mass and body are unchanged so the change is isolated to sensing. Expected result: line_loss_events fall to about 0 on the oval and s-bend, max_error stays below 0.06, and the runs progress further toward completion."
+}

@@ -1,0 +1,125 @@
+map:
+  id: race-117-randow-maps
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor array
+    notes: 'Symmetric five-sensor array at 12 mm spacing, 50 mm ahead of the axle,
+      with a moderate body. This is a reference design with no race data yet; the
+      next revision should target oscillation or slalom loss depending on the race
+      result.
+
+
+      ### Rationale
+
+
+      This is iteration 0, so there is no race telemetry or Integrator feedback yet.
+      The public contract shows that the 25 mm tape is the feature to resolve and
+      that the signal is a reading-weighted average of sensor positions, so the geometry
+      needs to set the sensing scale well. I chose five sensors spaced 12 mm apart
+      across x = -0.024 to +0.024 m. Their combined span of 48 mm is about twice the
+      tape width, so the line stays inside the array through moderate offsets and
+      the signal changes smoothly as the robot drifts. The 12 mm footprint matches
+      the 12 mm spacing, which gives continuous coverage without large dead zones.
+      All sensors sit at y = 0.05 m, ahead of the axle, so the controller sees the
+      line before the wheels reach it, which helps on sharp bends. The wheel track
+      (0.12 m) and radius (0.03 m) give a moderate turning authority, and the mass
+      (0.8 kg) with a 0.12 m by 0.16 m body keeps yaw inertia low enough for quick
+      corrections. I expect this to complete the development tracks with few line-loss
+      events. The main unknowns are whether the sensor span is too wide for tight
+      slalom bends and whether the lead distance is too long for the controller to
+      respond to.
+
+
+      - [Open this output](iteration-0/entity0/versions/be2f008b07bf40529b674e626d13639a/payload.json)'
+  - id: entity1
+    label: Baseline 5-sensor robot
+    notes: 'Uses the Builder''s symmetric 5-sensor geometry unchanged, with a proportional
+      controller (kp 2.0, kd 0.2, base speed 1.4). No race data exists yet, so the
+      gains are judgement-based.
+
+
+      ### Rationale
+
+
+      This is iteration 0, so there is no race telemetry and no Integrator feedback
+      yet. The geometry is the Builder''s baseline and is used unchanged: five sensors
+      at 12 mm spacing (x = -0.024 to +0.024 m, y = 0.05 m), 12 mm footprints, wheel
+      track 0.12 m, wheel radius 0.03 m, mass 0.8 kg, body 0.16 x 0.12 m. All values
+      are inside the contract limits. The sensor span of 48 mm is about twice the
+      25 mm tape, so the line stays visible through moderate offsets. Sensors sit
+      ahead of the axle, so the controller sees the line before the wheels reach it.
+      The controller uses weights proportional to sensor x: [-2, -1, 0, 1, 2]. Because
+      positive x is left and positive signal steers left, this pushes the robot back
+      toward the line in the correct direction. kp = 2.0 gives a turn of about 700
+      PWM counts between wheels for a moderate signal, which is a cautious starting
+      gain. ki = 0 avoids integral windup on a short 3 s course. kd = 0.2 damps the
+      response without much noise amplification. base_speed = 1.4 (PWM 70%) is a compromise:
+      it is fast enough to approach the roughly 1.5 m/s average needed to finish in
+      3 s, but not so fast that the first untuned controller loses the line. line_loss
+      = ''last_direction'' lets the robot recover toward the side it was last on,
+      which suits the curved tracks. I expect completion on the development tracks,
+      but this is untested.
+
+
+      - [Open this output](iteration-0/entity1/versions/a8170eac4a324a0e8218ba533bf369e2/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/be2f008b07bf40529b674e626d13639a/payload.json)'
+  - id: entityR1
+    label: Conditional geometry
+    notes: 'No race results exist yet, so the feedback gives conditional changes:
+      narrower sensor span if line loss is high, shorter lead if oscillation is high,
+      and a wider track if understeer shows. Each change is tied to the expected failure
+      mode.
+
+
+      ### Feedback
+
+
+      Iteration 0 has no earlier race outcomes, so this feedback is conditional and
+      cites no measured evidence. Integration notes: the controller uses weights proportional
+      to sensor x, so the signal stays linear across the 48 mm span. The main thing
+      I had to set by judgement was the gain balance between kp and kd for a 12 mm
+      spacing. Kp 2.0 was chosen so a 12 mm offset (about one sensor step) gives a
+      clear but not saturating correction. If the next race shows steering_oscillation
+      high and rms_error low, the sensing is working and the problem is controller
+      gain, not geometry. If it shows line_loss_events above about 2 on the slalom
+      or s-bend, the sensor span is probably too narrow or too wide for the tightest
+      bend, so narrow the span (for example 8 mm spacing with 8 mm footprints, at
+      x = -0.016 to +0.016) or shorten the lead (y from 0.05 to 0.03). If the robot
+      completes everything with low rms_error, keep the geometry and vary only the
+      lead to test overshoot on sharp bends. A wider wheel track (0.14 m) should be
+      tried only if the race shows understeer, meaning max_error grows on the tightest
+      bend while the controller output is already saturated.
+
+
+      ### Requested changes
+
+
+      - If the next race shows line_loss_events of 2 or more on the slalom or s-bend,
+      try sensor spacing of 8 mm (x = -0.016, -0.008, 0, 0.008, 0.016) with sensor_size
+      0.008, to reduce the chance that the tape edge jumps across sensor boundaries.
+
+      - If the next race shows completion with high steering_oscillation and rms_error
+      near the baseline, keep the geometry and test a shorter lead (sensor y = 0.03
+      m) to reduce overshoot on sharp bends, since the 50 mm lead is untested.
+
+      - If the next race shows understeer (max_error growing on the tightest bend
+      with controller output saturated), try wheel_track 0.14 m with mass unchanged,
+      since the 0.12 m track is the current baseline and has no race evidence yet.
+
+
+      - [Open this output](iteration-0/entityR1/versions/a8170eac4a324a0e8218ba533bf369e2/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/be2f008b07bf40529b674e626d13639a/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

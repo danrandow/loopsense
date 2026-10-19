@@ -1,4 +1,5 @@
-"""Calibration helper: gather every distinct design from race outputs (usage: collect_designs.py REPO_ROOT OUT.json)."""
+"""Calibration helper: gather every distinct design from race outputs (usage: collect_designs.py REPO_ROOT OUT.json).
+Race data moved to robotrace/races/ -- pass REPO_ROOT=.../robotrace/races, not the git repo root."""
 import json, glob, hashlib, sys
 seen={}; 
 for p in sorted(glob.glob(sys.argv[1]+"/race-*/**/payload.json", recursive=True)):

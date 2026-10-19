@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.2,
+    "ki": 0.4,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      1.0,
+      0.5,
+      0.0,
+      -0.5,
+      -1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.04,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: the iteration-0 design scored 53.0 with 0 of 60 finishes. Every run left the track at progress 0.11 to 0.15, with rms_error 0.025 to 0.031, max_error about 0.061 to 0.068, about 1 line loss per run, and low steering_oscillation (0.10 to 0.14). Large rms error without jitter suggests a steady lateral offset, which a proportional-only controller holds as bias/kp. The integral term is the lever for that offset, so I keep the offset test in this design.\n\nWhat I kept, changed and rejected, following the round-2 critique:\n(1) Geometry is unchanged from iteration 0. Changing geometry alongside the controller would make the result unattributable, and the critique's sensor-spacing points are not yet tested.\n(2) kp stays at 4.0. It is a modest rise from 3.5, and the critique did not show it saturates.\n(3) ki is reduced from 0.5 to 0.4, partly accepting the critique's bend-windup concern. At ki 0.4 the integral can reach about 0.8 turn units (about 280 PWM) at the clamp, which still tests whether a steady offset can be cancelled. I do not yet know the integral's time weighting, so the sizing is an estimate.\n(4) kd is reduced from 0.3 to 0.2. The oscillation data do not justify doubling the derivative, and a smaller kd limits noise amplification. I accept the critique's point that kd 0.3 was unsupported, but I keep a modest rise from 0.15 so the damping is not removed.\n(5) base_speed returns to 1.5 from 1.4. The critique is right that the 1.4 cut was not shown to help, and failure happens early (progress 0.11 to 0.15), so speed is not the evident cause. Completion within 3 s needs real speed, so I keep the speed and do not lower it while the tracking question is open.\n\nDecision rule for the next revision, made measurable: (a) if rms_error stays above 0.02 while steering_oscillation is below 0.2, the offset is not fixed, so raise ki toward 0.8 with a check on bend overshoot. (b) if steering_oscillation rises above 0.2, lower kd or kp first. (c) if progress exceeds 0.9 with completion 0, raise base_speed by 0.1. (d) lower base_speed only when line_loss_events exceeds 2 and max_error exceeds 0.05 together, not on max_error alone. The early failure at progress 0.11 to 0.15 on all tracks may point to a start-up transient or a shared first bend, which this race will test through progress and max_error.\n\nExpected result: rms_error and max_error fall if the offset is the cause. Completion remains uncertain."
+}

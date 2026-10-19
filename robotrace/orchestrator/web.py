@@ -79,7 +79,11 @@ def _definition_table(service: MapDrivenRaceService, entrant: str, editable: boo
 <table><tr><th>Definition</th><th>Difference from template</th><th>Action</th></tr>{''.join(rows)}</table>'''
 
 
-MODEL_HISTORY = ROOT / ".robotrace-model-history.json"
+# Not race data (not in scope for the robotrace/races/ move) -- stays at the repo root where it already is.
+MODEL_HISTORY = Path(__file__).resolve().parents[2] / ".robotrace-model-history.json"
+# The repo root, for serving /robotrace/... doc links (field_docs.py's SPEC) -- distinct from ROOT, which is
+# race data's own root (robotrace/races/) and must not be used to resolve these.
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _model_history() -> list[tuple[str, str]]:
@@ -266,7 +270,9 @@ class Handler(BaseHTTPRequestHandler):
                 service = MapDrivenRaceService(query["race_id"][0]); self.send_bytes(edit_page(service, query["entrant"][0], query["path"][0]))
             except Exception as error: self.send_bytes(layout(f"<h1>Cannot edit</h1><p>{html.escape(str(error))}</p>"), status=HTTPStatus.BAD_REQUEST)
             return
-        try: path = safe_child(ROOT, *[part for part in parsed.path.lstrip("/").split("/") if part])
+        parts = [part for part in parsed.path.lstrip("/").split("/") if part]
+        base = REPO_ROOT if parts[:1] == ["robotrace"] else ROOT
+        try: path = safe_child(base, *parts)
         except ValueError: self.send_error(HTTPStatus.BAD_REQUEST); return
         if not path.is_file(): self.send_error(HTTPStatus.NOT_FOUND); return
         self.send_bytes(path.read_bytes(), content_type=artifact_content_type(path))

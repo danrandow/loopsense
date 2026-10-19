@@ -1,1 +1,0 @@
-Produce or revise one complete line-following robot candidate. Use authorized feedback, evidence, blackboard state, and expertise only when supplied. Include geometry, controller, rationale, hypotheses, and supported measurement requests. You may update the Shared Blackboard and private expertise.

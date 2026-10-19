@@ -1,0 +1,150 @@
+map:
+  id: race-213-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor draft
+    notes: 'A first-draft robot with five sensors, moderate PD steering, and last-direction
+      line recovery. No race telemetry was supplied, so the values come from the contract''s
+      physics and scoring rules. The Evaluator should check whether the speed and
+      gains can finish the course in under 3 s without oscillating.
+
+
+      ### Rationale
+
+
+      No race telemetry is supplied for this iteration, so this is a baseline draft
+      built from the contract rather than from measured results. Speed: the run must
+      cover about 4.5 m in under 3 s, so I set base_speed to 1.8 (near full drive,
+      which gives PWM about 3685) to leave margin for the slower bends. Sensing: five
+      sensors, 12 mm footprints, spaced 12 mm apart across x = -0.024 to +0.024 and
+      placed 50 mm ahead of the axle. That spacing keeps the 25 mm tape covered by
+      at least two sensors at all times and gives the sensors time to react before
+      the wheels reach the bend. Weights run -2, -1, 0, 1, 2, so a tape offset to
+      the left gives a positive signal, which steers left, as required. Control: kp
+      = 4 gives a moderate steering response at a typical signal magnitude of 0.5
+      to 1. kd = 0.5 damps overshoot on the curves. ki = 0.1 is kept small to avoid
+      integral windup on long bends. line_loss = last_direction, so the robot keeps
+      turning the way it was last heading when the tape disappears, which suits sharp
+      bends better than a fixed search. Geometry: a 0.12 m track and 0.03 m wheels
+      give a responsive but stable base. Mass 0.8 kg and a 0.12 m body width keep
+      the off-track allowance comfortable. Expected result: completion in about 2.6
+      to 3.0 s with a small rms error (under 0.02 m) and zero or one line-loss events.
+      The main risks are oscillation at high speed and running wide on the slalom;
+      the next iteration should use the telemetry to tune kp, kd and base_speed.
+
+
+      - [Open this output](iteration-0/entity0/versions/14dc10d17b1b4875904cf10c94288f7e/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Critique of the baseline draft: the gain looks too aggressive for ±1 signal,
+      the body-width off-track argument is wrong (limit is always 0.06 m), and the
+      speed and performance numbers are unsupported with no telemetry. Based on the
+      contract formulas and geometry only.
+
+
+      - [Open this output](iteration-0/entityC1/versions/e39e637e64c04e759ed22c6b9c7a047d/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/14dc10d17b1b4875904cf10c94288f7e/payload.json)'
+  - id: entity1
+    label: 'Revised: softer gains'
+    notes: 'Lowered kp from 4.0 to 2.5 and kd from 0.5 to 0.2 to stop the 350-PWM-per-unit
+      turn from saturating wheels and to limit noise-driven derivative jitter, and
+      tightened sensor pitch to 10 mm. Kept base speed and line-loss handling, since
+      the critique''s speed and body-width points were either unsupported by the contract
+      or not decisive. Expected results are unverified, as no telemetry exists yet.
+
+
+      ### Rationale
+
+
+      Kept: the base design''s sensor layout (five 12 mm sensors, 12 mm pitch, 50
+      mm ahead of the axle), the weight signs (-2..2, so tape to the left gives a
+      positive signal that steers left), base_speed 1.8, ki 0.1, line_loss last_direction,
+      and the chassis geometry. The critique''s main points are sound, and I accepted
+      them where the contract supports them. Changed: (1) kp from 4.0 to 2.5. Each
+      unit of turn is 350 PWM, so kp 4 gives a 1400 PWM differential at signal 1 against
+      a base of 3685, which nearly stalls one wheel and risks oscillation. kp 2.5
+      keeps a 1-unit signal to about 875 PWM and leaves room for the controller to
+      correct. (2) kd from 0.5 to 0.2. At 100 Hz, 2% sensor noise produces large derivative
+      spikes (kd times the signal slope), so a smaller kd limits jitter while still
+      damping overshoot. (3) Sensor pitch from 12 mm to 10 mm (x = -0.02 to +0.02).
+      This keeps the 25 mm tape covered by at least two central sensors across more
+      of the range and reduces the edge-sensor dropout the critique raised. Sensor
+      size stays at 12 mm. Rejected: I kept base_speed at 1.8 rather than lowering
+      it, because the 3 s limit needs about 1.5 m/s on a 4.5 m course (the contract
+      gives 4 to 5 m), and cutting speed risks a timeout. I kept body_width at 0.12,
+      accepting the critique''s point that it does not change the off-track limit
+      (fixed at 0.06 m across the allowed range); it is a neutral choice, not a benefit.
+      Expected result, unverified because no telemetry exists: completion with rms_error
+      reduced versus the baseline because of lower gain, and fewer oscillation events.
+      The main unknown is whether 1.8 base speed holds the line on the slalom with
+      kp 2.5. The next revision should use steering_oscillation and max_error to decide
+      whether to raise kp or lower base_speed. If max_error approaches 0.06 m, reduce
+      base_speed. If rms_error is high and oscillation is low, raise kp in steps of
+      0.5.
+
+
+      - [Open this output](iteration-0/entity1/versions/0275ba90357e42d99024da98d60b891c/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/14dc10d17b1b4875904cf10c94288f7e/payload.json),
+      [entityC1](iteration-0/entityC1/versions/e39e637e64c04e759ed22c6b9c7a047d/payload.json)'
+  - id: entityC2
+    label: Round-2 Critique
+    notes: 'Round-2 Critique. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-0/entityC2/versions/891c4d09612c48cdba1c44a4ec207f55/payload.json)
+
+      - Based on: [entity1](iteration-0/entity1/versions/0275ba90357e42d99024da98d60b891c/payload.json)'
+  - id: entity2
+    label: 'Final: gentler kd, 10mm'
+    notes: 'Keeps kp 2.5 and 1.8 base speed from the revision, with 10 mm sensor pitch
+      and kd raised from 0.2 to 0.3 to restore damping the critique flagged. Partly
+      accepts the critique; base_speed and body_width are unchanged because the evidence
+      does not support changing them.
+
+
+      ### Rationale
+
+
+      Kept: the revised design''s kp 2.5, ki 0.1, base_speed 1.8, last_direction line
+      loss, sensor weights [-2,-1,0,1,2], five 12 mm sensors, and the chassis geometry.
+      The sign convention is correct: tape to the left gives a positive signal, which
+      steers left. Changed: kd from 0.2 to 0.3. The critique is right that kd 0.2
+      weakens damping on a 100 Hz loop with the sensor 50 mm ahead of the axle, and
+      the revision gave no evidence that derivative noise dominated. kd 0.3 is a compromise:
+      it stays well below the original 0.5, so noise spikes are still limited, but
+      it restores some phase margin. Kept: sensor pitch 10 mm (x = -0.02 to +0.02),
+      which the critique called plausible but unquantified. I accept that it is unverified,
+      and I keep it because the sensors still span 40 mm, and a 25 mm tape stays under
+      at least one central sensor across a wider lateral offset than a 12 mm pitch.
+      Rejected: lowering base_speed. The 3 s limit on a 4 to 5 m course needs about
+      1.5 m/s or more, and the contract gives no ground-speed mapping to check a margin,
+      so I keep 1.8 and rely on max_error to decide whether to slow down. Not changed:
+      body_width 0.12 and wheel_track 0.12 are neutral choices, since body_width affects
+      only the off-track limit. Expected result, unverified: completion with lower
+      rms_error and fewer oscillation events than the original kp 4.0 design. Next-step
+      rule: if max_error approaches 0.06 m, reduce base_speed; if rms_error is high
+      and steering_oscillation is low, raise kp in steps of 0.5 and re-check kd.
+
+
+      - [Open this output](iteration-0/entity2/versions/d47f61452eb34d0585aea17e042356f9/payload.json)
+
+      - Based on: [entity1](iteration-0/entity1/versions/0275ba90357e42d99024da98d60b891c/payload.json),
+      [entityC2](iteration-0/entityC2/versions/891c4d09612c48cdba1c44a4ec207f55/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+  - id: action4
+measurements: {}

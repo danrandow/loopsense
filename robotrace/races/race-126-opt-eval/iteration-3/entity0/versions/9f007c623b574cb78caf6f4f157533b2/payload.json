@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.3,
+    "ki": 0.0,
+    "kp": 3.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.07
+      },
+      {
+        "x": -0.02,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.02,
+        "y": 0.07
+      },
+      {
+        "x": 0.04,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "controller_errors"
+    ]
+  },
+  "rationale": "Evidence: iteration 2 (wide array x = -0.04 to +0.04, sensor_size 0.012, kp 3.5, kd 0.3, base_speed 1.6) scored 52.97. It is slightly below iteration 1's 55.46, and all 60 trials still went off track. Line-loss events fell from about 2 to 1, but max_error stayed at 0.061 to 0.065 m, just over the 0.06 m limit. Widening the array did not stop the drift, so sensor coverage is not the main limit.\n\nThe off-track limit is max(0.06, 0.0125 + body_width/4). With body_width up to 0.18 the limit only reaches 0.0575, so the 0.06 m floor binds and body width cannot relax it. The robot must stay within 0.06 m of the centre line.\n\nMy hypothesis is that the sensors sit only 0.04 m ahead of the axle, so the controller sees the line too late. At 1.6 base_speed the robot covers the bend before the correction takes effect, and the error peaks just past 0.06 m. Moving the sensor row forward to y = 0.07 m gives more lookahead, so the correction starts earlier and the overshoot should shrink.\n\nChanges: (1) move all five sensors from y = 0.04 to y = 0.07 m, keeping the wide x spacing (-0.04 to +0.04), sensor_size 0.012 and weights unchanged; (2) keep kp 3.5 and kd 0.3 unchanged, since the signal scale is the same and the geometry is the only major change; (3) keep base_speed 1.6 and line_loss last_direction so that this is a single-variable test of lookahead.\n\nExpected result: max_error drops below 0.06 m, line_loss_events fall to 0 or 1, and progress rises above 0.2 on the s-bend and slalom. Risks: the signal may react more to early curvature, so steering_oscillation could rise. If max_error still exceeds 0.06 m with line loss at 0 or 1, the next step is a higher kd to damp overshoot. If line loss stays near 1 to 2, test line_loss search_left or search_right. If the robot stays on track but does not finish, raise base_speed toward 2.0."
+}
