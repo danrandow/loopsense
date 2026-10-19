@@ -40,6 +40,7 @@ python3 -m orchestrator.controller validate package-templates/opt-eval
 | [`docs/TRACK_VIEW_SVG_SPEC.md`](docs/TRACK_VIEW_SVG_SPEC.md) | Specification for the track-view SVGs. |
 | `docs/RACE_16_CHANGES.md`, `docs/RACE_17_CHANGES.md`, `docs/RACE_19_CHANGES.md`, `docs/RACE_34_CHANGES.md` | Harness revisions and why scores are not comparable across them. |
 | `docs/PHASE1_RESULTS.md`, `docs/PHASE2_DESIGN.md`, `docs/SIM_VALIDITY_CHANGES.md`, `docs/SIMULATOR_REVIEW_AND_DESIGN_APPROACH.md` | Earlier-phase design and review documents, superseded by FINDINGS.md/PHASE0_FREEZE.md as the current source of truth but kept for history. |
+| [`earlier-conditions/`](earlier-conditions/README.md) | Pre-map-driven-controller topology definitions, kept as historical record. |
 
 Everything below describes the harness mechanics and is still accurate; it predates the conclusion above and
 is kept for anyone extending or re-running the experiment.

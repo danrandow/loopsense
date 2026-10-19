@@ -12,7 +12,7 @@ We tested the LoopSense approach through **[Robot Race](robotrace/README.md)** �
 designing and racing a line-following robot under the same model, token budget, simulator, and evaluation
 conditions. Across ~20 pre-registered gates:
 
-- **A lone agent decisively beat every two-agent topology tested** — the original producer–integrator team,
+- **A lone agent beat all three two-agent structures we tested** — the original producer–integrator team,
   a conventional evaluator–optimizer pair, and a more elaborate two-round critique structure.
 - **The first critique-and-revise round degraded the design 96.5% of the time**, traced to the critic
   confidently, and sometimes wrongly, asserting the current design didn't already work.
@@ -44,6 +44,7 @@ separate addition. The original copyright and licence are preserved with the ven
 | [`robotrace/PHASE0_FREEZE.md`](robotrace/PHASE0_FREEZE.md) | Every pre-registered decision rule, committed before the data it governs existed. |
 | [`robotrace/races/`](robotrace/races/README.md) | Every race's packages, status, leaderboard, report and replay files. |
 | [`loopsense/`](loopsense/README.md) | The original LoopSense experiment — set aside, kept as historical/conceptual foundation. |
+| [`robotrace/earlier-conditions/`](robotrace/earlier-conditions/README.md) | Pre-map-driven-controller topology definitions, kept as historical record. |
 | [`Loopsense-product-definition.md`](Loopsense-product-definition.md) | The broader hypothesis and product the experiments ultimately test. |
 
 ## The original LoopSense experiment
