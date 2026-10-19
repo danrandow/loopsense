@@ -748,3 +748,48 @@ cost driver is unchanged. **Estimate: $0.12-0.18/race x 8 = $0.96-$1.44**, the s
 randow-maps-shaped gate has used. This is an estimate for planning only -- no spend has occurred against it.
 
 This section is committed before any Gate 16 Part B race runs, and no Gate 16 Part B race has run.
+
+**Gate 17 addendum (2026-10-19, committed before any Gate 17 race runs): fixing the rule to cover all five
+of Dan's required elements explicitly.** The §4i rule above already covered (1) and partly (3)/(4); it did
+not explicitly state a hold-rate benchmark, commit to quoting examples, or state a Gate-11-class defect
+check. Restating the complete rule here, run exactly as follows:
+
+1. **Primary: improvement with a CI, vs. both reference arms.** Unchanged from above — paired improvement
+   (`primary_metric`, final iteration minus iteration 0), Welch 95% CI, against randow-maps (n=16,
+   +160.90, sd 179.72) and opt-solo (n=16, +664.70, sd 160.96). Decision rule unchanged from above
+   ("helps" / "hurts" / "no detectable difference", the within-100-of-opt-solo + CI-excludes-0 test).
+
+2. **Hold rate, explicitly benchmarked against randow-maps' own 11.9% (~12%).** randow-maps holds geometry
+   unchanged in 21/176 transitions (11.9%, Gate 16 Part A, Metric B) — the figure Dan's instruction calls
+   "12%." Dialogue's hold rate is computed the same way (share of transitions where `entity1.geometry` at
+   iteration *i* equals the previous iteration's raced geometry) and reported directly against that 11.9%
+   baseline, not just in the abstract.
+
+3. **Advice-decline frequency, with 5 quoted reasons.** How often the Builder's `rationale` states it did
+   *not* take the Integrator's last advice, over total transitions ≥1. **The 5 clearest examples of a
+   stated reason are quoted verbatim in the Gate 17 report** (not just counted) — if fewer than 5 genuine
+   declines occur across all 8 races, the report states the true count and quotes all of them, rather than
+   padding to 5.
+
+4. **Controller-edit share**, by field (`base_speed`, `kp`, `ki`, `kd`, `sensor_weights`, `line_loss`),
+   reported against randow-maps' own Part A counts (13, 38, 5, 31, 11, 0 out of 176) — unchanged from
+   above, restated here so it is explicitly inside this rule, not just a general secondary measure.
+
+5. **Zero Gate-11-class defects, checked now, before running, not after.** The Gate-11 defect is
+   specifically: removing an edge that was the only source of "new inputs" for an `on_new_inputs` reentry
+   trigger silently stops that action from ever re-firing. `randow-maps-dialogue` changes **zero edges**
+   from `randow-maps` — confirmed again just now by `diff -rq` (only `base.yaml`'s `notes` text and
+   `config/race.yaml`'s `entrant` field differ; `config/workflow.yaml` is byte-identical). `action1`
+   (Integrator) carries the same `on_new_inputs` reentry policy randow-maps has always run with, over the
+   same edges, unmodified — this arm cannot have introduced the Gate-11 defect class because nothing about
+   the trigger's input set changed. This is confirmed structurally before running, not inferred from clean
+   races after the fact; the Gate 17 report will also confirm it empirically (no `"workflow stalled"`
+   outcome across all 8 races actually run).
+
+**Ops for the run itself (Dan's Gate 17 figures, stated here before launch):** n=8, gate cap **$1.50**
+total, per-race cap **$0.25**, stop issuing new calls once the smaller of `/credits` and `/auth/key`'s
+`limit_remaining` falls below **$0.50**. Model and budget unchanged from randow-maps
+(`anthropic/claude-haiku-5.5` via OpenRouter, 12 iterations/race). The $1.50 cap comfortably covers the
+$0.96-$1.44 cost estimate above with no margin concern.
+
+This addendum is committed before any Gate 17 race runs.
