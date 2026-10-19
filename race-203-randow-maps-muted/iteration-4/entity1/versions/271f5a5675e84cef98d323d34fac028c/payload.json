@@ -1,0 +1,73 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.25,
+    "ki": 0.02,
+    "kp": 1.35,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.3333,
+      -0.6667,
+      0.0,
+      0.6667,
+      1.3333,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.05
+      },
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      },
+      {
+        "x": 0.06,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.08
+  },
+  "learning": "If oscillation stays near 0.17 or below and max_error drops, the narrower track with matched gain is working. If oscillation rises above about 0.2, the turn is overshooting even at matched gain, so reduce kd or kp before changing geometry further.",
+  "notes": "Builder's wheel_track 0.08 m with kp scaled from 1.5 to 1.35 to keep yaw gain near the iteration 3 level. Body, sensors, wheel radius and signal weights unchanged.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 3 (wheel_track 0.09 m, kp 1.5, kd 0.25) is the best design at 57.9. Its s-bend progress rose to 0.178 and max_error sits at the 0.063 m floor, but steering_oscillation on the s-bend is already 0.169, above the 0.15 caution level set in earlier feedback. Slalom still loses the line once per run. Every run ends off_track. The Builder's requested wheel_track of 0.08 m (contract minimum) raises yaw gain per unit of PWM differential by about 0.09/0.08 = 1.125x, since turn rate is (vR - vL)/wheel_track. Left unchanged, kp would push the controller into more overshoot on the s-bend. I therefore scale kp by 1/1.125: 1.5 / 1.125 = 1.33, rounded to 1.35, so the effective yaw gain stays near the iteration 3 level. kd stays at 0.25 and ki at 0.02. Signal weights, base_speed 1.5 and last_direction line-loss handling are unchanged because iteration 1 and 3 showed no gain from altering them. Sensors (7 at y=0.05, x \u00b10.06, 16 mm), body (0.18 m x 0.12 m, 0.8 kg) and wheel_radius 0.03 m match iteration 3, so the Builder's single change is isolated. Expected: s-bend progress holds or rises, oscillation stays near 0.17 or below, and max_error falls slightly. Because kp is compensated, this race tests the track change at matched controller gain, not a raw turn-rate increase."
+}

@@ -1,0 +1,45 @@
+{
+  "feedback_request": {
+    "questions": [
+      "Does the 0.05 m sensor spread produce a smooth signal across the 12 mm footprint, or do readings jump at the outer sensors?",
+      "Did the lead drop from 0.05 m to 0.03 m reduce steering_oscillation, or did it make the signal too sensitive?",
+      "With wheel_track 0.10 m, is the robot now over-responsive on bends (high oscillation, overshoot) or is turn authority adequate for the slalom?",
+      "Does wheel_radius 0.035 m with base_speed at its maximum reach the speed needed to finish in under 3 s?",
+      "Which geometry limit, if any, constrains your controller most?"
+    ],
+    "requested_from": "Robot Integrator"
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.1,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.03
+      },
+      {
+        "x": -0.025,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.025,
+        "y": 0.03
+      },
+      {
+        "x": 0.05,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.035,
+    "wheel_track": 0.1
+  },
+  "intent": "Test whether a wider 5-sensor array with a shorter lead, a narrower and faster drivetrain, and a lighter body keeps the robot on the line through bends. Specifically, reduce off-track endings (baseline: 60 of 60 off track) and raise mean progress above the baseline of about 0.14. Expected: max_error below 0.06 m on the oval and s-bend, and some progress on the slalom.",
+  "learning": "Iteration 0 gave no race telemetry, so this iteration is driven by the baseline aggregate metrics. Off-track endings with small RMS error point at edge loss on bends, not general tracking error. Next iteration: if max_error still reaches the limit, try a 0.016 m sensor footprint for a wider capture band; if oscillation is high, raise the sensor lead or lower the wheel-track narrowing; and use the per-step telemetry to locate where the first off-track event occurs.",
+  "rationale": "Evidence from the baseline (iteration 0, all 60 development trials) is consistent. Every run ended off track (0 finishes). Mean progress was only 0.10 to 0.14, and max_error reached 0.061 in the oval runs, just above the off-track limit of 0.06 m. The RMS error (0.024 to 0.030 m) is small, so the robot tracks reasonably until it suddenly drifts out at the edge, probably on the first sharp bend. Line loss happened once per run, which fits a final loss after leaving the tape.\n\nThe contract shows two geometry limits. First, the off-track limit is max(0.06, 0.0125 + body_width/4). Even at the maximum body_width of 0.18 m it is only 0.0575 m, so the 0.06 m floor governs. Widening the body does not buy tolerance, so I keep body_width at 0.10 m. Second, with only \u00b10.04 m of sensor spread, the outer sensors see nothing once the robot is about 0.03 m off centre, so the signal saturates early in a bend.\n\nChanges I am making, each with a reason:\n1. Sensor spread widens to \u00b10.05 m with 0.025 m spacing and a lead of 0.03 m. The wider array keeps a graded signal at larger lateral error. The shorter lead reduces the lag that I suspected in iteration 0, without placing the sensors over the axle.\n2. Wheel_track narrows from 0.12 to 0.10 m. Yaw rate per unit of wheel differential scales with 1/wheel_track, so this gives more turn authority at the same controller gain, which is needed for the slalom and tight bends.\n3. Wheel_radius rises from 0.03 to 0.035 m. The race needs an average speed of about 1.5 m/s to finish in 3 s, and a larger wheel raises ground speed at a given PWM.\n4. Mass falls from 0.8 to 0.6 kg and body_length from 0.16 to 0.14 m. This lowers yaw inertia (mass times length squared plus width squared, over 12), so the robot responds faster and overshoots less on bends.\n\nExpected result: fewer off-track ends, a higher mean progress (I aim for above 0.5 on the oval), and a lower max_error. The main risk is that the narrower track and lighter body make the robot twitchier, which would show up as higher steering_oscillation."
+}

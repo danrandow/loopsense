@@ -1,0 +1,52 @@
+{
+  "feedback_request": {
+    "integration_questions": [
+      "With wheel_track 0.09 m and the iteration 1 array, does the same PWM command now overshoot on the oval, or does steering_oscillation stay near 0.2?",
+      "Does control_effort stay near iteration 1 levels (about 7), or does it rise as in iteration 2?",
+      "On the s-bend and slalom, does max_error move below 0.06 m, or does the robot still leave at the same bends?",
+      "Do the line_loss_events on the slalom fall below 1.0 per run now that the array is back to the iteration 1 layout?"
+    ],
+    "measurements_requested_next_race": [
+      "progress",
+      "max_error",
+      "rms_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "completion_time"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.07
+      },
+      {
+        "x": -0.015,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.015,
+        "y": 0.07
+      },
+      {
+        "x": 0.03,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.035,
+    "wheel_track": 0.09
+  },
+  "intent": "Revert the sensor array to the iteration 1 layout (5 sensors, \u00b10.03 m, 0.015 m pitch, y=0.07 m), which had the best result so far, and narrow wheel_track from 0.10 to 0.09 m to raise turn authority. All other values stay as in iteration 1. Expected result: max_error on the s-bend and slalom falls below 0.06 m, s-bend progress rises above 0.3, and oval finishes stay at 15 or more of 20. If steering_oscillation rises sharply on the oval, the track is too narrow and the next step is to return to 0.10 m or raise kd.",
+  "learning": "Iteration 2 showed that widening the sensor span to \u00b10.06 m with 7 sensors hurt the oval and raised steering_oscillation, so sensing span is not the bottleneck. The remaining s-bend and slalom failures sit at max_error of about 0.06 m with rms_error near 0.025, which points at turn authority. Next, if wheel_track 0.09 helps the s-bend without hurting the oval, try 0.08 m. If it hurts the oval, keep 0.09 m and test lookahead at y=0.08 m instead.",
+  "rationale": "Evidence across three iterations. Iteration 1 (score 337.6) is the best design so far: 17 of 20 oval finishes, rms_error about 0.021, and max_error 0.041 on the oval. Iteration 2 widened the array to 7 sensors spanning \u00b10.06 m at 0.02 m pitch and scored 217.9. The oval finishes fell to 4 of 20, steering_oscillation rose from 0.20 to 0.37, and control_effort rose from 7.2 to 10.0. Widening the array therefore hurt the oval, even though s-bend progress rose slightly (0.236 to 0.316). The lesson is that a wider, more heavily weighted sensor span adds jitter and does not buy the correction the controller needs. I am reverting the sensor array to the iteration 1 layout, which is the best-evidenced one. On the s-bend and slalom, max_error is still at the off-track limit of 0.06 m (0.0611 and 0.0604 in iteration 1), with rms_error near 0.025 to 0.028. That points at turn authority rather than sensing. The contract's signal equations show that the wheel track sets how much a unit of turn changes the wheel speeds: turn produces a wheel PWM difference of 350*turn, and the turn rate scales inversely with wheel_track. I therefore make one change: wheel_track from 0.10 to 0.09 m, keeping every other value from iteration 1 so the effect can be isolated. I expect a higher turn rate, which should lower max_error on the s-bend and slalom and give more s-bend progress. The main risk is added oscillation on the oval, since a narrower track also makes the same command turn harder, so the Integrator should check steering_oscillation and control_effort first."
+}

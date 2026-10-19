@@ -1,0 +1,54 @@
+{
+  "feedback_request": {
+    "integrator_questions": [
+      "With the sensor row at 40 mm ahead of the axle, does the controller need more kd to damp overshoot, and does the signal stay stable on the tightest bend?",
+      "Where in each track does max_error occur now? If it is still at bend entry, lag is not the main cause and the next step should target sensor coverage or wheel authority.",
+      "Do the line-loss events on the slalom change with the shorter lookahead, and does line_loss_events stay at 1 to 2 per run?"
+    ],
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness",
+      "controller_errors"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.04
+      },
+      {
+        "x": -0.012,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.012,
+        "y": 0.04
+      },
+      {
+        "x": 0.024,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "intent": "Test the lag hypothesis in isolation. Revert to the iteration 0 chassis (0.8 kg, 0.12 m track, 0.03 m wheels, 0.12 m width) and 12 mm sensors on a 12 mm pitch, which together scored best so far. Change only the sensor row, from y = 0.06 m to y = 0.04 m. Expected: max_error falls below the 0.06 m off-track limit on the s-bend and oval, progress rises above 0.16 to 0.20, and the score beats 66 without a change in control gain structure.",
+  "learning": "Iteration 1 showed that changing mass, track, sensor size and pitch together lowered the score (65.96 to 53.33), so those changes should not be combined again without evidence. The new hypothesis is that sensing lag from a 60 mm lookahead causes the off-track excursion (max_error 0.062 to 0.066 m). If this single-variable test does not improve max_error, the next candidates are sensor pitch (to recover resolution on tight bends) and wheel_track (for turn authority), each tested in isolation.",
+  "rationale": "Iteration 1 scored 53.33, worse than the iteration 0 baseline at 65.96. Every run in both iterations ended off track on all three development tracks, with no finishes. The off-track trigger is max_error, which sat at 0.062 to 0.066 m in both designs, just above the 0.06 m limit, while RMS error stayed small (0.019 to 0.032 m). The failure is a transient excursion at the bends, not a steady offset. Body width cannot help: the limit is max(0.06, 0.0125 + body_width/4), which stays at 0.06 m across the allowed range.\n\nIteration 1 changed four things at once (mass 0.8 to 0.6 kg, track 0.12 to 0.10 m, sensor size 12 to 16 mm, spacing 12 to 10 mm). Oval progress fell from 0.20 to 0.11 and the score dropped, so at least one of those changes hurt. The most likely cause is the 16 mm sensors on a 10 mm pitch, which overlap heavily and blur the line edge, reducing the sharpness of the centre-of-line signal. Steering oscillation on the oval did fall (0.115 to 0.074), so the lighter, narrower robot may be steadier but slower to get through the course. I cannot separate these effects with one race of aggregated data.\n\nDecision: revert to the iteration 0 body, mass and track, which scored best, and restore 12 mm sensors on a 12 mm pitch. Change one geometric variable only: move the sensor row from 60 mm to 40 mm ahead of the axle. My hypothesis is that the excursions come from sensing lag at speed, since the sensors look 60 mm ahead and the robot reacts late. A shorter lookahead should cut the lag and reduce overshoot on the bends. The cost is less anticipation, so the Integrator may need more kd to keep the signal stable. Expected result: max_error drops toward or below 0.06 m on the s-bend and oval, progress rises above the iteration 0 values, and the score is above 66. Confidence is moderate, because the lag hypothesis is untested and the lower sensor row also reduces the time the line is seen before the robot reaches it."
+}

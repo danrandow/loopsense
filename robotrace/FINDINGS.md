@@ -30,7 +30,7 @@ is added to the team, does it help or hurt?
 | **opt-solo** | 16 | **+665 [+586, +744]** | **+566 [+493, +638]** | **404** | **$0.04** |
 | opt-eval-muted | 8 | +582 (not measured vs. its own hill-climb) | not measured | not measured | $0.09 |
 | randow-maps | 16 | +161 [+73, +249] | +80 [−5, +165] | 41 | $0.13 |
-| randow-maps-muted | 4 complete (+2 partial, reported separately) | +258, sd 393 (very wide CI — see Gate 12/13) | not measured | not measured | $0.12 |
+| randow-maps-muted | 8 (+2 partial, reported separately) | +171 [−27, +370] | not measured | not measured | $0.12 |
 
 "Paired improvement" = final iteration's score minus iteration 0's, on the pre-registered out-of-sample
 metric. "Held-out" = score on track shapes neither arm ever sees or optimizes against — the best check
@@ -50,9 +50,12 @@ against simple overfitting.
 - **The critique has an identifiable weak spot: speed.** Applying the Evaluator's own base_speed
   suggestions individually, even when its own stated telemetry condition is true, hurts the score more
   often than it helps (Gate 12) — "too eager to raise speed before the design can handle it."
-- **Randow-maps' Integrator critique is not the same story** — when its own stated condition holds, its
-  geometry suggestions are net *helpful*; its weak spot is a different field (mass), and whether muting its
-  critique text helps the way it did for opt-eval is not yet confirmed at full power (see below).
+- **Randow-maps' Integrator critique is not the same story.** When its own stated condition holds, its
+  geometry suggestions are net *helpful*; its weak spot is a different field (mass). And unlike opt-eval,
+  **muting its critique text does not help** (Gate 13, full n=8): the result stays statistically
+  indistinguishable from randow-maps' own un-muted performance (CI vs. randow-maps includes 0) and still far
+  below opt-solo (CI vs. opt-solo excludes 0). The two topologies' second agents are not failing for the
+  same reason.
 - **Behaviourally, a muted opt-eval Optimizer moves more like opt-solo's** (more design fields touched per
   move, similar move-size distribution) **than like opt-eval's own un-muted version** (Gate 13) — the
   outcome shift has a matching behavioural shift, not just a score coincidence.
@@ -61,9 +64,9 @@ against simple overfitting.
 
 ## What's still uncertain
 
-- **Whether randow-maps' shortfall has the same cause as opt-eval's.** The randow-maps-muted causal test is
-  underpowered so far (n=4 of a pre-registered 8, one race scored +832 and another +0, CI vs. randow-maps
-  [−298, +492]) — Gate 13 is completing it to n=8.
+- **Why randow-maps' shortfall persists when muted, when opt-eval's doesn't.** Confirmed (Gate 13, n=8) that
+  it isn't the critique text; the actual cause is open — something else about the Builder/Integrator split,
+  the geometry-only Builder's narrower design space, or a different mechanism entirely.
 - **Margin-vs-matched-hill-climb and held-out score have not been measured for either muted arm** —
   reported above as "not measured," not assumed.
 - **A clean re-run of opt-eval-muted.** Gate 11 found a defect (muting the edge also silently broke a
@@ -76,8 +79,8 @@ against simple overfitting.
 
 | step | rationale | rough cost |
 |---|---|---:|
-| Finish randow-maps-muted to n=8 (Gate 13 Part 2) | resolve the one open underpowered test | ~$1.00 (already budgeted) |
 | Clean re-run of opt-eval-muted, defect fixed, n=8 | confirm Gate 11 wasn't biased by the stall defect | ~$0.70 |
+| Investigate what else randow-maps' Integrator/Builder split is missing, now that the critique text is ruled out | find the actual bottleneck | zero-cost analysis first, likely informs any further paid step |
 | Matched-hill-climb margin + held-out, both muted arms | zero-cost, offline — just not done yet | $0 |
 | Double the iteration budget for opt-solo, n=8 | test whether the single-agent lead holds or plateaus | ~$0.70-1.00 |
 | Same opt-solo test on a stronger model (e.g. Sonnet) | test whether the result is model-specific | likely higher per-race cost; not yet measured |

@@ -1,0 +1,53 @@
+{
+  "feedback_request": {
+    "integrator_questions": [
+      "With 16 mm sensors on a \u00b10.02 m array, does the signal saturate or flatten at the centre, and does the line still register on the outer sensors at 0.05 m offset?",
+      "Does the lighter 0.6 kg mass and 0.10 m track reduce the overshoot, or does the robot now slip or saturate its wheels on the tightest bend?",
+      "Where in each track does max_error occur, and is it on the entry to a bend (lag) or during the recovery (overshoot)?"
+    ],
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "intent": "Cut peak lateral error below the 0.06 m off-track limit so runs survive to the finish. I lowered mass to 0.6 kg and wheel track to 0.10 m for faster correction and more turn authority, widened sensor coverage with 16 mm sensors on a \u00b10.02 m array, and kept body width at 0.12 m because the off-track limit does not change over the allowed range. Expected: first completions on the oval and s-bend, progress well above 0.2, and a lower steering oscillation figure.",
+  "learning": "Iteration 0 showed that all runs left the track on max error (0.063 to 0.066 m) despite a small RMS error. The off-track limit is 0.06 m at every allowed body width, so body width is not a lever. Test next: whether lower mass and narrower track cut peak error, and whether 16 mm sensors reduce line-loss events. If max error stays above 0.06 m, the next step is to reduce lookahead or adjust sensor spacing, since the cause is probably lag rather than coverage.",
+  "rationale": "The iteration 0 race ended every run off track on all three development tracks (20 of 20 trials each, no finishes). The RMS error was small (0.019 to 0.032 m), but max error reached 0.063 to 0.066 m, just over the off-track limit of 0.06 m. Track progress was low (0.12 to 0.20). So the failure is a large transient excursion, not a steady offset. Steering oscillation was also high (0.11 to 0.16), which points to jitter and overshoot on bends.\n\nI checked whether body width can help. The limit is max(0.06, tape_half_width + body_width/4). With tape half-width 0.0125 m and body width at its maximum of 0.18 m, the second term is only 0.0575 m, so the limit stays at 0.06 m across the whole allowed range. Widening the body therefore cannot save these runs, and I keep body_width at 0.12 m. The fix has to come from lower peak error.\n\nChanges: (1) Reduce mass from 0.8 to 0.6 kg. Lower yaw inertia should let the robot correct faster and reduce overshoot. (2) Reduce wheel_track from 0.12 to 0.10 m. A narrower track gives more turn rate per unit of wheel difference, so the controller has more authority on tight bends, the slalom in particular. (3) Increase sensor_size from 0.012 to 0.016 m, so each sensor keeps a partial reading when the line drifts toward the edge of the array and the signal drops out less often. (4) Keep five sensors but move the array to \u00b10.02 m spacing (0.01 m steps) at y = 0.06 m, so the outer sensors still see the tape at larger offsets while the centre sensors keep resolution.\n\nExpected result: max error drops below 0.06 m on the oval and s-bend, which gives the first finishes, and progress rises well above 0.2. The slalom should improve least. Uncertainty: I am changing several things together, so the race will not isolate which one helped. The Integrator's feedback on controller gains should show whether the remaining error is lag or saturation."
+}
