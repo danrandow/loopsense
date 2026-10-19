@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.5,
+    "ki": 0.3,
+    "kp": 6.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.05
+      },
+      {
+        "x": -0.012,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.012,
+        "y": 0.05
+      },
+      {
+        "x": 0.024,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Kept: five sensors, the axle-relative geometry frame, the mid-range body, wheel and mass values, the 'last_direction' line-loss rule, and a base_speed near 1.5 m/s (base_pwm about 75 percent). The critique is correct that the baseline's sensor overlap claim was false and its ki was too small to do anything, so those are fixed. Its points on the speed claim and the kd justification are only partly accepted. I cannot convert PWM to m/s from the inputs, so I keep a speed that can finish in 3 s and state the risk.\n\nChanged: (1) Sensor footprint 0.016 m with 0.012 m spacing (x = -0.024 to +0.024). The footprints now overlap, and the 0.064 m span covers the 0.025 m tape even on tight bends, which answers critique point 1. (2) kp 5 to 6, since the signal is a weighted average capped at 1.0 and kp only sets the maximum turn at 2100 PWM counts when the line is fully under the outer sensor. I now state that scale correctly instead of tying it to sensor offsets (critique 2). (3) base_speed 1.6 to 1.5, to lower the off-track risk on bends where the speed-to-PWM mapping is unknown (critique 3). (4) ki 0.05 to 0.3. With the integral capped at +/-2, this gives up to about 0.6 turn, roughly 210 PWM, enough to offset a fixed motor mismatch (critique 4). (5) kd 0.3 to 0.5, a small damping term. I kept it modest and explain that it damps signal changes rather than the oscillation itself (critique 5).\n\nRejected: the critique's suggestion to slow the robot a lot. Completion is worth 500 points and needs about 1.5 m/s, so a much slower baseline would likely fail to finish and lose most of the score. The critique's remark that a slow run could outscore a fast one is not supported here, because the score terms reward finishing.\n\nHypotheses for the first race: completion 1 on the oval and s-bend, rms_error under 0.03 m, line_loss_events 0 to 2, and max_error under 0.04 m. If line losses exceed 3 per track, lower base_speed by 0.1 first. If rms_error is high with steady oscillation, lower kp by 1. If rms_error is high with a constant offset, raise ki. If the run stalls or times out before 3 s, raise base_speed by 0.1 next. Robustness to the unseen track is argued from the overlapping sensors and the moderate gains, not from tuning to the development shapes."
+}

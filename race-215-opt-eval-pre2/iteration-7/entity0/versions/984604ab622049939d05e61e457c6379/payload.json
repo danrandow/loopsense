@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.6,
+    "ki": 0.05,
+    "kp": 2.0,
+    "line_loss": "search_right",
+    "sensor_weights": [
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.14
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 trials in each of iterations 0-6 ended off track, with exactly one line-loss event per trial and max_error about 0.061 m, just above the 0.06 m limit. Progress stayed between 0.04 and 0.15. Gain, speed and mass changes moved the scores very little. Moving the sensors forward and widening the array (iteration 3 and 4) raised s-bend and slalom progress, so sensing is a real lever. Widening the array to 0.06 m (iteration 5) did not help, which argues against the tape simply leaving the array. The shared signature is one line loss followed by an overshoot past 0.06 m, so the recovery rule is the untested lever. Every design has used line_loss = last_direction.\n\nChanges: (1) Switch line_loss from last_direction to search_right, which holds a fixed +1 signal (steers left) at throttle 0.35 after loss. This is the one untested control lever, so I am isolating it. The direction is a judgement call, since no telemetry shows which side the drift goes. (2) Keep the iteration 6 geometry, which had the best recent sensing: 7 sensors at y = 0.06 m, x = -0.03 to +0.03 m at 0.01 m spacing, footprint 0.016 m, mass 0.6 kg, wheel_track 0.14 m. (3) kp raised from 1.5 to 2.0 for a firmer correction on the bends, with kd 0.6 kept for damping and ki at 0.05 for a small bias correction. (4) base_speed kept at 1.0 so the only changes are the recovery rule and a modest gain increase.\n\nExpected result: if the recovery rule is the cause, the robot should stay near the line after a loss and max_error should drop below 0.06 m, so runs last longer and progress rises on the s-bend and slalom. Completion within 3 s is still unlikely at this speed. If the first line loss persists at the same point, the next step is to test search_left or to change the start handling."
+}

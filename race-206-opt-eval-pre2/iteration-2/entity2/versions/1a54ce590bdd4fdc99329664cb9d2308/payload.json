@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.05,
+    "ki": 0.5,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.032,
+        "y": 0.05
+      },
+      {
+        "x": -0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.032,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.14
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all three designs so far left the line on every development track (60 trials each). max_error stayed at about 0.061 m whatever the gain, speed or weight scale, and steering_oscillation stayed low (0.06 to 0.14). The failure looks like a start or first-bend problem, not a gain problem. Progress on the oval was 0.18 at best, and about 0.04 on the s-bend and slalom.\n\nWhat I kept from the critique: the derivative is a real problem. At kd 0.2 an edge step gives about 10 turn units, against a proportional term of about 1.0, so I cut kd to 0.05. This still gives some damping and avoids a kick of about 2.5 units per edge. I cannot fully isolate kd without a race, so this is a compromise. The speed cut to 1.2 is kept: base_pwm is 2457 (60 percent), leaving about 1638 counts of headroom, so clipping is not a concern.\n\nWhat I changed from the critique: I reduced ki from 1.0 to 0.5. At 1.0 the integral could reach its cap of 2 units within a fraction of a second if it accumulates per step, which is as large as the full edge proportional term. At 0.5 the bias is still removed, and the cap contribution is 1 unit. Keeping kp at 2.0 (effective gain 2.0 with weights of plus or minus 1) keeps the proportional response moderate.\n\nWhat I rejected: I did not change mass, wheel_track (kept at 0.14) or the sensor layout, so the race reads cleanly against iteration 1. I did not raise speed for completion, since no design has stayed on the line yet.\n\nExpected (hypothesis, untested): max_error below 0.05 m, at most one line-loss event, and progress above 0.2 on the oval, s-bend and slalom. Completion is not expected. Decision rule for the next revision: if max_error still sits at about 0.061 with the same line-loss timing, the cause is the start (initial alignment and line_loss handling), so I will change that next. If rms_error rises while steering_oscillation stays low, raise ki. If steering_oscillation rises, lower kp to about 1.5 first."
+}

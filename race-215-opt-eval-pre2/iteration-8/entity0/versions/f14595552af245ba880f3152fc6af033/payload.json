@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.6,
+    "ki": 1.0,
+    "kp": 2.0,
+    "line_loss": "search_right",
+    "sensor_weights": [
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.14
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 420 trials across iterations 0-7 ended off track, with exactly one line-loss event per trial and max_error of about 0.061 m. That is just above the 0.06 m off-track limit, which is the floor for any body_width up to 0.18 m. Progress stayed between 0.04 and 0.15. Gain, speed and mass changes moved the score very little (kp 1.5 to 6, kd 0.05 to 0.6, ki 0 to 0.3). Moving the sensors forward (iteration 3) and widening the array to 7 sensors (iteration 4) raised s-bend and slalom progress, so sensing matters. Switching line_loss to search_right (iteration 7) gave a small score gain, but the oval metrics did not move. The near-identical max_error across every design, with a single early line loss, suggests a steady bias rather than oscillation. The fixed left/right motor mismatch is the likely source. Integral action is clamped at +/-2, so ki = 0.3 can only supply about 0.6 of turn, roughly 210 PWM, which may be too small to cancel the mismatch. I have not yet tested a large ki.\n\nChanges: (1) ki raised from 0.05 to 1.0. The integral clamp at 2 gives up to 2 units of turn (about 700 PWM), which tests the mismatch hypothesis directly. (2) Geometry kept from iteration 7 (7 sensors at y = 0.06 m, x = -0.03 to +0.03 m, footprint 0.016 m, mass 0.6 kg, wheel_track 0.14 m) so the only change is the integral term. (3) kp 2.0, kd 0.6, base_speed 1.0 and line_loss search_right unchanged, so the comparison with iteration 7 isolates ki.\n\nExpected result: if a steady mismatch bias is the cause, max_error should fall below 0.06 m and the first line loss should move later or disappear, which would raise progress on the oval and s-bend. If the integral causes overshoot, max_error will rise, which would rule out the bias hypothesis and point to a different cause, such as the start condition or the sensor layout. Finishing within 3 s is still unlikely at this speed."
+}

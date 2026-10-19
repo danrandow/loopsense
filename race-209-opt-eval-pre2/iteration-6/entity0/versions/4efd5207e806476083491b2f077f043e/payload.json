@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.6,
+    "ki": 0.1,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.016,
+        "y": 0.05
+      },
+      {
+        "x": -0.008,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.008,
+        "y": 0.05
+      },
+      {
+        "x": 0.016,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.008,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: across iterations 1 to 5, 119 of 120 development trials ended off_track. The one finish was an oval run in iteration 4, which scored 939 on that seed. Iteration 5 is the best design so far (99.67), and its max_error (0.060 to 0.063) sits right at the 0.06 m off-track limit. Steering_oscillation (0.15) and 1 to 2 line-loss events per run show a loop that overshoots and then drifts to the edge. Score is dominated by progress, since no run completed. Surviving the course is therefore the main lever; completion (+500) comes after.\n\nDiagnosis: max_error barely moved across kp 1.2 to 3.0, so I do not think the steering gain is the only limit. My reading is that with kp 1.5, the maximum differential (about 1.5 x 2 x 350 = 1050 PWM at full signal) is weak for tight bends at 1.4 m/s. The robot cannot turn hard enough, so it runs wide and exits the 0.06 m band. Iteration 1 used kp 3.0 but also changed several other variables, so its result does not cleanly rule out higher kp.\n\nChanges, one group at a time: (1) Keep the iteration-5 sensor geometry (8 mm sensors at x = -0.016 to +0.016, y = 0.05), which is the best sensing so far and not yet isolated. (2) Raise kp from 1.5 to 2.5 for more steering authority on bends. (3) Lower base_speed from 1.4 to 1.2 so the robot has time to correct in each bend, since the overshoot is the main failure. (4) Keep kd at 0.6 to damp the higher kp, and keep ki at 0.1 to counter the fixed motor mismatch. (5) Keep wheel geometry, mass and body unchanged.\n\nExpected result: max_error below 0.06 on the oval and s-bend, fewer line-loss events (0 to 1), and progress above 0.4 on the oval and s-bend. Completion is still unlikely at 1.2 m/s, so the main gain should be from progress. The slalom remains the hardest track. The next telemetry should show whether the higher kp gives authority without oscillation, and whether lower speed keeps the robot on the tape."
+}

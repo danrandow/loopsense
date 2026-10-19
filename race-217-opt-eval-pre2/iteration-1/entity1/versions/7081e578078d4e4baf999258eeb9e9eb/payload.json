@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.1,
+    "ki": 0.0,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "What the critique established: kd=0.6 is mis-scaled. One 10 ms step with a signal change d adds kd*d/0.01 = 100*kd*d turn units, so kd=0.6 gives 60*d. Sensor noise of 0.01 to 0.03 per step would add 0.6 to 1.8 turn units of jitter on a straight line, which is larger than the proportional term at normal line errors. Raising kd therefore cannot be justified by the evidence, and I reject the draft's kd=0.6. I also accept that the draft's ki of 0.02 is inert (its maximum contribution is 0.04 turn units), so I set it to 0.0.\n\nWhat the evidence shows: all 60 development trials ended off track with 2 line-loss events each, and progress was only 0.06 to 0.17. Those failures happened early, so the robot is drifting off the line before the sharp bends can explain it. The race data does not separate overshoot from saturation or line loss, so the controller change is a hypothesis test, not a settled diagnosis.\n\nWhat I changed: (1) kd 0.3 to 0.1, not 0.6. This keeps derivative damping at about 10 units per unit of signal change per second, so a 0.02 step gives about 0.2 turn units, well below the proportional term. (2) kp 5.0 to 4.0. This lowers the steering gain, which the draft argued may overshoot. The steering authority is still adequate: a 4 unit turn is 1400 PWM, and it saturates the outer wheel near |signal| 0.6 at base 1.6. (3) base_speed 1.8 to 1.6. Base PWM falls from 3686 to 3276, which gives the outer wheel about 819 PWM of headroom. Finishing still needs about 1.5 m/s average, so 1.6 is a compromise: it gives some completion-time margin without a large speed cut. (4) ki 0.05 to 0.0, as above. (5) Geometry is unchanged from the authorized baseline: sensors at y=0.04, sensor_size 0.012, wheel track, radius and body unchanged. This keeps the change set to controller values, so the next race can attribute its effects more clearly.\n\nWhat I rejected from the critique: I did not reduce speed further or raise sensor_size to 0.016. The critique's blur argument is reasonable, but changing the footprint and the controller together would undo the attribution goal. I kept line_loss 'last_direction' because the critique offered no better option without telemetry.\n\nFalsifiable expectations for the next race: max_error below 0.06 m on the oval and s-bend; line_loss_events at or below 1 per run; progress above 0.9 on at least the oval; steering_oscillation below the 0.16 to 0.18 baseline. If steering_oscillation rises with kp at 4, the loop is still too aggressive. If progress stays below 0.5 with no line losses, the speed is too low to finish (or the stall rule is firing). If line_loss_events stay at 2 with max_error above 0.06, the cause is steering authority or early drift, not kd."
+}

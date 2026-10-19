@@ -1,0 +1,241 @@
+map:
+  id: race-211-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor draft
+    notes: 'A symmetric five-sensor, proportional-steering baseline (kp 2.0, kd 0.05,
+      base speed 1.4, last-direction line loss). There is no prior telemetry for iteration
+      0, so the values come from the contract''s physics and sensing rules, not from
+      measured results.
+
+
+      ### Rationale
+
+
+      This is the first draft for iteration 0, so there is no race telemetry to learn
+      from. I am choosing a conservative, symmetric baseline built from the contract''s
+      physics and sensing rules.
+
+
+      Geometry: five sensors spread across x = -0.04 to +0.04 m at y = 0.05 m (ahead
+      of the axle, so the controller sees the line slightly before the wheels reach
+      it). Sensor size is 0.012 m, which is smaller than the 25 mm tape, so one or
+      two sensors cover the tape when the robot is near centre. The spacing is 0.02
+      m. Wheel track 0.12 m, wheel radius 0.03 m, body width 0.12 m (a wider body
+      allows more off-track margin, since the limit is max(0.06, 0.0125 + 0.03) =
+      0.06 m), body length 0.16 m, mass 0.8 kg.
+
+
+      Controller: sensor weights are proportional to x, [-1, -0.5, 0, 0.5, 1], so
+      the signal sign points the correct way. If the tape appears on the left sensors
+      (the robot is right of the line), the signal is positive and the robot turns
+      left. kp = 2.0 gives up to about 700 PWM of wheel differential at full signal.
+      kd = 0.05 damps oscillation without adding much noise sensitivity. ki = 0 avoids
+      integral windup on curves. base_speed = 1.4 gives base PWM of about 2870. The
+      contract says the average speed needs to be about 1.5 m/s or more to finish
+      within 3 s, so this speed is slightly below that target but leaves margin for
+      the first race to show whether the robot stays on the line. line_loss = last_direction,
+      so the robot keeps turning toward the side it last saw the tape on, which suits
+      a curve-following course.
+
+
+      Expected result: the robot should complete the oval and s-bend with few line
+      losses. The slalom and any tight bends are the main risk: the robot may oscillate
+      or lose the line. I expect progress near full on the development tracks, with
+      moderate rms_error (about 0.02 to 0.04 m). Once telemetry arrives, the next
+      revision should raise base_speed if error is low, or lower kp/raise kd if steering_oscillation
+      is high.
+
+
+      - [Open this output](iteration-0/entity0/versions/61188e2ea48b49b9922b56f2457b6396/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Round-1 Critique. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-0/entityC1/versions/e3b7a764889647d4a5570cc813fdd612/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/61188e2ea48b49b9922b56f2457b6396/payload.json)'
+  - id: entity1
+    label: Faster, damped revision
+    notes: 'Raises base_speed to 1.7 so the course can finish within 3 s, doubles
+      kd to 0.10 to offset sensor lead, and adds a small ki of 0.02 for the motor
+      mismatch. Speed and the predictions are judgements, since the PWM-to-speed mapping
+      is not given; the kp and geometry are kept.
+
+
+      ### Rationale
+
+
+      What I kept, changed and why, in response to the round-1 critique.
+
+
+      Accepted: (1) Speed is the largest risk. Finishing gives 500 points plus a time
+      bonus, and a run that times out at 300 steps scores far less, so the baseline
+      base_speed of 1.4 is too conservative. I raise base_speed to 1.7 (base PWM about
+      3480, 85 percent). The PWM-to-ground-speed mapping is not given, so this is
+      a judgement, not a calculation. I expect the higher demand to shorten the run,
+      but it may also reduce line-following margin on tight bends. (2) Sensor coverage:
+      the footprint gap is 0.008 m and the tape is 0.025 m, so the line is always
+      seen by at least one sensor. Only the centre sensor covers a centred tape, and
+      I no longer claim otherwise. (3) Body width: the critique is right that body_width
+      does not change the off-track limit in the allowed range, which is set by the
+      0.06 m floor. I keep 0.12 m only because it is a neutral, valid value, not for
+      margin. (4) Lead: sensors sit 0.05 m ahead of the axle, which is about 30 ms
+      of lead at 1.7 m/s. I raise kd from 0.05 to 0.10 so the controller reacts faster
+      to changes in the signal on bends. (5) Motor mismatch: the critique is right
+      that a fixed left/right mismatch gives a steady offset with ki = 0. I add a
+      small ki = 0.02. With the integral capped at +/-2, its maximum contribution
+      is about 0.02 x 2 x 350 = 14 PWM, so it removes bias slowly without risking
+      windup.
+
+
+      Rejected or kept: I keep kp = 2.0 and the symmetric sensor layout and weights.
+      Nothing in the critique or the inputs shows that kp is wrong, and changing it
+      without telemetry would be guesswork. I keep last_direction for line loss, since
+      it suits curved courses.
+
+
+      Predictions (guesses, not expectations): I expect the robot to complete the
+      development tracks in roughly 2.5 to 3.0 s, with progress near 1, a few line-loss
+      events on the slalom, and rms_error around 0.02 to 0.05 m. If the run times
+      out or leaves the line, the next revision should lower base_speed toward 1.5
+      before changing kp. If steering_oscillation is high, raise kd further before
+      reducing kp.
+
+
+      - [Open this output](iteration-0/entity1/versions/714d6972a1df4288af9a40d212464eab/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/61188e2ea48b49b9922b56f2457b6396/payload.json),
+      [entityC1](iteration-0/entityC1/versions/e3b7a764889647d4a5570cc813fdd612/payload.json)'
+  - id: entityC2
+    label: Round-2 Critique
+    notes: 'Round-2 Critique. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-0/entityC2/versions/7a8235727a2d4a4bbbe104f1a3502a91/payload.json)
+
+      - Based on: [entity1](iteration-0/entity1/versions/714d6972a1df4288af9a40d212464eab/payload.json)'
+  - id: entity2
+    label: 'Final: fast, kd 0.10'
+    notes: 'Final design keeps the revision unchanged: base_speed 1.7, kp 2.0, ki
+      0.02, kd 0.10, last_direction line loss. The critique''s concerns about unproven
+      speed and a weak ki/kd effect are accepted as risks and tested next iteration,
+      not fixed by guesswork. The 1.7 speed is unverified and is the main timeout
+      risk.
+
+
+      ### Rationale
+
+
+      Final design: the revised design (entity1) with no changes to its values. I
+      considered the round-2 critique and kept the revision as written.
+
+
+      Accepted from the critique: (a) the rationale''s claim that the 0.12 m body
+      width is neutral, not a margin gain, is correct and I have not claimed otherwise;
+      (b) the ki = 0.02 term is kept, but I accept the critique''s point that it cannot
+      correct the 2 percent motor mismatch. Its maximum contribution is about 14 PWM,
+      while the mismatch is worth tens of PWM, so kp carries the steering and ki is
+      a minor trim. The term is kept because it is harmless within the +/-2 integral
+      cap.
+
+
+      Rejected or unchanged: (c) I keep base_speed = 1.7. The critique gives no evidence
+      that a lower speed would finish faster, and a 3 s timeout is costly, so the
+      risk of running at 1.7 m/s must be weighed against the risk of being too slow.
+      The next revision will test this directly. If the run times out or line_loss_events
+      rises, I will lower base_speed toward 1.5 before changing anything else. (d)
+      I keep kd = 0.10. The critique is right that its effect is modest (about 35
+      PWM on a fast bend), and it will amplify sensor noise, so I will watch steering_oscillation
+      before raising it further. (e) I keep last_direction for line loss, since the
+      courses are curved and it recovers in the direction of the last valid signal.
+      I did not add an integral reset on line loss, because the contract offers no
+      such option; the integral cap limits the damage.
+
+
+      Predictions (guesses, not expectations): completion in roughly 2.5 to 3.0 s
+      with progress near 1 and a few line-loss events on the slalom. Timeout is an
+      equally plausible outcome. rms_error around 0.02 to 0.05 m.
+
+
+      - [Open this output](iteration-0/entity2/versions/0f799e6cc42c4dc5bce9c15a3eb28674/payload.json)
+
+      - Based on: [entity1](iteration-0/entity1/versions/714d6972a1df4288af9a40d212464eab/payload.json),
+      [entityC2](iteration-0/entityC2/versions/7a8235727a2d4a4bbbe104f1a3502a91/payload.json)'
+  - id: entityR2A
+    label: Score 26.04
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 26.04.
+      Per trial — oval-1: 47.3 (off_track); oval-2: 47.3 (off_track); oval-3: 47.3
+      (off_track); oval-4: 47.3 (off_track); oval-5: 47.3 (off_track); oval-6: 47.3
+      (off_track); oval-7: 47.3 (off_track); oval-8: 47.3 (off_track); oval-9: 47.3
+      (off_track); oval-10: 47.3 (off_track); oval-11: 47.3 (off_track); oval-12:
+      47.3 (off_track); oval-13: 47.3 (off_track); oval-14: 47.3 (off_track); oval-15:
+      47.3 (off_track); oval-16: 47.3 (off_track); oval-17: 47.3 (off_track); oval-18:
+      47.3 (off_track); oval-19: 47.3 (off_track); oval-20: 47.3 (off_track); s-bend-1:
+      16.5 (off_track); s-bend-2: 16.5 (off_track); s-bend-3: 16.5 (off_track); s-bend-4:
+      16.5 (off_track); s-bend-5: 16.5 (off_track); s-bend-6: 16.5 (off_track); s-bend-7:
+      16.5 (off_track); s-bend-8: 16.5 (off_track); s-bend-9: 16.5 (off_track); s-bend-10:
+      16.5 (off_track); s-bend-11: 16.5 (off_track); s-bend-12: 16.5 (off_track);
+      s-bend-13: 16.5 (off_track); s-bend-14: 16.5 (off_track); s-bend-15: 16.5 (off_track);
+      s-bend-16: 16.5 (off_track); s-bend-17: 16.5 (off_track); s-bend-18: 16.5 (off_track);
+      s-bend-19: 16.5 (off_track); s-bend-20: 16.5 (off_track); slalom-1: 14.4 (off_track);
+      slalom-2: 14.4 (off_track); slalom-3: 14.4 (off_track); slalom-4: 14.4 (off_track);
+      slalom-5: 14.4 (off_track); slalom-6: 14.4 (off_track); slalom-7: 14.4 (off_track);
+      slalom-8: 14.4 (off_track); slalom-9: 14.4 (off_track); slalom-10: 14.4 (off_track);
+      slalom-11: 14.4 (off_track); slalom-12: 14.4 (off_track); slalom-13: 14.4 (off_track);
+      slalom-14: 14.4 (off_track); slalom-15: 14.4 (off_track); slalom-16: 14.4 (off_track);
+      slalom-17: 14.4 (off_track); slalom-18: 14.4 (off_track); slalom-19: 14.4 (off_track);
+      slalom-20: 14.4 (off_track).
+
+
+      - [Open this output](iteration-0/entityR2A/versions/74382ee25ea041239e1d34eda8e9b9d0/payload.json)
+
+      - Based on: [entity2](iteration-0/entity2/versions/0f799e6cc42c4dc5bce9c15a3eb28674/payload.json)'
+  - id: entityOut
+    label: Score 26.04
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 26.04.
+      Per trial — oval-1: 47.3 (off_track); oval-2: 47.3 (off_track); oval-3: 47.3
+      (off_track); oval-4: 47.3 (off_track); oval-5: 47.3 (off_track); oval-6: 47.3
+      (off_track); oval-7: 47.3 (off_track); oval-8: 47.3 (off_track); oval-9: 47.3
+      (off_track); oval-10: 47.3 (off_track); oval-11: 47.3 (off_track); oval-12:
+      47.3 (off_track); oval-13: 47.3 (off_track); oval-14: 47.3 (off_track); oval-15:
+      47.3 (off_track); oval-16: 47.3 (off_track); oval-17: 47.3 (off_track); oval-18:
+      47.3 (off_track); oval-19: 47.3 (off_track); oval-20: 47.3 (off_track); s-bend-1:
+      16.5 (off_track); s-bend-2: 16.5 (off_track); s-bend-3: 16.5 (off_track); s-bend-4:
+      16.5 (off_track); s-bend-5: 16.5 (off_track); s-bend-6: 16.5 (off_track); s-bend-7:
+      16.5 (off_track); s-bend-8: 16.5 (off_track); s-bend-9: 16.5 (off_track); s-bend-10:
+      16.5 (off_track); s-bend-11: 16.5 (off_track); s-bend-12: 16.5 (off_track);
+      s-bend-13: 16.5 (off_track); s-bend-14: 16.5 (off_track); s-bend-15: 16.5 (off_track);
+      s-bend-16: 16.5 (off_track); s-bend-17: 16.5 (off_track); s-bend-18: 16.5 (off_track);
+      s-bend-19: 16.5 (off_track); s-bend-20: 16.5 (off_track); slalom-1: 14.4 (off_track);
+      slalom-2: 14.4 (off_track); slalom-3: 14.4 (off_track); slalom-4: 14.4 (off_track);
+      slalom-5: 14.4 (off_track); slalom-6: 14.4 (off_track); slalom-7: 14.4 (off_track);
+      slalom-8: 14.4 (off_track); slalom-9: 14.4 (off_track); slalom-10: 14.4 (off_track);
+      slalom-11: 14.4 (off_track); slalom-12: 14.4 (off_track); slalom-13: 14.4 (off_track);
+      slalom-14: 14.4 (off_track); slalom-15: 14.4 (off_track); slalom-16: 14.4 (off_track);
+      slalom-17: 14.4 (off_track); slalom-18: 14.4 (off_track); slalom-19: 14.4 (off_track);
+      slalom-20: 14.4 (off_track).
+
+
+      - [Open this output](iteration-0/entityOut/versions/74382ee25ea041239e1d34eda8e9b9d0/payload.json)
+
+      - Based on: [entity2](iteration-0/entity2/versions/0f799e6cc42c4dc5bce9c15a3eb28674/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+  - id: action4
+  - id: action5
+measurements: {}

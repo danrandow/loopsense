@@ -1,0 +1,252 @@
+map:
+  id: race-209-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 5
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 4.
+dimensions:
+  time_horizon: prepared
+  iteration: '5'
+overrides:
+  entities:
+  - id: entity0
+    label: Tighter sensor spacing
+    notes: 'Sensors are spaced 0.008 m apart so the centred robot always has tape
+      under the inner sensors, which removes the zero-signal gaps that likely cause
+      the line losses in iteration 4 (97.2). ki is raised to 0.1 to counter motor
+      mismatch; the other gains are kept from iteration 4.
+
+
+      ### Rationale
+
+
+      Evidence: all 60 development trials across iterations 1 to 4 ended off_track
+      except one oval finish in iteration 4. Max_error sits at about 0.06 to 0.067,
+      the off-track limit, and every run loses the line 1 to 2 times. Iteration 4
+      was the best (97.2) after shrinking the sensor footprint to 0.008 m and spreading
+      the sensors to +/-0.03 m. The spread itself is likely the problem: with 0.015
+      m spacing and a 25 mm (0.0125 m half-width) tape, the sensors at +/-0.015 m
+      see no tape when the robot is centred. Only the centre sensor reads, so the
+      signal goes to zero or jumps sharply at the edges, which explains the line losses
+      and the drift to the limit. Changes, one group at a time: (1) Tighten the sensor
+      spacing to 0.008 m (x = -0.016, -0.008, 0, 0.008, 0.016). With the 0.008 m footprint,
+      the two inner sensors sit fully on the tape when centred, so there is always
+      a graded reading across the line. (2) Keep the weights at (-2, -1, 0, 1, 2),
+      kp 1.5, kd 0.6 and base_speed 1.4, since iteration 4 showed these gains are
+      workable and the sensor change is the largest suspected fault. (3) Raise ki
+      from 0.05 to 0.1 so the integral can counter the fixed left/right motor mismatch,
+      which otherwise produces a steady drift toward the edge. Integral is clamped
+      at +/-2, so this stays small. Wheel geometry, mass and body are unchanged. Expected
+      result: fewer line-loss events (target 0 to 1), max_error below 0.06, lower
+      steering_oscillation, and progress above 0.3, with a better chance of completing
+      the oval and s-bend. The slalom is still the hardest track.
+
+
+      - [Open this output](iteration-5/entity0/versions/c07e002650f74cc2afc324f42c719c6d/payload.json)
+
+      - Based on: [entityR2A](iteration-5/entityR2A/versions/carried-be903fdf077e611f/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Round-1 Critique. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-5/entityC1/versions/798179475bf042439b5c0bfee34d8558/payload.json)
+
+      - Based on: [entity0](iteration-5/entity0/versions/c07e002650f74cc2afc324f42c719c6d/payload.json),
+      [entityR2A](iteration-5/entityR2A/versions/carried-be903fdf077e611f/payload.json)'
+  - id: entity1
+    label: ki 0.5, iteration-4 base
+    notes: 'Reverts to the iteration 4 geometry and controller (score 97.2) and changes
+      only ki from 0.3 to 0.5, to test whether a stronger integral removes the steady
+      motor-mismatch drift. The 0.008 m sensor change is dropped because it confounds
+      the test and narrows the outer sensor range.
+
+
+      ### Rationale
+
+
+      Evidence: the only raced change that clearly helped is iteration 4. It changed
+      ki from 0.05 to 0.3 and nothing else from iteration 2, and the score rose from
+      64.09 to 97.17. It is the best result so far, with one oval finish and max_error
+      on the oval at 0.0616. The other attempts changed several things at once and
+      scored lower: iteration 3 moved the sensors and cut speed, and the 0.008 m footprint
+      design in the draft changed sensors, kp, kd and speed together.
+
+
+      Critique points accepted: (a) The draft''s sensor change (0.012 to 0.008 m footprint
+      at 0.015 m spacing) was confounded with kd, kp and base_speed, so its result
+      could not be attributed. I revert to the iteration 4 geometry exactly. (b) The
+      critique is right that the 0.008 m footprint narrows the outer range: the outer
+      edge at +/-0.016 m stops seeing tape at about 0.0325 m offset, against about
+      0.0465 m for the +/-0.02 m array at 0.012 m footprint. I therefore do not adopt
+      it. (c) The draft''s kd rise to 0.6 is unsupported and the critique is right
+      to reject it. kd stays at 0.25. (d) base_speed 1.3 (iteration 3) lowered progress
+      and score, so speed stays at 1.5 rather than falling. (e) Keeping base_speed
+      at 1.5 means the 3 s finish is still unverified. I do not change it now, because
+      that would confound this test.
+
+
+      Critique points partly accepted: the critique says ki 0.05 to 0.1 is meaningless
+      and ki 0.3 is untested. The iteration 4 result shows ki 0.3 is a real lever,
+      so I keep that evidence. The critique''s point about the signal scale is correct:
+      at the +/-2 integral cap, ki 0.3 contributes up to 0.6 turn units (about 210
+      PWM), and ki 0.5 contributes up to 1.0 (about 350 PWM). Since iteration 4 showed
+      a steady-offset correction matters, I test one step further.
+
+
+      Change from iteration 4: ki 0.3 to 0.5, and nothing else. The next race therefore
+      isolates whether a stronger integral removes more of the steady motor-mismatch
+      drift.
+
+
+      Expected result: max_error on the oval at or below 0.06, line_loss_events at
+      0 to 1, progress above 0.32, and a finish on at least one track. Success threshold:
+      max_error and line losses both fall relative to iteration 4 (max_error 0.0616
+      on the oval, 2 line losses on the s-bend and slalom). If steering_oscillation
+      rises above 0.16 with no gain in max_error, the integral is overcorrecting,
+      and the next step is to return to ki 0.3 rather than move the sensors.
+
+
+      - [Open this output](iteration-5/entity1/versions/10c1f8a1e20646e2ab9540f70fcc308d/payload.json)
+
+      - Based on: [entity0](iteration-5/entity0/versions/c07e002650f74cc2afc324f42c719c6d/payload.json),
+      [entityC1](iteration-5/entityC1/versions/798179475bf042439b5c0bfee34d8558/payload.json),
+      [entityR2A](iteration-5/entityR2A/versions/carried-be903fdf077e611f/payload.json)'
+  - id: entityC2
+    label: Round-2 Critique
+    notes: 'Critiques the ki 0.5 revision. It finds the iteration 4 gain rests on
+      one oval finish out of 60 trials and that line losses did not fall, and it asks
+      for per-track oscillation thresholds and a windup check during line loss. Evidence:
+      iteration 4 telemetry and the contract''s integral and line-loss rules.
+
+
+      - [Open this output](iteration-5/entityC2/versions/3b9ce857fdd6462bb43879a280f9f54e/payload.json)
+
+      - Based on: [entity1](iteration-5/entity1/versions/10c1f8a1e20646e2ab9540f70fcc308d/payload.json),
+      [entityR2A](iteration-5/entityR2A/versions/carried-be903fdf077e611f/payload.json)'
+  - id: entity2
+    label: ki 0.5 isolated test
+    notes: 'Keeps the iteration 4 geometry, kp, kd and base_speed and raises only
+      ki from 0.3 to 0.5, to test whether a stronger integral lowers max_error further.
+      Evidence is the iteration 4 result (97.17), which rests mainly on one oval finish,
+      so thresholds are set against the iteration 4 baseline per track.
+
+
+      ### Rationale
+
+
+      Evidence: iteration 4 (ki 0.3, kp 2.0, kd 0.25, base_speed 1.5, iteration 2
+      geometry) is the best result at 97.17. Its gain rests mainly on one oval finish
+      out of 20 trials, with small max_error shifts on the s-bend (0.0613) and slalom
+      (0.0605). Oval steering_oscillation rose from 0.1101 to 0.1253, and line losses
+      stayed at 2 on the s-bend and slalom. The integral lever is therefore real but
+      weakly shown.
+
+
+      Critique points accepted: (1) The rationale now states that the score gain comes
+      from one oval finish and small max_error shifts, not a reliable trend. (2) The
+      success threshold is set relative to the iteration 4 baseline (oval max_error
+      0.0616, line losses 2 on the s-bend and slalom), not to a fixed 0.06 that sits
+      inside run-to-run spread. (3) The oscillation rule is now per track: the oval
+      baseline is 0.1253 and the 0.16 figure is not used, since slalom and s-bend
+      baselines already sit there. (4) Windup is acknowledged. The contract gives
+      no freeze switch, so I rely on the +/-2 integral bound and check line-loss behaviour
+      after the run. (5) Scale check holds: ki 0.5 at the cap adds up to 1.0 turn
+      unit (about 350 PWM), and the inner wheel stays at 3071 - 1400 - 350 = 1321,
+      so it does not saturate.
+
+
+      Critique points rejected or deferred: the critique argues for returning to ki
+      0.3 now. I keep ki 0.5 for this race, because the ki 0.3 result already exists
+      and a single test one step further is what separates a real integral effect
+      from noise. The offset hypothesis is still unverified because no signed error
+      is reported; I label it a hypothesis. kd, kp, geometry and base_speed are unchanged
+      so the result is attributable to ki alone. The 3 s finish remains unverified;
+      I do not change speed in this test.
+
+
+      Change from iteration 4: ki 0.3 to 0.5, nothing else.
+
+
+      Expected result (hypothesis): oval max_error at or below 0.061 and line losses
+      at 0 to 1 on the s-bend and slalom, with progress above 0.32 on the oval. Decision
+      rule: if oval steering_oscillation exceeds 0.14 (about 12% above the 0.1253
+      baseline) with no max_error gain, the integral is overcorrecting and the next
+      iteration returns to ki 0.3. If line losses rise above 2 on either s-bend or
+      slalom, ki is too high and is reduced to about 0.4. A finish counts as real
+      progress only if at least 2 of 20 oval trials finish, since one finish in 20
+      is within noise.
+
+
+      - [Open this output](iteration-5/entity2/versions/d41495a9c483489b99b848f068a5715b/payload.json)
+
+      - Based on: [entity1](iteration-5/entity1/versions/10c1f8a1e20646e2ab9540f70fcc308d/payload.json),
+      [entityC2](iteration-5/entityC2/versions/3b9ce857fdd6462bb43879a280f9f54e/payload.json),
+      [entityR2A](iteration-5/entityR2A/versions/carried-be903fdf077e611f/payload.json)'
+  - id: entityR2A
+    label: Score 97.17
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 97.17.
+      Per trial — oval-1: 341.1 (off_track); oval-2: 81.0 (off_track); oval-3: 81.0
+      (off_track); oval-4: 89.1 (off_track); oval-5: 201.6 (off_track); oval-6: 81.0
+      (off_track); oval-7: 81.0 (off_track); oval-8: 89.1 (off_track); oval-9: 89.1
+      (off_track); oval-10: 341.0 (off_track); oval-11: 89.1 (off_track); oval-12:
+      81.0 (off_track); oval-13: 89.1 (off_track); oval-14: 89.1 (off_track); oval-15:
+      81.0 (off_track); oval-16: 81.0 (off_track); oval-17: 89.1 (off_track); oval-18:
+      81.0 (off_track); oval-19: 89.1 (off_track); oval-20: 939.7 (finished); s-bend-1:
+      80.0 (off_track); s-bend-2: 80.0 (off_track); s-bend-3: 80.0 (off_track); s-bend-4:
+      80.0 (off_track); s-bend-5: 80.0 (off_track); s-bend-6: 80.0 (off_track); s-bend-7:
+      80.0 (off_track); s-bend-8: 80.0 (off_track); s-bend-9: 80.0 (off_track); s-bend-10:
+      80.0 (off_track); s-bend-11: 80.0 (off_track); s-bend-12: 80.0 (off_track);
+      s-bend-13: 80.0 (off_track); s-bend-14: 80.0 (off_track); s-bend-15: 80.0 (off_track);
+      s-bend-16: 80.0 (off_track); s-bend-17: 80.0 (off_track); s-bend-18: 80.0 (off_track);
+      s-bend-19: 80.0 (off_track); s-bend-20: 80.0 (off_track); slalom-1: 52.3 (off_track);
+      slalom-2: 52.3 (off_track); slalom-3: 52.3 (off_track); slalom-4: 52.3 (off_track);
+      slalom-5: 52.3 (off_track); slalom-6: 52.3 (off_track); slalom-7: 52.3 (off_track);
+      slalom-8: 52.3 (off_track); slalom-9: 52.3 (off_track); slalom-10: 52.3 (off_track);
+      slalom-11: 52.3 (off_track); slalom-12: 52.3 (off_track); slalom-13: 52.3 (off_track);
+      slalom-14: 52.3 (off_track); slalom-15: 52.3 (off_track); slalom-16: 52.3 (off_track);
+      slalom-17: 52.3 (off_track); slalom-18: 52.3 (off_track); slalom-19: 52.3 (off_track);
+      slalom-20: 52.3 (off_track).
+
+
+      - [Open this output](iteration-4/entityR2A/versions/31fe7fa4fb594006b5d66640164f1760/payload.json)
+
+      - Based on: [entity2](iteration-4/entity2/versions/bcdd0ac364164cd8a72036ac77463331/payload.json)'
+  - id: entityOut
+    label: Score 97.17
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 97.17.
+      Per trial — oval-1: 341.1 (off_track); oval-2: 81.0 (off_track); oval-3: 81.0
+      (off_track); oval-4: 89.1 (off_track); oval-5: 201.6 (off_track); oval-6: 81.0
+      (off_track); oval-7: 81.0 (off_track); oval-8: 89.1 (off_track); oval-9: 89.1
+      (off_track); oval-10: 341.0 (off_track); oval-11: 89.1 (off_track); oval-12:
+      81.0 (off_track); oval-13: 89.1 (off_track); oval-14: 89.1 (off_track); oval-15:
+      81.0 (off_track); oval-16: 81.0 (off_track); oval-17: 89.1 (off_track); oval-18:
+      81.0 (off_track); oval-19: 89.1 (off_track); oval-20: 939.7 (finished); s-bend-1:
+      80.0 (off_track); s-bend-2: 80.0 (off_track); s-bend-3: 80.0 (off_track); s-bend-4:
+      80.0 (off_track); s-bend-5: 80.0 (off_track); s-bend-6: 80.0 (off_track); s-bend-7:
+      80.0 (off_track); s-bend-8: 80.0 (off_track); s-bend-9: 80.0 (off_track); s-bend-10:
+      80.0 (off_track); s-bend-11: 80.0 (off_track); s-bend-12: 80.0 (off_track);
+      s-bend-13: 80.0 (off_track); s-bend-14: 80.0 (off_track); s-bend-15: 80.0 (off_track);
+      s-bend-16: 80.0 (off_track); s-bend-17: 80.0 (off_track); s-bend-18: 80.0 (off_track);
+      s-bend-19: 80.0 (off_track); s-bend-20: 80.0 (off_track); slalom-1: 52.3 (off_track);
+      slalom-2: 52.3 (off_track); slalom-3: 52.3 (off_track); slalom-4: 52.3 (off_track);
+      slalom-5: 52.3 (off_track); slalom-6: 52.3 (off_track); slalom-7: 52.3 (off_track);
+      slalom-8: 52.3 (off_track); slalom-9: 52.3 (off_track); slalom-10: 52.3 (off_track);
+      slalom-11: 52.3 (off_track); slalom-12: 52.3 (off_track); slalom-13: 52.3 (off_track);
+      slalom-14: 52.3 (off_track); slalom-15: 52.3 (off_track); slalom-16: 52.3 (off_track);
+      slalom-17: 52.3 (off_track); slalom-18: 52.3 (off_track); slalom-19: 52.3 (off_track);
+      slalom-20: 52.3 (off_track).
+
+
+      - [Open this output](iteration-4/entityOut/versions/31fe7fa4fb594006b5d66640164f1760/payload.json)
+
+      - Based on: [entity2](iteration-4/entity2/versions/bcdd0ac364164cd8a72036ac77463331/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+  - id: action4
+  - id: action5
+measurements: {}

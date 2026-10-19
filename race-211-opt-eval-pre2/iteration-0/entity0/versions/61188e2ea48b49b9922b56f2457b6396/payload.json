@@ -1,0 +1,58 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.05,
+    "ki": 0.0,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation"
+    ]
+  },
+  "rationale": "This is the first draft for iteration 0, so there is no race telemetry to learn from. I am choosing a conservative, symmetric baseline built from the contract's physics and sensing rules.\n\nGeometry: five sensors spread across x = -0.04 to +0.04 m at y = 0.05 m (ahead of the axle, so the controller sees the line slightly before the wheels reach it). Sensor size is 0.012 m, which is smaller than the 25 mm tape, so one or two sensors cover the tape when the robot is near centre. The spacing is 0.02 m. Wheel track 0.12 m, wheel radius 0.03 m, body width 0.12 m (a wider body allows more off-track margin, since the limit is max(0.06, 0.0125 + 0.03) = 0.06 m), body length 0.16 m, mass 0.8 kg.\n\nController: sensor weights are proportional to x, [-1, -0.5, 0, 0.5, 1], so the signal sign points the correct way. If the tape appears on the left sensors (the robot is right of the line), the signal is positive and the robot turns left. kp = 2.0 gives up to about 700 PWM of wheel differential at full signal. kd = 0.05 damps oscillation without adding much noise sensitivity. ki = 0 avoids integral windup on curves. base_speed = 1.4 gives base PWM of about 2870. The contract says the average speed needs to be about 1.5 m/s or more to finish within 3 s, so this speed is slightly below that target but leaves margin for the first race to show whether the robot stays on the line. line_loss = last_direction, so the robot keeps turning toward the side it last saw the tape on, which suits a curve-following course.\n\nExpected result: the robot should complete the oval and s-bend with few line losses. The slalom and any tight bends are the main risk: the robot may oscillate or lose the line. I expect progress near full on the development tracks, with moderate rms_error (about 0.02 to 0.04 m). Once telemetry arrives, the next revision should raise base_speed if error is low, or lower kp/raise kd if steering_oscillation is high."
+}

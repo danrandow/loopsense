@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.8,
+    "ki": 0.05,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.05
+      },
+      {
+        "x": -0.012,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.012,
+        "y": 0.05
+      },
+      {
+        "x": 0.024,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 0 (kp 4, kd 0.5, ki 0.1, base 1.8) ended off-track in all 60 trials, with progress 0.13 to 0.20 and steering oscillation 0.11 to 0.16. No design has finished a race, so completion (500 points) is still unproven. The round-1 critique is right on the main points, and I accept most of them.\n\nAccepted: (1) Completion is the dominant score term, so cutting speed to 1.3 was too costly. The critique estimates that base 1.3 (PWM about 2660) probably cannot finish in 3 s. I raise base_speed to 1.5 (PWM about 3070), a compromise that keeps some speed while leaving room to correct on bends. (2) kd 1.2 risks amplifying the roughly 2% sensor noise through the derivative term. I lower kd to 0.8, still well above iteration 0's 0.5, so damping increases without a large noise gain. (3) ki 0 leaves the fixed 2% left/right motor mismatch uncorrected, which becomes a lateral offset that adds to rms_error. I set ki 0.05, small enough to avoid windup on bends. The integral is also clamped at \u00b12.\n\nKept: kp 2.0. Halving kp from iteration 0 is the one change with clear support in the evidence, since the oscillation grows at the gain used. I do not change speed and gain together beyond what is needed. Geometry is unchanged from the iteration 0 layout (five 12 mm sensors at 12 mm pitch, y 0.05), because the sensor lead and coverage were never varied and the body-width allowance is fixed at 0.06 m. The line_loss setting last_direction and the weights -2..2 are kept.\n\nRejected: I do not raise kp above 2.0 without evidence, because the critique's own argument for stability at 1.5 base is unverified.\n\nExpected result (unverified, no telemetry for this design): fewer off-track ends than iteration 0, progress above 0.3, and a possible oval finish. Completion inside 3 s is uncertain at base 1.5 and may need about 1.5 m/s average. The main risk is that kp 2.0 is too weak on the sharpest slalom bends.\n\nDecision rule for the next round: if slalom progress stays below 0.5 with low oscillation, raise kp in steps of 0.5. If oscillation is above 0.1 with max_error near 0.06, lower base_speed or lower kp. If the oval finishes with completion_time above 3 s, raise base_speed by 0.2 at a time."
+}

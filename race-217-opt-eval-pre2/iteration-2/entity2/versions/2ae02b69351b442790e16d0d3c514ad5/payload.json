@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.05,
+    "ki": 0.2,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials ended off track with 2.0 line-loss events, progress of 0.06 to 0.17, and max_error near 0.06 across three sensor layouts, kp 2.5 to 5, and base_speed 1.4 to 1.7. The failure is early and insensitive to the controller, so the cause is not yet isolated.\n\nWhat I kept from the critique: the sensor y-position stays at 0.06 (the raced value). The round-2 revision moved it to 0.04 without justification, and shorter lookahead works against early-drift recovery. The sensor size stays at 0.016 so that 20 mm spacing leaves no uncovered gap for a 25 mm tape edge. Base_speed stays at 1.6, since the critique's concern about completion is valid but the data do not show that speed drives the failure. ki is kept non-zero because the critique's motor-mismatch argument holds: a 2 percent left/right mismatch is about 65 PWM, or roughly 0.19 turn units, and that offset grows relative to the signal as kp falls.\n\nWhat I changed from the revision: (1) kp from 2.5 back to 4.0. The critique is right that steering authority at 2.5 is unsupported and may cause understeer on bends. kp 4 is a compromise between the critique's reduced-kp view and the raced value of 5, and it avoids the 2.5 weakness. (2) kd from 0.1 to 0.05. This halves the derivative sensitivity: a 0.02 signal step gives about 1 turn unit, which is still moderate, not dominant over the proportional term at kp 4. (3) ki from 0.0 to 0.2. The integral is clamped to \u00b12, so the maximum contribution is 0.4 turn units, enough to cancel the estimated mismatch offset of about 0.19 units. (4) Sensor x-span stays at \u00b10.04 with weights [-1, -0.5, 0, 0.5, 1]. Widening does not change the signal range, which stays within \u00b11, but it tests whether outer sensors see the tape earlier. Mass 0.8 and wheel_track 0.12 are unchanged.\n\nWhat I rejected: I did not accept the critique's point that kp should stay at 2.5. I also did not restore the raced sensor span, because the widening is still the cleanest structural test of early drift.\n\nAttribution: this design still changes several variables relative to the raced baseline (x-span, kp, kd, ki). If it fails, revert in this order: x-span first (back to \u00b10.03), then ki (back to 0.1), then kd (back to 0.02). kp stays at 4 unless steering_oscillation rises well above the 0.16 to 0.18 baseline.\n\nExpected outcome: line_loss_events at or below 1, max_error below 0.06 on the oval and s-bend, and progress above 0.5. Completion is not expected yet. If completion_time exceeds 3 s with no line losses, base_speed should rise in the next iteration. If line losses stay at 2 with max_error at 0.06, the failure is not sensing or gains, and the next step is to locate where the robot first leaves the line in the telemetry."
+}

@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 1.8,
+    "ki": 0.0,
+    "kp": 3.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      1.0,
+      0.5,
+      0.0,
+      -0.5,
+      -1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.04,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": -0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: across 420 development trials (iterations 0 to 6) none finished. Every run ended off track at progress 0.04 to 0.16, with max_error pinned at the 0.06 m off-track limit. The limit is max(0.06, 0.0125 + body_width/4), which equals 0.06 m for any allowed body width, so body width cannot buy margin. Score is almost entirely progress-driven (about 250 times progress), so the goal is to travel further before leaving the tape.\n\nWhat the comparisons show: iteration 6 (base 1.2, kd 1.2, kp 3.5, ki 0, iteration-0 geometry) is the best at 56.87, and it is the only change in the last few iterations that helped. Lower base speed and higher kd both moved progress up on oval (0.1575 vs 0.1175) while s-bend stayed near 0.15. Widening sensors (iteration 5) and raising kp to 4.5 (iteration 2) did not help, and kp 2.5 with sensors moved back (iteration 3) hurt. The strongest remaining signal is that more damping plus lower speed reduces the excursion, so the robot is overshooting rather than lacking authority.\n\nChanges from iteration 6, one controller step only so the next race attributes any gain: kd 1.2 to 1.8 for more damping of the yaw response, kp kept at 3.5, base_speed kept at 1.2, ki kept at 0, and geometry identical to iterations 0 and 6. I considered cutting base_speed further, but completion is already out of reach at 1.2, so I keep the speed fixed to isolate the damping effect.\n\nExpected result: oval and s-bend progress above the iteration 6 values, with rms_error and steering_oscillation down and max_error still at the 0.06 limit. A score of about 58 to 62 is plausible. Completion remains unlikely. If kd gains progress, the next step is a further damping increase or a gradual speed rise. If it does not, the failure is not overshoot and I should test line_loss 'search_right' or a seven-sensor row."
+}

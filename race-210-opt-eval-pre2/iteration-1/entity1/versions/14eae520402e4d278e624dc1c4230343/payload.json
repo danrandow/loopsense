@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.3,
+    "ki": 0.1,
+    "kp": 6.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.05
+      },
+      {
+        "x": -0.012,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.012,
+        "y": 0.05
+      },
+      {
+        "x": 0.024,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: the only race data (60 trials, 0 finishes) comes from the iteration-0 design: sensors 0.016 m square at 0.012 m spacing (overlapping footprints), kp 6, kd 0.5, ki 0.3, base_speed 1.5, last_direction line loss. Every run ended off track. Oval progressed 0.23, s-bend 0.16, slalom 0.10. max_error was about 0.064 m against the 0.06 m limit, while rms_error stayed at 0.025 to 0.030. So the robot is tracking acceptably on average and failing on peak excursions at bends and transitions. Line losses averaged 1.0 to 2.0 per run, and steering_oscillation was 0.14 to 0.19.\n\nAccepted from the round-1 critique: (a) the sensor geometry is kept, because the 0.016 m footprint at 0.012 m spacing does overlap and avoids gaps that could drop the tape between sensors; (b) kd 0.5 is too high. The signal is quantised and noisy, so a derivative term can amplify jitter and push wheel commands into saturation, so I cut kd to 0.3; (c) ki 0.3 gives up to about 0.6 turn (about 210 PWM), which is more than the critique's neutral range, so I reduce it to 0.1 (about 70 PWM max), enough for a small motor mismatch without windup.\n\nPartly accepted: (d) base_speed 1.5 may be too fast for the sharp slalom and s-bend peaks, where the excursion is largest. I lower it to 1.4 to buy margin on off-track failures. I accept the critique's point that this lowers average speed and may hurt completion, so this is a deliberate trade, and the next race must check completion_time.\n\nRejected: the critique's suggestion to lower kp from 6 to 4. The peak errors are at bends, where under-correction is a plausible cause, and the data cannot show overshoot. I keep kp at 6 so the turn authority stays at 2100 PWM counts per unit of signal at the peaks. The steering_oscillation risk is accepted and will be checked.\n\nNot addressed directly: line losses are the largest per-run penalty (each about 15 points at full progress). I keep last_direction because the baseline logic is sound for a single-line track, and I add a request for line_loss_events and controller_errors so the next race can show whether losses cluster at specific bends.\n\nExpected result: fewer peak excursions and line losses than iteration 0, with rms_error under 0.03 m and max_error under 0.055 m. If the oval and s-bend still end off track with max_error above 0.06 m, the next change should be kp up by 1 (to 7) and kd kept at 0.3. If completion_time exceeds 3 s on runs that stay on track, raise base_speed by 0.1. If line_loss_events stay above 2 per run, test search_right."
+}

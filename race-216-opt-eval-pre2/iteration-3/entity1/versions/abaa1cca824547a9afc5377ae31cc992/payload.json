@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.3,
+    "ki": 0.2,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iterations 0 and 2 gave 0 of 60 finishes. Every trial ended off track with progress 0.04 to 0.12, RMS about 0.03 m, max_error about 0.061 m, and exactly one line-loss event per track. Iteration 0 (base_speed 1.6, kp 2) and iteration 2 (base_speed 1.5, kp 3.5) produced nearly identical oval, s-bend and slalom metrics despite different speeds and gains. The failure point therefore looks fixed, not a speed-dependent bend overshoot.\n\nCritique, point by point:\n1. Speed 0.9 (the draft's change): rejected. The contract ends a run at 300 steps, so finishing needs about 1.5 m/s. A slower run cannot complete, and the 500-point completion term would be lost. The draft's 'slower run finishes later' claim is wrong under the contract. base_speed returns to 1.5.\n2. Speed is not the limit: accepted. The 1.6 to 1.5 change moved nothing, so I no longer treat speed as the cause. The draft's momentum mechanism is labelled as a hypothesis, not as evidence.\n3. Fixed failure point: accepted as the leading hypothesis. Identical progress and single line-loss events suggest a launch transient or a blind spot near the start, or a poor line-loss recovery. No per-step telemetry exists to confirm this, so this iteration tests it indirectly.\n4. Single-variable test: partly accepted. Speed is held at the iteration 2 value. I change kp from 3.5 to 4.0 and kd from 0.3 to 0.3 (unchanged), and reduce ki from 0.5 (draft) to 0.2. The 0.2 is a smaller bias probe than the draft's 0.5, which the critique rightly flagged as large.\n5. kd: kept at 0.3. The draft's 0.6 has no supporting evidence, since oscillation is only about 0.07. 0.3 keeps some damping without much noise amplification.\n6. Saturation at kp 4 with weights of plus or minus 2: acknowledged. A saturated signal gives a turn near 8, about 2800 PWM. This is strong but within limits, and it is the intended authority for a 3 cm offset.\n7. Geometry and line_loss (last_direction) unchanged, so the controller change is the only variable against iteration 2 apart from kp and ki.\n\nExpected result: max_error should fall below 0.06 on at least the oval, and progress should rise above 0.12. Completion is possible at 1.5 m/s. Decision rule for the next race: if progress is still under 0.15 with one line-loss event, the failure is structural (launch or line-loss handling, or the sensor footprint), and the next race should change line_loss or the sensor forward position, not speed or gains."
+}

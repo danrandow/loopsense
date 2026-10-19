@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.3,
+    "ki": 0.05,
+    "kp": 1.6,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.08
+      },
+      {
+        "x": -0.02,
+        "y": 0.08
+      },
+      {
+        "x": -0.01,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.01,
+        "y": 0.08
+      },
+      {
+        "x": 0.02,
+        "y": 0.08
+      },
+      {
+        "x": 0.03,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.14
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: across iterations 0-3 every trial ended off track. Each trial shows one line-loss event and max_error about 0.061 m, which sits at the fixed 0.06 m off-track limit. The limit cannot be widened: max(0.06, 0.0125 + body_width/4) stays at 0.06 for any body_width up to 0.18. Iterations 0 and 2 gave identical outcomes despite large gain changes (kp 6 to 3, kd 0.05 to 0.25, ki 0.1 to 0.3, footprint and speed changes), so gains were not the limit. Iteration 3 moved the sensors forward to y=0.06, widened the array to x=\u00b10.03, and widened the track to 0.14 m. That was the only change with a clear effect: s-bend progress rose from 0.04 to 0.15 and slalom from 0.035 to 0.10. Oval was flat at 0.11. The line is still lost early, so the sensing geometry is the main lever. The most likely cause is the tape leaving a 5-sensor array with 0.015 m spacing on the first curve.\n\nChanges: (1) Sensors moved to y=0.08, the maximum allowed, so the line is seen earlier and the steering reaction starts before the wheels reach the bend. (2) Array changed from 5 to 7 sensors at 0.01 m spacing spanning x=-0.03 to +0.03. The tape stays inside the array for larger offsets, and finer spacing gives a smoother signal. Weights are antisymmetric and linear: [-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5]. (3) Sensor footprint kept at 0.016 m so the 25 mm tape is always covered. (4) kp lowered from 2.0 to 1.6 and ki from 0.1 to 0.05, since the gain sweep showed no benefit from high gain and the fewer-sensor signal is already scaled up by the wider weights. kd kept at 0.3 for damping. (5) base_speed kept at 1.2 so only sensing changes; wheel_track 0.14 and wheel_radius 0.03 kept. line_loss stays last_direction.\n\nExpected result: fewer or later line-loss events, and max_error should drop below 0.06 m on at least the s-bend and slalom. Progress should rise further, possibly to finish-range on some tracks. If line-loss still occurs at the same point, the next step is to change the line_loss rule or the start handling rather than the gains."
+}

@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 1.5,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.67,
+      -0.33,
+      0.0,
+      0.33,
+      0.67,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.08
+      },
+      {
+        "x": -0.02,
+        "y": 0.08
+      },
+      {
+        "x": -0.01,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.01,
+        "y": 0.08
+      },
+      {
+        "x": 0.02,
+        "y": 0.08
+      },
+      {
+        "x": 0.03,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.16
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: across 60 trials per design and 8 iterations, every run ended off_track with zero completions. Progress has stayed between 0.04 and 0.17. max_error sits at 0.060 to 0.067, just past the 0.06 m limit, and every run logs 1 to 2 line-loss events with steering_oscillation of 0.14 to 0.18. Body width cannot widen the limit: even at body_width 0.18 it is max(0.06, 0.0125 + 0.045) = 0.06 m, so the off-track threshold is fixed by the geometry bounds.\n\nWhat moved the score: iterations with sensors at y = 0.04 scored about 40 (or 26 with 2.5 kp and wider spacing). Moving the sensor row forward to y = 0.06 and then 0.08, with sensor_size 0.016, wheel_track 0.14 and kp 3.0, gave 57.80 and 58.17. The forward-lookahead hypothesis fits, but iteration 7 changed only the sensor y (+0.02), and that gained just 0.38. Lookahead is now close to saturated, so the remaining failure is probably oscillation and overshoot once the robot is off the line.\n\nChanges, applied to the iteration-7 design with sensors kept at y = 0.08, 7 sensors at 0.01 m spacing, sensor_size 0.016, and linear weights -1 to +1:\n(1) wheel_track 0.14 to 0.16. A wider track lowers the yaw rate per unit of wheel difference, which reduces the effective steering gain. The earlier 0.12 to 0.14 change coincided with the largest gain, so I extend the same direction.\n(2) kd 1.0 to 1.5, to damp the steering_oscillation of about 0.17, the most consistent symptom in the telemetry.\n(3) kp held at 3.0, so the steering authority stays the same while the damping and track change.\n(4) base_speed 1.5 to 1.4. Lower speed gives the loop more time to correct on the bends. This costs some completion-time score, but progress has never gone above 0.17, so the run must first travel further on the line.\n(5) ki 0.0, mass 0.6, body and wheel radius unchanged, line_loss 'last_direction' unchanged.\n\nExpected result: a modest gain over 58.17, from fewer line-loss events and a longer run on the line, with progress rising above 0.2. Completion is still unlikely. The main risk is that the wider track also weakens turning on the sharpest bend and causes under-steering, which would show as lower progress on the slalom."
+}

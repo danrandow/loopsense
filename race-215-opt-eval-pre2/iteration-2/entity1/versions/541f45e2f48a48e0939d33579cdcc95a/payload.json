@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.1,
+    "ki": 0.2,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": -0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Critique accepted in part. The main change is that kd falls from 0.25 to 0.10, because the critique's arithmetic is sound: a sensor-edge step of about 0.5 over 5 steps (50 ms) is about 10 signal per second, so kd = 0.25 would add about 2.5 turn units (about 900 PWM) on every edge crossing. kd = 0.10 keeps the damping term near 1 turn unit (about 350 PWM) in the same case, which is firm without saturating. kp stays at 3.0, the value I chose last round, since the critique gave no telemetry-based reason to change it and 3.0 keeps a full-scale edge error near 1575 PWM. ki falls from 0.3 to 0.2. The critique is right that a bounded integral is safe but unverified, and with the clamp at 2, ki = 0.2 gives at most 0.4 turn units (about 140 PWM), which is enough for a small motor-mismatch bias without much windup. base_speed is kept at 1.6 rather than restored to 1.8. The inputs do not map base_speed to ground speed, so the 1.5 m/s requirement cannot be checked, and the critique is right that a completion failure costs 500 points. I am still choosing 1.6 for stability, and I am stating this as a judgement, not a measured result. Sensor layout is kept at the 0.016 m footprint and 0.01 m spacing, with antisymmetric weights, so the controller changes are compared against a sensor layout I can justify. I accept the critique's point that the iteration 0 max_error was almost identical across all three tracks, and that line_loss_events was exactly 1.0 in every trial. A simpler reading is that this single event is the departure from the line that ends each run, not a separate fault, so I have not added any line-loss-specific change. Expected result, labelled as a guess: max_error below 0.06 m on the oval and s-bend, with progress rising. Decision rule for the next round: if max_error still sits near 0.061 with progress under 0.2, the fault is early and track-independent, so I will check the first 0.5 m of telemetry for a start-up or mismatch bias before changing gains again. If steering_oscillation rises and the error grows, I will lower kp or kd. If progress is high but completion_time is over 3 s, I will raise base_speed."
+}

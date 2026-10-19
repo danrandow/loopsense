@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.1,
+    "ki": 0.0,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials (oval, s-bend, slalom) ended off track with no completions. Progress was 0.06 to 0.17, max_error reached the 0.06 m limit, and steering_oscillation stayed at 0.16 to 0.18 across iterations 0 and 1. Iteration 1 changed sensor size, kp, kd, ki and base_speed, yet the score moved by only 0.0002. The failure therefore looks structural (sensing or early drift), not a gain-tuning problem.\n\nWhat I kept from the critique and draft: the sensor-span widening to x = -0.04 to +0.04, with weights -1, -0.5, 0, 0.5, 1 (same sign convention), as the main structural test. ki = 0, because its contribution is negligible. kp 2.5, lowered from 4.0, to reduce overshoot on the wider signal. base_speed 1.6, to keep some completion-time score. line_loss 'last_direction' is unchanged.\n\nWhat I changed after the critique: (1) kd from 1.0 back to 0.1. The critique showed that kd is multiplied by 100 per unit of signal change per step, so kd = 1.0 gives 2 turn units for a 0.02 noise step. That is far larger than the proportional term on a straight line. (2) sensor_size from 0.012 to 0.016, with 20 mm spacing. This closes the 8 mm gap between 12 mm footprints, so a tape edge cannot fall between sensors unseen. (3) I reverted mass to 0.8 kg and wheel_track to 0.12 m, so that the controller and sensor changes are easier to attribute. The critique's steering-gain point is valid: narrowing the track would have partly cancelled the kp reduction.\n\nWhat I rejected: I did not accept that the wider span is useless. The critique is right that the normalised signal still saturates at about \u00b11 on a single outer sensor, so widening only moves the saturation point. I keep the change as a test of whether the outer sensors then see the tape early enough. Wheel saturation at kp 2.5 needs |signal| near 0.9 at base_pwm 3276, which the \u00b11 weights rarely reach, so I accept it as a minor risk.\n\nFalsifiable criteria for the next race: max_error below 0.06 m on the oval and s-bend; line_loss_events at or below 1 per run; steering_oscillation below 0.15; progress above 0.9 on the oval. If max_error stays at 0.06 with no change in progress, the sensing is not the cause, and the next step is to locate where the robot leaves the line. If completion_time exceeds 3 s with no line losses, base_speed is too low."
+}

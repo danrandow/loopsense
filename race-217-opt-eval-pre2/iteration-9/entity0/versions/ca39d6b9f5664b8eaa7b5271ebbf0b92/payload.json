@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 1.0,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.67,
+      -0.33,
+      0.0,
+      0.33,
+      0.67,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.08
+      },
+      {
+        "x": -0.04,
+        "y": 0.08
+      },
+      {
+        "x": -0.02,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.02,
+        "y": 0.08
+      },
+      {
+        "x": 0.04,
+        "y": 0.08
+      },
+      {
+        "x": 0.06,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.14
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: 60 trials per design across eight iterations, and every run ended off_track with zero completions. Progress stayed between 0.04 and 0.17, and max_error sat at 0.060 to 0.067, just over the 0.06 m limit. The body_width bound cannot widen that limit (it is max(0.06, 0.0125 + body_width/4), which is 0.06 m at the largest body width).\n\nThe telemetry points to the sensor array rather than the gains. Iterations 7 and 8 gave identical scores (58.1734) and identical per-track metrics, even though kd (1.0 to 1.5), wheel_track (0.14 to 0.16) and base_speed (1.5 to 1.4) all changed. Iterations 0 and 1 also matched to four decimals despite different kp, kd and sensor size. Only the sensor row position (y 0.04 to 0.06 to 0.08) moved the score materially, and it gave a gain of about 18 points. Lookahead is now at its geometric limit (y = 0.08), so it cannot be pushed further.\n\nChange: widen the sensor span from x = \u00b10.03 m to \u00b10.06 m, using 7 sensors at 0.02 m spacing (x = -0.06, -0.04, -0.02, 0, 0.02, 0.04, 0.06) at y = 0.08 m. The aim is to keep tape under a sensor when the robot drifts beyond the current \u00b10.03 m reach, which is where the off-track excursions appear. Weights stay as a linear ramp from -1 to +1 so the signal sign and scale are unchanged. Everything else is held at iteration 7's values (kp 3.0, ki 0, kd 1.0, base_speed 1.5, wheel_track 0.14, mass 0.6, sensor_size 0.016, line_loss 'last_direction') so that the sensor-span change is the only variable.\n\nRisk: iteration 2 widened the span and scored worse, but it also changed kp and y, so the comparison is confounded. If this design scores below 58.17, the sensor span is the wrong lever and the next step is a different sensor size or a line-loss strategy change. Expected result: a modest change in progress and line-loss events. Completion is still unlikely."
+}

@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.1,
+    "ki": 0.1,
+    "kp": 2.0,
+    "line_loss": "search_left",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.08
+      },
+      {
+        "x": -0.015,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.015,
+        "y": 0.08
+      },
+      {
+        "x": 0.03,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: across iterations 0 to 4, all 60-trial designs ended off track with one line-loss event each and a censored max_error of about 0.061 m. Iterations 0 and 2 gave identical per-track metrics despite large gain changes, so gains do not reach the outcome before the first loss. Iteration 3 (score 49.94) is the best raced design. Iteration 4 (score 49.73) moved the sensors to y = 0.08 and was the only change in its step, with a small effect.\n\nCritique accepted: the draft changed about six variables at once, so no result could be attributed. kd = 0.5 is likely to saturate the wheels, since a 0.5 signal step in 10 ms is 50 per second times 0.5, about 25 turn units, well beyond the 4095 PWM limit. Rejected in the draft: wider 7-sensor array and kp 2.5, which were untested and would have confounded the test. The draft's mass and wheel changes are also dropped, because the critique found no test that supports them.\n\nThis revision returns to the raced iteration 4 design (5 sensors, x = -0.03 to +0.03 m, y = 0.08 m, 0.016 m footprint, weights [-1.5, -0.75, 0, 0.75, 1.5], kp 2.0, ki 0.1, kd 0.1, base_speed 1.4, wheel_track 0.12, mass 0.8). The one change is line_loss from last_direction to search_left. The test asks whether the first loss is a start or first-contact event that depends on the recovery rule. search_left fixes the signal at -1, which steers the robot right. The direction is a guess, since the sign of the first error is not in the data. A change in first-loss timing or max_error would show the recovery rule matters. No change would point to a start-alignment or motor-mismatch bias.\n\nDecision rule for the next round: if the first loss still occurs at the same step with the same error, stop changing the recovery rule and check start alignment or a bias term. If the first loss moves, keep the better of search_left or last_direction. Speed stays at 1.4 for now. Completion needs about 1.5 m/s, which base_speed does not show, so I will raise it only after the line-loss timing is understood. Expected result, a guess: an earlier or later first loss, with progress near the iteration 4 level of about 0.11 to 0.15."
+}

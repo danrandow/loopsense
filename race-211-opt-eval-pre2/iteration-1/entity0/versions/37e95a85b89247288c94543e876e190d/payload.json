@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.3,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Evidence: the iteration-0 design went off track in all 60 development trials (finish rate 0). Progress was only 0.04 to 0.115, so the robot left the line early on every track. max_error was about 0.061, which sits at the off-track limit of 0.06 m, and rms_error was about 0.03. The robot was therefore wandering toward the edge within a few tenths of a metre, not drifting slowly. Likely causes: too little damping (kd = 0.05 is very small against kp = 2.0 at base_speed 1.4), so the steering overshoots on each bend, and a sensor array of 0.012 m footprints with 0.02 m spacing that gives a noisy, low-amplitude signal. The contract's off-track limit is max(0.06, 0.0125 + body_width/4). With body_width 0.12 that is 0.06, and a wider body does not help until about 0.19 m, which is outside the range, so body width stays at 0.12.\n\nChanges: (1) sensor_size 0.012 to 0.016, so the tape always covers at least one or two sensors and the signal is smoother. (2) Sensors moved forward to y = 0.06 for more look-ahead, which helps the robot react before the bend. (3) kd 0.05 to 0.3 to damp the overshoot on curves. (4) kp 2.0 to 3.0 so the robot still corrects hard enough at the wider 0.04 m spread. (5) base_speed 1.4 to 1.2 to give the steering more time to settle. Mass drops to 0.6 kg to reduce yaw inertia and make turns more responsive. Wheel track, wheel radius and body are unchanged, and line_loss stays last_direction.\n\nExpected result: fewer off-track exits, with max_error below 0.05 m on the oval and s-bend, and progress rising well above 0.1. Finishing in 3 s at speed 1.2 is still doubtful. The main goal of this draft is to stay on the line long enough to reach the end, so the next revision can raise base_speed."
+}

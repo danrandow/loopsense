@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.1,
+    "kd": 0.9,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 2 (kp 2.0, ki 0, kd 1.2, base_speed 1.3, 12 mm sensors at x -0.024..0.024, y 0.05, weights -2..2, last_direction) finished 20/20 on the oval with mean score 955 and 1.91 s finish time. It failed on the s-bend (1/20 finished, progress 0.52) and on the slalom (0/20, progress 0.15, 1.3 line-loss events per run). Off-track was the only end condition on the hard tracks. Lowering kp from 4 to 2 and adding kd fixed the oval, but it did not change the slalom: progress there was about 0.13 to 0.15 in both iterations 0 and 2, so the slalom failure has a different cause from the gain level.\n\nDiagnosis: the five sensors span only \u00b10.024 m, which is less than the \u00b10.0305 m needed to keep the 25 mm tape under a sensor when the robot drifts sideways. Once the tape moves outside the array, the sum drops below 0.05, the robot counts a line loss, and it continues in the last direction, which overshoots on the slalom's quick reversals. The spread is also narrow for the 12 mm footprints, so sensor readings change abruptly at the edges. A wider array with larger footprints should keep at least one sensor on the tape across larger lateral errors and reduce line losses.\n\nChanges: (1) Geometry: sensor x positions move to -0.04, -0.02, 0, 0.02, 0.04 (same y 0.05), and sensor_size goes to 0.016. Every offset up to about \u00b10.045 m then keeps some tape under a sensor. (2) Gains are rescaled for the wider 20 mm spacing. The signal per metre of offset falls from about 83 to 50 per m, so kp rises from 2.0 to 3.0 to keep roughly the same steering authority, and kd falls from 1.2 to 0.9 so that kd/kp stays near the 0.6 ratio that gave the stable oval run. ki stays 0. (3) base_speed drops from 1.3 to 1.1 to give more time to correct on the slalom's sharp bends. The oval has about 1 s of margin (1.9 s measured at 1.3), so it should still finish. (4) Weights (-2..2) and line_loss (last_direction) stay the same.\n\nExpected result: the slalom should progress well beyond 0.15 and possibly finish. The s-bend should finish more often. Oval completion is likely with a finish time of about 2.2 to 2.5 s. The main risk is that the wider array makes steering noisier on the oval, so I will check steering_oscillation and line_loss_events on the oval and slalom in the next round."
+}

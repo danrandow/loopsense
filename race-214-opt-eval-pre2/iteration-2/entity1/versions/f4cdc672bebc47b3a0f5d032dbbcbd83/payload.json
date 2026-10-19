@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.2,
+    "ki": 0.2,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Response to the round-1 critique. I accept most of it and keep the design close to the raced iteration-0 design, so the race tests a small, named set of changes.\n\nEvidence: all 60 trials of the raced design went off track at progress 0.11 to 0.16 (about the first 0.5 to 0.7 m), with one line-loss event each and max_error 0.062 to 0.068 m just past the 0.06 m floor. rms_error stayed near 0.03 m. The most direct reading is that the 12 mm footprints and 15 mm pitch lose the tape at the first sharp excursion, which then triggers a line loss and drift. Steering oscillation (0.08 to 0.16) is low, so jitter is not the cause. The critique's point that the early failure is unexplained is fair; this is my best-supported explanation, and it is a hypothesis to test.\n\nWhat I changed relative to the raced design, and why:\n(1) Primary change: sensor footprint 12 mm to 16 mm, with spacing 0.02 m over x = -0.04 to +0.04 (wider span). A larger footprint keeps the sum above the 0.05 line-loss threshold for longer as the tape moves across. y stays at 0.04 m, so this change is not confounded with lookahead.\n(2) kp 3.0 to 2.5. The critique notes that kp 3.0 failed. This is a modest reduction, not a claim that kp is the cause. Turn demand is 350*kp per signal unit, so 2.5 still gives a firm correction.\n(3) ki 0.3 to 0.2. The critique is right that ki 0.02 cannot cancel the fixed motor mismatch. At 0.2 the integral is capped at 2*0.2 = 0.4 turn (about 140 PWM), enough for a realistic steady drift, with a bounded wind-up.\n(4) kd 0.1 to 0.2. My earlier noise estimate was rough (about 2 units/s of signal noise). kd 0.2 gives about 0.4 turn (about 140 PWM) of noise-driven jitter at that rate. This is an estimate, not a measured bound, and kd 0.6 was rejected as unbounded.\n(5) base_speed 1.7 to 1.6 (PWM 3276, 80 percent). This is a small step, not a claimed fix. The 3 s limit needs roughly 1.5 m/s average, and the contract does not map base_speed to ground speed, so completion is unknown. I keep the speed near the raced value so the race isolates the sensor change. completion_time in the next race will show whether 1.6 is too slow.\n(6) Mass 0.8 kg and body_length 0.18 m are restored to the raced values. The iteration-1 and draft changes to these had no evidence and raised traction concerns.\n\nRejected: moving the sensor array to y 0.06 (lookahead versus corner-cutting is unresolved), changing line_loss from last_direction (no evidence for search or stop), and kd 0.6 (unbounded noise).\n\nExpected results (hypotheses, not data): fewer off-track exits than 0.11 to 0.16 progress, max_error nearer 0.06 m, and at least some progress gain. Completion is uncertain. Main test: compare progress and line_loss_events on the s-bend and slalom tracks against the raced design, which isolates the footprint change; then use completion_time to judge speed."
+}

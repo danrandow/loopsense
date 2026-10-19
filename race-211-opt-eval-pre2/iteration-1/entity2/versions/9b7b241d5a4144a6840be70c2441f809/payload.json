@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.15,
+    "ki": 0.02,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors"
+    ]
+  },
+  "rationale": "Final rationale. I kept the revised design (entity1) with its controller values unchanged: base_speed 1.3, kp 3.0, kd 0.15, ki 0.02, last_direction line loss. Geometry is unchanged, so the race still isolates speed and steering gains.\n\nEvidence: the iteration-0 design (base_speed 1.7, kp 2.0, kd 0.1) left the line in all 60 trials, with progress 0.035 to 0.115 and one line-loss event per run. max_error reached the 0.06 m limit while steering_oscillation stayed low (0.064 to 0.075). Low oscillation with a bend-entry departure points to insufficient steering authority as well as excess speed.\n\nAccepted from the round-2 critique: (a) the critique is right that base_speed and kp were changed together, so this race cannot fully attribute any improvement. I accept that cost, because the first priority is a design that stays on the line. The decision rule below separates the two effects in the next iteration. (b) The critique's point that low oscillation with high max_error points to steering authority supports the kp increase. (c) The critique's warning that base_speed 1.3 may fall short of the roughly 1.5 m/s needed to finish in 3 s is accepted. Completion is not expected in this iteration, and the time term is treated as secondary until the robot holds the line.\n\nRejected or deferred: (d) I keep kd at 0.15 rather than the critique's implied higher values. At 0.3, derivative action would saturate on sharp signal changes and amplify sensor noise. I will raise kd only if steering_oscillation is high while max_error is low. (e) I keep ki at 0.02. Its effect is small (about 14 PWM maximum), so it is a bias trim, not a fix for the motor mismatch. (f) I keep last_direction, since the courses are curved and it recovers in the direction of the last valid signal. I do not add an integral reset, because the contract offers no such option.\n\nDecision rule for the next iteration: if line_loss_events is 1 or more, or max_error reaches 0.06 before progress 0.5, lower base_speed to 1.1 before changing any gain. If the robot stays on track but does not finish, raise base_speed in steps of 0.1. If steering_oscillation is high with max_error low, raise kd before lowering kp. Success means completion 1 with rms_error under 0.03 m.\n\nPredictions (guesses, not expectations): progress rises well above 0.115 on the oval and s-bend, and max_error falls below 0.05 m. Completion within 3 s is unlikely at this speed, and a timeout that stays on track would count as a useful result."
+}

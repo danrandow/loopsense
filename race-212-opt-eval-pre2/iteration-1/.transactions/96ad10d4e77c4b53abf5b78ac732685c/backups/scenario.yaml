@@ -1,0 +1,128 @@
+map:
+  id: race-212-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 1
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 0.
+dimensions:
+  time_horizon: prepared
+  iteration: '1'
+overrides:
+  entities:
+  - id: entity0
+    label: Faster, damped baseline
+    notes: 'Draft raises base_speed to 1.4 and kp to 3.0 for pace and tracking, with
+      kd 0.5 to damp the added swing. No race data exists yet, so the change rests
+      on the timing and control contract rather than telemetry.
+
+
+      ### Rationale
+
+
+      No race telemetry exists yet. Iteration 0''s draft was never raced, so this
+      is still a reasoned design rather than a tuned one. Evidence used: the contract''s
+      timing rule (about 4 to 5 m in under 3 s, so roughly 1.5 m/s average) and the
+      sensing and control equations. Changes from the iteration 0 draft: base_speed
+      rises from 1.3 to 1.4 for more margin on the 3 s limit (PWM base about 2870,
+      70% of full). kp rises from 2.5 to 3.0 so the robot corrects faster at speed;
+      a full-scale signal of 2 then gives about 2100 PWM of differential. kd rises
+      from 0.3 to 0.5 to damp the extra oscillation that a higher kp causes. Sensors
+      stay at 5 across x = -0.04 to +0.04 with y = 0.04, so the line is seen ahead
+      of the axle and the signal is roughly linear over the 25 mm tape. Weights -2,
+      -1, 0, 1, 2 keep positive signal meaning steer left. ki stays 0 to avoid windup
+      on bends. line_loss stays last_direction so the robot recovers toward the side
+      it last saw the tape. Geometry is unchanged except that body_width 0.12 and
+      mass 0.8 remain in mid-range. Expected result: completion on the development
+      tracks, few line-loss events, rms_error about 0.02 to 0.035 m, and completion_time
+      about 2.4 to 2.6 s. Main risk: overshoot on the slalom from the higher kp, which
+      the Evaluator and the next race should show.
+
+
+      - [Open this output](iteration-1/entity0/versions/7e3e2f58b37b4d2ea606b0fc977686de/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Round-1 Critique. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-1/entityC1/versions/93235249f78f447b923347415eea5f1a/payload.json)
+
+      - Based on: [entity0](iteration-1/entity0/versions/7e3e2f58b37b4d2ea606b0fc977686de/payload.json)'
+  - id: entity1
+    label: 'Revised: wider sensors'
+    notes: 'Widens the sensor span to ±0.06 m, adds a small ki of 0.1 for motor-mismatch
+      bias, and corrects the PWM and body-width arithmetic from the critique. kp,
+      kd and base_speed are kept, with the reasons given in the rationale. Expected
+      numbers are untested guesses.
+
+
+      ### Rationale
+
+
+      Evidence: none yet. No race data exists, so every expected value below is a
+      guess to be tested, not a prediction.
+
+
+      Accepted from the round-1 critique:
+
+      - Sensor span. The outer sensors at x = ±0.04 leave only about 1.5 mm between
+      the tape edge leaving the outer sensor and the 0.06 m off-track limit. I widen
+      the span to x = ±0.06 with 0.03 m spacing, so the line is still seen after a
+      larger excursion and recovery has room.
+
+      - Motor-mismatch bias. The contract says a fixed left/right mismatch is set
+      per seed and track, so a steady bias exists. I set ki = 0.1, a small value.
+      With the integral capped at ±2, its maximum contribution is 0.2 turn units,
+      which limits windup on bends.
+
+      - Speed arithmetic. The PWM base at base_speed 1.3 is 4095 × 0.65 ≈ 2662, not
+      2550. I keep base_speed 1.3 because the average speed needed is about 1.5 m/s
+      and there is no evidence yet to justify going higher.
+
+      - Yaw inertia. Computed as 0.8 × (0.16² + 0.12²) / 12 ≈ 0.0027 kg·m². At this
+      value the robot should turn responsively without a large overshoot tendency
+      from inertia alone.
+
+      - Body width. body_width 0.12 gives an off-track limit of max(0.06, 0.0125 +
+      0.03) = 0.06 m. The earlier wording that body_width sets this limit was wrong;
+      it only matters above about 0.19 m.
+
+
+      Partly accepted:
+
+      - kd. I keep kd 0.3. The critique is right that the derivative term sees sensor
+      noise and step changes. With 2% noise the derivative contribution is only around
+      0.6 turn units, so the damping effect is still expected to outweigh the jitter.
+      This is untested and is a candidate to reduce if steering_oscillation is high.
+
+      - kp. I keep kp 2.5 and reduce nothing yet. A single sensor step of 1 gives
+      875 PWM of differential, which is large. I accept this as a risk and will judge
+      it from max_error and steering_oscillation rather than lower it blindly.
+
+
+      Rejected:
+
+      - Switching to 16 mm sensors. This would smooth the signal, but it adds overlap
+      and a wider footprint that the critique did not ask for, and it would change
+      the signal scale without evidence. I keep 12 mm.
+
+      - Moving the sensors further forward or changing the wheel geometry. The critique
+      gave no evidence for either, so I keep wheel_track 0.12 and wheel_radius 0.03.
+
+
+      Expected result (guesses): completion on the development tracks, 0-2 line-loss
+      events, rms_error around 0.02-0.04 m, completion_time about 2.5-2.9 s. Main
+      risk: overshoot on the slalom and s-bend. The measurements will separate causes:
+      high max_error with low line_loss suggests a gain problem; line_loss_events
+      with max_error near 0.06 suggests the sensor span or recovery is still the limit.
+
+
+      - [Open this output](iteration-0/entity1/versions/2e9fc21335d74244b8d2113a5e947c7e/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/301e8e1214704070807cd0aa01e2b9a2/payload.json),
+      [entityC1](iteration-0/entityC1/versions/6e5c20c8e1a84accb0269b4be05aa93d/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}

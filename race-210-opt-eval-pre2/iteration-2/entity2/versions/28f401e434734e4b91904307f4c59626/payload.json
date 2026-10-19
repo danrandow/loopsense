@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.3,
+    "ki": 0.1,
+    "kp": 7.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.05
+      },
+      {
+        "x": -0.012,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.012,
+        "y": 0.05
+      },
+      {
+        "x": 0.024,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: the iteration-1 race (60 trials, 0 finishes) ended off track on every run. Max error was 0.0665 m on the oval, 0.0643 m on the slalom and 0.0625 m on the s-bend, so all three tracks exceed the 0.06 m limit. rms_error stayed at 0.025 to 0.029 m, so the failure is in the peak excursions, not in average tracking. Progress was 0.244 (oval), 0.138 (s-bend) and 0.101 (slalom). Line losses were 1 to 2 per run, and steering_oscillation was 0.14 to 0.21.\n\nReviewing the round-2 critique: I accept that the s-bend also breaches the limit, so the fix must be general and not tuned to the oval. I accept that the 0.044 m sensing limit means kp alone cannot recover a fully lost line. I accept that the speed term is unresolved and that the 1.4 setting is a PWM demand, not a verified ground speed. I reject changing ki or kd in this race. Changing them together with kp would stop the next race from attributing max_error, line losses or oscillation to any one gain. The critique's ki concern (too little integral on sustained bends) is real, but it is a hypothesis to test in a later iteration, not a reason to add a second change now.\n\nChange: kp 6.0 to 7.0, the single pre-stated step from iteration 1. Everything else is held fixed: geometry (five sensors at x = -0.024 to +0.024, 0.012 m spacing, 0.016 m footprints, y = 0.05), base_speed 1.4, ki 0.1, kd 0.3, and last_direction line loss.\n\nDecision rule for the next race: if steering_oscillation rises by more than 50 percent, the next test is kd 0.1 to 0.2 alone, not a higher kd. If line losses stay at 2 or more with max_error still above 0.06 m, the next test is line_loss search_right alone. If max_error stays above 0.06 m on all three tracks after kp 7, the next test is ki 0.2 alone, which addresses the critique's sustained-bend point. If runs stay on track but completion_time is above 3 s, or the run stalls before the course is covered, base_speed rises by 0.1 in a single-change test.\n\nExpected result: max_error below 0.06 m on the oval, s-bend and slalom; line_loss_events at 1 or fewer per run; oval progress above 0.25. Judging criteria: the slalom is the weakest track, so the result is judged on it as well as the oval. Success on the s-bend (max_error below 0.06 m) is required to count the change as general rather than track-specific. The score is currently progress-driven, since no run has finished, so a progress gain counts as a real improvement even without completion."
+}

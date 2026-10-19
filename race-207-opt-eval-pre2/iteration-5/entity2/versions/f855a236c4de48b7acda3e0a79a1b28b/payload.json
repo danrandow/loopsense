@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.15,
+    "ki": 0.05,
+    "kp": 3.5,
+    "line_loss": "search_right",
+    "sensor_weights": [
+      1.0,
+      0.5,
+      0.0,
+      -0.5,
+      -1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.04,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. Iteration 0 (kp 3.5, kd 0.15, ki 0.05, base 1.5, 12 mm sensors at y=0.06, last_direction) is still the best design at 53.02. Every run in all iterations ended off track at progress 0.04 to 0.15, with about one line-loss event per run. The s-bend progress stayed at 0.1475 across kp 3.5 to 4.5, kd 0.15 to 1.0, base 1.3 to 1.6 and both sensor sizes. Lowering kp to 2.5 cut s-bend progress to 0.043, so the s-bend is not fully insensitive to the controller. Iteration 2 (16 mm sensors) scored 50.49, so that change is rejected.\n\nWhat I kept, changed and rejected after the round-2 critique:\n(1) Kept the single change from my revision: line_loss last_direction to search_right. All other values equal iteration 0 (geometry, kp 3.5, ki 0.05, kd 0.15, base 1.5, weights [1, 0.5, 0, -0.5, -1]). Any score change is attributable to line-loss recovery.\n(2) Accepted the critique's point that search_right commits every loss to one steering side. On the slalom, whose bends alternate, it will be wrong on about half of losses. I therefore set a rule for mixed results below rather than reading a three-track mean alone.\n(3) Accepted that the mechanism is asserted, not shown. The race is a probe with an expected score near 53 or below. It is not a candidate likely to finish, and I say so plainly.\n(4) Rejected reverting now to last_direction as the final candidate, because this iteration exists to test the one lever that acts on the observed line-loss exit. Reverting would leave that lever untested.\n(5) Rejected a speed cut. The data show no evidence that speed is the limit, and speed has never been tested alone.\n(6) Quantified the thresholds. Oval score spread for iteration 0 is 48.3 to 74.9, so differences under about 1 point on the three-track mean are treated as noise. Progress is the main signal, because it moves the score roughly 2.5 to 4 points per 0.01 while nothing finishes.\n\nExpected result: s-bend progress above 0.1475 and line_loss_events about 1.0 per track, with a three-track mean score above 53.0. Decision rules: (a) If the s-bend progress rises by more than 0.01 and the slalom progress does not fall by more than 0.01, keep search_right and test kd alone (0.15 to 0.4). (b) If the score falls by more than 1 point on the three-track mean, revert to last_direction and test kd alone. (c) If the results are mixed (a gain on one track offset by a loss on another), do not adopt search_right. Revert to last_direction and test kd alone, since a fixed direction is not robust to alternating bends. (d) If progress is unchanged within 0.01 on all tracks, recovery direction is not the limit, and the next single test is kd alone. (e) If progress exceeds 0.9 with completion 0, raise base_speed by 0.1."
+}

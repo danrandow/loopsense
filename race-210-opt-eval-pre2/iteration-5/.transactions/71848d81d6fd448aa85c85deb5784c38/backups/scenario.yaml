@@ -1,0 +1,260 @@
+map:
+  id: race-210-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 5
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 4.
+dimensions:
+  time_horizon: prepared
+  iteration: '5'
+overrides:
+  entities:
+  - id: entity0
+    label: Wider sensor array, lower
+    notes: 'Widens the sensor array to x = ±0.06 so the line is not lost before correction,
+      lowers speed to 1.3 and kp to 2.5, and sets ki to 0.2. The evidence is that
+      all 240 trials so far ended off track with max error about 0.064 m and scores
+      flat near 65.
+
+
+      ### Rationale
+
+
+      Evidence: 180 development trials (iterations 0 to 2, plus 60 more in iteration
+      3 with ki 0.5) all ended off track with no finishes. Max error sits at about
+      0.064 m, just above the 0.06 m off-track limit, while rms error is steady at
+      0.024 to 0.030 m. Line-loss events run 1 to 2 per run, and steering oscillation
+      is 0.13 to 0.21. Scores have stayed between 65.00 and 65.25 across every gain
+      change, so the controller tweaks made so far have not been the binding constraint.
+      The likely structural problem is that the outer sensors at x = +/-0.05 only
+      see the tape when the robot is already far off, and the array then loses the
+      line entirely near the 0.05 m error, which is where the excursions end. Iteration
+      3 also showed that ki 0.5 does not remove the failure.
+
+
+      Changes: (1) Geometry: widen the sensor array to x = -0.06, -0.03, 0, 0.03,
+      0.06 (within the 0.08 limit). This keeps at least one sensor on the tape out
+      to about 0.07 m of error, so the line is less likely to be lost before the controller
+      can correct. Keep y = 0.07 for lookahead and sensor_size 0.016 for coverage.
+      Keep the wheel and body geometry unchanged to isolate the sensor change. (2)
+      Controller: lower base_speed from 1.4 to 1.3 to give the tight bends and slalom
+      more margin, since speed reduction is the main lever left for keeping the robot
+      inside the 0.06 m limit. Reduce kp from 3.0 to 2.5 because the wider sensor
+      spacing raises the signal scale per unit of offset (weights are unchanged, but
+      the outer sensors now read sooner). Keep kd at 1.2 to damp jitter, and set ki
+      to 0.2, a middle value between the 0.02 and 0.5 tested, so the integral trims
+      the motor-mismatch bias without the overshoot risk seen at 0.5. Keep last_direction
+      line loss.
+
+
+      Expected result: fewer line-loss events (target 0 to 1 per run) and max_error
+      below 0.06, so some runs should go further and occasionally finish the oval
+      and s-bend. Progress should rise above 0.3 on the oval. Completion on the slalom
+      remains uncertain. The main risk is that 1.3 is slow enough to hurt completion
+      time, so the next revision should check whether progress is limited by speed
+      or by excursions.
+
+
+      - [Open this output](iteration-4/entity0/versions/4dad3e43a1e8455393f64ccbba71717e/payload.json)
+
+      - Based on: [entityR2A](iteration-4/entityR2A/versions/carried-245ca7a97f3e617d/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Round-1 Critique. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-4/entityC1/versions/df661710d28a42cf8afbbb849f5ed5d9/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/4dad3e43a1e8455393f64ccbba71717e/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-245ca7a97f3e617d/payload.json)'
+  - id: entity1
+    label: Wider sensors, same gains
+    notes: 'Single-variable test: sensors widened to x = ±0.06 at y = 0.05, with every
+      controller value held at the best-scored iteration-2 design. This rests on the
+      engagement geometry the critique corrected, and on the fact that gain changes
+      have moved the score by under 0.04 points.
+
+
+      ### Rationale
+
+
+      Evidence: the best raced design is iteration 2 (score 65.2489): sensors at x
+      = -0.024 to 0.024, y = 0.05, kp 7.0, ki 0.1, kd 0.3, base_speed 1.4, last_direction.
+      All 180 development trials across iterations 0 to 2 ended off track with no
+      finishes. Max error sits at 0.061 to 0.068 m, just over the 0.06 m limit, while
+      rms error is steady at 0.024 to 0.030 m. Line losses run 1 to 2 per run. Gain
+      changes have moved the score by less than 0.04 points, so the sensor layout
+      is the untested lever.
+
+
+      Accepted from the round-1 critique: (a) the kp cut to 3.0 and the base_speed
+      cut to 1.3 are rejected. Lower kp reduces turn authority at exactly the peaks
+      where the robot leaves the tape, and speed cuts reduce the only route to the
+      500-point completion term. (b) The critique''s point that the change set was
+      confounded is accepted. This revision changes one thing only: sensor geometry.
+      (c) The critique''s engagement arithmetic is accepted: a sensor sees tape out
+      to about 0.02 m beyond its own x position, so outer sensors at x = plus or minus
+      0.06 keep tape in view at offsets near 0.08 m, past the 0.06 m limit. Inner
+      sensors keep the 0.03 m spacing, and the 0.016 m footprints leave gaps of 0.014
+      m, which is smaller than the 0.025 m tape, so the tape always covers at least
+      one sensor.
+
+
+      Change: sensor x widened from plus or minus 0.024 to 0.06 (positions -0.06,
+      -0.03, 0, 0.03, 0.06 at y = 0.05). Controller, body, wheels and mass are identical
+      to iteration 2, so any change in max_error, line_loss_events or progress is
+      attributable to the sensor layout. I did not change y to 0.07, because that
+      was part of the earlier confounded draft and is not needed for this test.
+
+
+      Hypotheses: line_loss_events fall to 1 or fewer per run; max_error falls below
+      0.06 m on at least the oval and s-bend; progress rises above 0.27 on the oval.
+      If max_error stays above 0.06 m with fewer losses, the next test is base_speed
+      or kp, not more sensor spread. If steering_oscillation rises by more than 30
+      percent, the wider spacing has made the signal too coarse, and the next step
+      is to reduce the spread to x = plus or minus 0.045. Completion at base_speed
+      1.4 is still untested; completion_time is requested so the next race can show
+      whether the robot is slow or stopped.
+
+
+      - [Open this output](iteration-4/entity1/versions/40a2cd35d88448a6b2a89ac2bff95c47/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/4dad3e43a1e8455393f64ccbba71717e/payload.json),
+      [entityC1](iteration-4/entityC1/versions/df661710d28a42cf8afbbb849f5ed5d9/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-245ca7a97f3e617d/payload.json)'
+  - id: entityC2
+    label: Round-2 Critique
+    notes: 'Critiques the wider sensor layout (x = plus or minus 0.06). The main point
+      is that the wider spacing roughly cuts effective near-centre gain by 2.5 times,
+      which the rationale does not account for; the critique rests on the iteration
+      2 and 3 race data and the signal-weight geometry.
+
+
+      - [Open this output](iteration-4/entityC2/versions/8de7513135f84ac8b7e2fa4fbcd9355c/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/40a2cd35d88448a6b2a89ac2bff95c47/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-245ca7a97f3e617d/payload.json)'
+  - id: entity2
+    label: Outer sensors at ±0.045
+    notes: 'Moves outer sensors from ±0.024 to ±0.045 to cover the 0.044 to 0.060
+      m band, with gains held at the best-raced values, so the change tests sensor
+      layout. Compromise chosen because the round-2 critique showed that ±0.06 cuts
+      near-centre gain about 2.5 times and confounds the result.
+
+
+      ### Rationale
+
+
+      Evidence: the best raced design is iteration 2 (score 65.2489): sensors at x
+      = ±0.024, kp 7.0, ki 0.1, kd 0.3, base_speed 1.4, last_direction. All 60 trials
+      ended off track with no finishes. Max error is 0.0677 (oval), 0.0614 (s-bend)
+      and 0.0645 (slalom), so every track exceeds the 0.06 m limit. rms error is 0.024
+      to 0.028 m, so the failures are peak excursions. Line losses run 1 to 2 per
+      run. Across iterations 0 to 2, max_error on the oval moved only between 0.064
+      and 0.068 while the gains changed, so the gains are not the main limit on peaks.
+      The sensing span is the main untested lever.
+
+
+      Review of the round-2 critique. I accept point 1: widening the sensors to x
+      = ±0.06 cuts the near-centre slope of the steering signal by about 2.5 times,
+      which acts like a much lower kp and confounds the sensor test. I accept point
+      4 and the kill-rule concern, since coarser signal may raise oscillation for
+      reasons unrelated to edge coverage. I accept point 5: the sensors at ±0.06 cover
+      offsets 0.044 to 0.060 m only in the outer band, so the benefit is real but
+      narrow. I reject the critique''s suggestion to add a kp rescale (kp about 13
+      to 16). That would also multiply turn authority at the edges by about 2 times,
+      which is a second large change with its own oscillation risk. I also reject
+      returning to the raced layout, since no test would then be learned.
+
+
+      Change: sensor x set to ±0.045 with inner sensors at ±0.0225 and centre at 0
+      (positions -0.045, -0.0225, 0, 0.0225, 0.045; y = 0.05). Under the engagement
+      rule (about 0.02 m beyond each sensor''s x), the outer sensors see tape to roughly
+      0.065 m offset, which covers the 0.044 to 0.060 m band the current layout misses.
+      The near-centre slope falls by about 0.53 times rather than 0.4 times, so the
+      confound is halved. Gains are kept at the best-raced values (kp 7.0, ki 0.1,
+      kd 0.3, base_speed 1.4, last_direction). I do not change ki, kd or speed, because
+      the critique gives no evidence that ki 0.2 helped (iteration 3 scored lower
+      at 65.0106), and completion is not reachable without a separate speed test.
+
+
+      Hypotheses: max_error falls below 0.0614 m on the oval and slalom; line_loss_events
+      fall to 1 or fewer per run; oval progress rises above 0.25. The result is not
+      expected to finish any run. Kill rule: if steering_oscillation rises by more
+      than 30 percent, or max_error does not fall on at least two tracks, the next
+      race returns to x = ±0.024 and tests kp alone. If runs stay on track with completion_time
+      above 3 s, base_speed rises by 0.1 in a single-change test.
+
+
+      - [Open this output](iteration-4/entity2/versions/ee1aa6cdceab496e87e0d2022fa1be9a/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/40a2cd35d88448a6b2a89ac2bff95c47/payload.json),
+      [entityC2](iteration-4/entityC2/versions/8de7513135f84ac8b7e2fa4fbcd9355c/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-245ca7a97f3e617d/payload.json)'
+  - id: entityR2A
+    label: Score 81.56
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 81.56.
+      Per trial — oval-1: 135.7 (off_track); oval-2: 135.7 (off_track); oval-3: 135.7
+      (off_track); oval-4: 135.7 (off_track); oval-5: 135.7 (off_track); oval-6: 135.7
+      (off_track); oval-7: 135.7 (off_track); oval-8: 135.7 (off_track); oval-9: 135.7
+      (off_track); oval-10: 135.7 (off_track); oval-11: 135.7 (off_track); oval-12:
+      135.7 (off_track); oval-13: 135.7 (off_track); oval-14: 135.7 (off_track); oval-15:
+      135.7 (off_track); oval-16: 135.7 (off_track); oval-17: 135.7 (off_track); oval-18:
+      135.7 (off_track); oval-19: 135.7 (off_track); oval-20: 135.7 (off_track); s-bend-1:
+      67.9 (off_track); s-bend-2: 67.9 (off_track); s-bend-3: 67.9 (off_track); s-bend-4:
+      67.9 (off_track); s-bend-5: 67.9 (off_track); s-bend-6: 67.9 (off_track); s-bend-7:
+      67.9 (off_track); s-bend-8: 67.9 (off_track); s-bend-9: 67.9 (off_track); s-bend-10:
+      67.9 (off_track); s-bend-11: 67.9 (off_track); s-bend-12: 67.9 (off_track);
+      s-bend-13: 67.9 (off_track); s-bend-14: 67.9 (off_track); s-bend-15: 67.9 (off_track);
+      s-bend-16: 67.9 (off_track); s-bend-17: 67.9 (off_track); s-bend-18: 67.9 (off_track);
+      s-bend-19: 67.9 (off_track); s-bend-20: 67.9 (off_track); slalom-1: 41.1 (off_track);
+      slalom-2: 41.1 (off_track); slalom-3: 41.1 (off_track); slalom-4: 41.1 (off_track);
+      slalom-5: 41.1 (off_track); slalom-6: 41.1 (off_track); slalom-7: 41.1 (off_track);
+      slalom-8: 41.1 (off_track); slalom-9: 41.1 (off_track); slalom-10: 41.1 (off_track);
+      slalom-11: 41.1 (off_track); slalom-12: 41.1 (off_track); slalom-13: 41.1 (off_track);
+      slalom-14: 41.1 (off_track); slalom-15: 41.1 (off_track); slalom-16: 41.1 (off_track);
+      slalom-17: 41.1 (off_track); slalom-18: 41.1 (off_track); slalom-19: 41.1 (off_track);
+      slalom-20: 41.1 (off_track).
+
+
+      - [Open this output](iteration-4/entityR2A/versions/a7c4210bacb0418aaa6f25c5782324a2/payload.json)
+
+      - Based on: [entity2](iteration-4/entity2/versions/ee1aa6cdceab496e87e0d2022fa1be9a/payload.json)'
+  - id: entityOut
+    label: Score 81.56
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 81.56.
+      Per trial — oval-1: 135.7 (off_track); oval-2: 135.7 (off_track); oval-3: 135.7
+      (off_track); oval-4: 135.7 (off_track); oval-5: 135.7 (off_track); oval-6: 135.7
+      (off_track); oval-7: 135.7 (off_track); oval-8: 135.7 (off_track); oval-9: 135.7
+      (off_track); oval-10: 135.7 (off_track); oval-11: 135.7 (off_track); oval-12:
+      135.7 (off_track); oval-13: 135.7 (off_track); oval-14: 135.7 (off_track); oval-15:
+      135.7 (off_track); oval-16: 135.7 (off_track); oval-17: 135.7 (off_track); oval-18:
+      135.7 (off_track); oval-19: 135.7 (off_track); oval-20: 135.7 (off_track); s-bend-1:
+      67.9 (off_track); s-bend-2: 67.9 (off_track); s-bend-3: 67.9 (off_track); s-bend-4:
+      67.9 (off_track); s-bend-5: 67.9 (off_track); s-bend-6: 67.9 (off_track); s-bend-7:
+      67.9 (off_track); s-bend-8: 67.9 (off_track); s-bend-9: 67.9 (off_track); s-bend-10:
+      67.9 (off_track); s-bend-11: 67.9 (off_track); s-bend-12: 67.9 (off_track);
+      s-bend-13: 67.9 (off_track); s-bend-14: 67.9 (off_track); s-bend-15: 67.9 (off_track);
+      s-bend-16: 67.9 (off_track); s-bend-17: 67.9 (off_track); s-bend-18: 67.9 (off_track);
+      s-bend-19: 67.9 (off_track); s-bend-20: 67.9 (off_track); slalom-1: 41.1 (off_track);
+      slalom-2: 41.1 (off_track); slalom-3: 41.1 (off_track); slalom-4: 41.1 (off_track);
+      slalom-5: 41.1 (off_track); slalom-6: 41.1 (off_track); slalom-7: 41.1 (off_track);
+      slalom-8: 41.1 (off_track); slalom-9: 41.1 (off_track); slalom-10: 41.1 (off_track);
+      slalom-11: 41.1 (off_track); slalom-12: 41.1 (off_track); slalom-13: 41.1 (off_track);
+      slalom-14: 41.1 (off_track); slalom-15: 41.1 (off_track); slalom-16: 41.1 (off_track);
+      slalom-17: 41.1 (off_track); slalom-18: 41.1 (off_track); slalom-19: 41.1 (off_track);
+      slalom-20: 41.1 (off_track).
+
+
+      - [Open this output](iteration-4/entityOut/versions/a7c4210bacb0418aaa6f25c5782324a2/payload.json)
+
+      - Based on: [entity2](iteration-4/entity2/versions/ee1aa6cdceab496e87e0d2022fa1be9a/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+  - id: action4
+  - id: action5
+measurements: {}

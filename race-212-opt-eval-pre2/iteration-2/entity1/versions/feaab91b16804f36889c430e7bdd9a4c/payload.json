@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.15,
+    "ki": 0.1,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.07,
+        "y": 0.04
+      },
+      {
+        "x": -0.035,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.035,
+        "y": 0.04
+      },
+      {
+        "x": 0.07,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: still no race telemetry. Every expected value is a guess to be confirmed or refuted by the race.\n\nAccepted from the round-1 critique:\n- Sensor span (critique item 1, the largest scoring risk). The outer sensors move from x = +/-0.04 to +/-0.07, with 0.035 m spacing. Off-track is at 0.06 m, and the outer sensor still reads tape when the line centre is about 0.088 m away, so the line stays visible for recovery before the robot leaves the track.\n- kd (critique items 1, 2 and 4). kd falls from 0.5 to 0.15, inside the critic's suggested 0.1 to 0.2. The derivative acts on a noisy, quantised signal, and I have no evidence that it damps rather than adds jitter. The lower value limits the kick at line loss and reacquisition.\n- kp (critique items 3 and 4). kp falls from 3.0 to 2.5. At base_pwm about 2870, a signal of 2 gives about 1750 PWM of differential, which avoids the near-pivot on bends that kp 3.0 caused.\n- ki (critique item 7). ki stays at 0.1, not 0, to remove the fixed motor-mismatch bias. The integral is capped at +/-2, so its maximum contribution is 0.2 turn units.\n\nPartly accepted:\n- base_speed (critique item 5). I keep 1.4 rather than moving to the critic's moderate value. Completion needs about 1.5 m/s average, and 1.3 leaves no margin for slip and start-up. The expected completion_time of 2.5 to 2.8 s is a guess; if the robot is slow, the time term loses at most about 60 points, while line loss costs far more, so the race's line_loss_events will decide whether to lower this.\n\nRejected:\n- 16 mm sensors and changes to wheel_track or wheel_radius. The critique gave no evidence that these fail, and they would change the signal scale.\n- Off-track margin from body_width. At body_width 0.12 the limit is 0.06 m, so body_width sets no margin; I keep 0.12 and claim nothing from it.\n\nYaw inertia = 0.8 x (0.16^2 + 0.12^2) / 12 = about 0.0027 kg m^2. The turn response with kp 2.5 and kd 0.15 should be responsive without large inertia-driven overshoot.\n\nExpected result (guesses): completion on all development tracks, 0 to 2 line-loss events, rms_error about 0.02 to 0.04 m, completion_time about 2.5 to 2.8 s.\n\nDiagnostics: high max_error with few line losses points to gain or overshoot (kp). Line-loss events with max_error near 0.06 points to recovery. High steering_oscillation at kd 0.15 points to derivative jitter. Low progress with completion 0 points to speed too low or stalling."
+}

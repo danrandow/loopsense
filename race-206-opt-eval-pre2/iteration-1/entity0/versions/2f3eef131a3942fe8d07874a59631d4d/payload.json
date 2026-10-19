@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.6,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.032,
+        "y": 0.05
+      },
+      {
+        "x": -0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.032,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.14
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: the iteration-0 design went off track in all 60 trials across oval, s-bend and slalom. Progress was only 0.04 to 0.115, with one line-loss event each time. The off-track limit is max(0.06, 0.0125 + 0.12/4) = 0.06 m, and max_error was about 0.061 m, so the robot left the line within a few tenths of a metre of starting. The likely cause is over-aggressive steering. With sensor weights of \u00b12 spaced 0.016 m apart, the signal is about 125 per metre of lateral offset. With kp = 3, that is roughly 375 turn units per metre, or about 131,000 PWM counts per metre of error, which oscillates at 1.6 base speed. Body_width cannot widen the off-track limit beyond 0.06 m without exceeding the body range, so the fix has to come from control.\n\nChanges: (1) Sensor weights reduced to [-1, -0.5, 0, 0.5, 1], keeping the same 16 mm spacing. This halves the steering gain per metre of offset while keeping the same sign convention. (2) kp kept at 3.0, so the effective proportional gain is about half of the failed design. (3) kd raised from 0.3 to 0.6 to damp the faster oscillation that the half-gain loop still allows. ki stays 0 to avoid windup. (4) base_speed lowered from 1.6 to 1.4 to give the controller more time to correct at each bend. The trade-off is that a full lap in under 3 s may not be reached, but completion is worth 500 points and the first priority is staying on the line. (5) Sensors moved to y = 0.05, slightly further ahead of the axle, so steering starts earlier. (6) wheel_track widened to 0.14, which reduces yaw rate for a given wheel-speed difference and so reduces overshoot. Mass, wheel radius and body are kept mid-range.\n\nExpected result: stable tracking with rms_error under about 0.03 m and max_error below the 0.06 m limit on the development tracks. Progress should rise well above 0.1, and completion becomes possible on the s-bend and oval if the controller holds the line through the tighter bends. If oscillation persists, the next revision should reduce kp further or drop base_speed."
+}

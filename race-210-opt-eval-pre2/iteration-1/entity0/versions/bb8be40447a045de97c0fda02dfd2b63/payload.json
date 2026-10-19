@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.8,
+    "ki": 0.02,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from the development simulator (60 trials, 0 finishes): every run ended off track. Oval progressed 0.23, s-bend 0.16, slalom 0.10. Max error reached about 0.064 m on the oval, above the 0.06 m off-track limit, so the robot is wandering off the line rather than being stopped by the course. Line-loss events were 1.8 on the oval and 2.0 on the slalom, and steering oscillation was 0.14 to 0.19, which points to a loop that overshoots and jitters at speed. rms_error is small (0.025 to 0.030), so the robot tracks reasonably on average and fails on peak excursions at bends and transitions. The three likely causes are: base_speed 1.6 is too high for the tighter bends and the slalom; kp 5.0 is too aggressive and overshoots, which feeds the oscillation; and kd 0.3 is too weak to damp it. ki 0.05 adds integral windup risk with little benefit on a symmetric track, so I reduce it.\n\nChanges: base_speed 1.6 to 1.4 (still about 70% of full PWM, so the average speed stays near the 1.5 m/s finish requirement while bends get more margin); kp 5.0 to 4.0 (less overshoot); kd 0.3 to 0.8 (more damping of the jitter); ki 0.05 to 0.02 (less windup). Geometry is held fixed so the race isolates the controller change. Expected result: fewer off-track excursions and line losses, lower steering oscillation, and some runs finishing the oval and s-bend. Completion on slalom is less certain. The main risk is that 1.4 is slightly too slow to finish within 3 s, so the next revision should check completion_time before lowering speed further."
+}

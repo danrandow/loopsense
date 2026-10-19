@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.4,
+    "ki": 0.3,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.06
+      },
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.06,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: across iterations 0 and 1, all 120 development trials ended off track, with progress 0.11 to 0.18 and max_error at the 0.06 m limit in every trial. rms_error stayed at 0.02 to 0.03 m. Widening the sensor span to x = \u00b10.06 (iteration 1) removed line-loss events on the oval and s-bend, but progress did not improve, so the array edge was not the main limit. Iteration 0 at base 1.8 reached more progress on the oval (0.17) than iteration 1 at base 1.5 (0.125), which suggests speed is not the cause of early failure and that too little speed may slow progress. The off-track limit is 0.06 m at body_width 0.12, so I keep that width.\n\nWhat I accepted from the round-1 critique: (1) I reject the draft's base_speed 1.3 and 1.2 options. The 3 s limit needs about 1.5 m/s average, and the earlier data show lower speed gave less progress. I set base_speed 1.6 (PWM 80%), between the 1.5 and 1.8 already tried. (2) I restore ki to 0.3. The critique is right that a fixed left/right motor mismatch causes a steady bias that P+D control cannot remove. ki 0.3 was present in both earlier runs, so this is not a new untested change, and the integral is clamped at \u00b12. (3) I keep the sensors at y = 0.06 because they gave the higher progress in iteration 0 and the critique's look-ahead argument favours forward placement.\n\nWhat I kept from the draft: the wide span x = -0.06 to +0.06 with 16 mm footprints (line-loss removal was seen on two tracks), kp 3.0 to hold steering authority with the wider spacing, and kd 0.4 as the middle damping value.\n\nWhat I rejected: I did not follow the draft's ki 0.0 and base 1.3. I did not move to a 12 mm footprint or change geometry, because nothing in the data points to the body or wheels.\n\nExpected result: completion_time about 2.8 to 3.0 s if the robot stays on track, progress above 0.3, and max_error below the 0.06 limit with fewer off-track ends. Decision rule for the next telemetry: if max_error still reaches 0.06 with no line-loss events, the cause is steering lag or bias, so raise kp or ki next. If line loss returns at the edge, the span is still too narrow. If the run is on track with completion_time above 3 s, raise base_speed to about 1.8. If steering_oscillation rises above about 0.2, lower kp before changing speed."
+}

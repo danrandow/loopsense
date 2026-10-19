@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 1.0,
+    "ki": 0.0,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials (oval, s-bend, slalom) ended off-track with no completions. Progress was only 0.06 to 0.17, and max_error reached the 0.06 m limit (the limit is max(0.06, 0.0125 + body_width/4), so body width does not help below about 0.19 m). Iteration 1 changed sensor size, kp, kd, ki and base_speed, yet the scores were nearly identical (39.8521 vs 39.8523). That suggests the failure is structural, not a matter of gain tuning. The likely cause is the sensor array: it spans only +/-0.03 m, and because the signal is a normalised weighted average, it saturates at about +/-1 once only the outer sensors see tape. Beyond that point, kp alone sets the response, so the robot has little proportional information about how far it has drifted.\n\nChanges: (1) Widen the sensor span to x = -0.04, -0.02, 0, +0.02, +0.04 at y = 0.04 so the tape stays under some sensor at larger offsets. Keep 5 sensors and sensor_size 0.012 so the 25 mm tape is covered without a broad footprint. (2) Set sensor weights to -1.0, -0.5, 0, 0.5, 1.0, the same sign convention as before (negative = tape on the right = steer right), so the signal still matches the direction of error. (3) Drop ki to 0 to remove integral windup on the bends, since the integral was not helping. (4) Lower kp from 4.0 to 2.5 to reduce overshoot on the wider, more sensitive signal. Raise kd from 0.6 to 1.0 to damp the oscillation seen in steering_oscillation (about 0.16 to 0.18). (5) Reduce base_speed from 1.4 to 1.6 to keep some completion-time score, since the finish needs about 1.5 m/s. (6) Reduce mass to 0.6 kg for faster acceleration and a shorter lag, and reduce wheel_track to 0.10 m so the same PWM difference gives a sharper turn rate. Keep wheel_radius 0.03 m, body 0.12 x 0.18 m and line_loss 'last_direction'.\n\nExpected result: fewer off-track exits, because the array now sees tape at larger lateral offsets and the lower kp with higher kd should reduce overshoot. Some runs may still finish on the oval and s-bend. I am not confident in the size of the improvement: the change is structural and untested, so the Evaluator's critique should check the sensor-span and gain choices against the telemetry."
+}

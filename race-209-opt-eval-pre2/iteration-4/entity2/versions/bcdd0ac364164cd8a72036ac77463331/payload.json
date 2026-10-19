@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.25,
+    "ki": 0.3,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": -0.01,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.01,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 2 (kp 2.0, ki 0.05, kd 0.25, base_speed 1.5, sensors at y 0.05 with x from -0.02 to 0.02 m) is the best baseline at 64.09. All 60 trials went off-track with zero finishes. Oval max_error is 0.0633, above the 0.06 m limit, and steering_oscillation is 0.110. Iteration 3 (sensors moved forward and widened) scored 61.07 and is rejected. The sensing layout is therefore returned to iteration 2.\n\nCritique points accepted: (a) The integral's time scale is undefined in the contract, so I cannot show the +/-2 cap is reached before the typical departure at progress 0.12 to 0.19. I now state that ki 0.3 is a test of whether a steady drift is removed, not a guaranteed fix. (b) The oscillation decision rule was ambiguous because the baseline on the s-bend and slalom (0.16) already sits at the threshold. I replace it with a rule that uses the oval, where the baseline is 0.110 and not near the threshold. (c) max_error is unsigned, so the offset hypothesis remains unverified. The observation request is unchanged, and signed error is not available as a measurement.\n\nCritique points partly rejected: the critique notes that ki 0.3 is not derived from a measured offset. I keep 0.3 rather than a smaller value such as 0.15, because a single-variable test needs a step large enough to show an effect in one race. The windup concern is real, but the contract offers no freeze or anti-windup switch, so I cannot address it through a separate parameter. The integral is bounded at +/-2 (about 210 PWM at ki 0.3), and I will check the s-bend and slalom for any bias after line loss.\n\nChange from iteration 2: ki 0.05 to 0.3. Everything else is unchanged. Turn authority is checked: the integral adds at most 210 PWM, the proportional term at most 1400 PWM, so the inner wheel stays above zero (3071 minus about 1610 gives about 1460).\n\nExpected result (hypothesis): if the drift is consistent, oval max_error falls to 0.06 or below and oval line_loss_events drops to 0 to 1. Decision rule for the next iteration: if oval steering_oscillation exceeds 0.13 with no max_error gain, the offset hypothesis is wrong and ki returns to 0.05. If max_error falls on the oval but the s-bend or slalom shows larger max_error or more line-loss events, ki is too high and is reduced to about 0.15. Any finish is a clear improvement."
+}

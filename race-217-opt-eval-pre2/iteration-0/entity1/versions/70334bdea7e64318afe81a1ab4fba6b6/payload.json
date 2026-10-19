@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.7,
+    "kd": 0.02,
+    "ki": 0.0,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "What the critique established: the draft's kd=0.3 is mis-scaled. Because the derivative term is kd times the change in signal per second, one 10 ms step contributes 30 times the signal change in turn units, so kd=0.3 can amplify sensor jitter and make the loop oscillate. The critique also showed that the outer wheel saturates once 350*kp*|signal| exceeds 4095 minus base_pwm, which at base 1.8 is about |signal| 0.23, so steering is lost on sharp bends. The 3 mm gap between 12 mm footprints at 15 mm spacing can let a tape edge fall between sensors, and the 4 cm lookahead is short. Ki=0.05 is inert, since the integral is clamped to +/-2 and contributes at most 0.1 turn units.\n\nWhat I kept: kp 5 and sensor_weights of -1, -0.5, 0, 0.5, 1, because the steering authority is adequate at this scale, and last_direction line-loss handling, because it is the most sensible choice without telemetry. Body width 0.12, mass 0.8 and wheel track 0.12 stay, because the off-track limit is already at its 0.06 m floor and a wider body would not relax it. Yaw inertia is about 0.8*(0.18^2+0.12^2)/12, which is about 0.0031 kg m^2, so it is moderate.\n\nWhat I changed: kd is cut from 0.3 to 0.02, which gives about 2 turn units per unit signal change per step, far below the proportional term for real line errors. Sensor size goes from 0.012 to 0.016, so adjacent footprints overlap and the line is always seen. Sensors move forward from y=0.04 to y=0.06 to lengthen lookahead to about 35 ms at 1.7 m/s. Base_speed drops from 1.8 to 1.7 to give the outer wheel more headroom: base_pwm is about 3481, and saturation begins near |signal| 0.35 instead of 0.23. Ki is set to 0, since its contribution was negligible. Speed is still unmeasured; 1.7 is a target, and the race telemetry should show whether completion_time is under 3 s.\n\nHypotheses, not results: I expect completion on the oval and s-bend, with some risk on the slalom. If steering_oscillation rises with kd or is large relative to rms_error, kd is still too high. If line_loss_events are high on the slalom, base_speed or kp is too high for the sharp bends. If completion_time is above 3 s with no line losses, the speed target is too low."
+}

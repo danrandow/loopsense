@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.25,
+    "ki": 0.5,
+    "kp": 2.0,
+    "line_loss": "search_left",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": -0.01,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.01,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: across iterations 1 to 6, 119 of 120 development trials ended off_track. The best design is iteration 5 (99.67, ki 0.5). Iteration 4 showed that changing ki alone from 0.05 to 0.3 raised the score from 64.1 to 97.2. Iteration 5 then raised ki to 0.5 with nothing else changed and gained 2.5 more. Iteration 6 raised ki to 0.8 and returned metrics identical to four decimals, so the integral gain is saturated or inert beyond about 0.5. The integral gain was the only isolated lever that moved the score, which suggests a steady lateral offset that the integral partly removes.\n\nCritique points accepted: (a) The draft changed five things at once (geometry, kp, kd, ki, base_speed) and could not be attributed. I reject that design. (b) The yaw-inertia figure was miscalculated (about 54 percent, not 45 percent), and the body_length dependence is contradictory in the contract, so the inertia argument is dropped. (c) Lowering base_speed contradicts the 3 s finish requirement and lowered progress in iteration 3. Speed stays at 1.5. (d) The offset-to-line-loss reading is plausible, since the signal is fixed during line loss. The critique's suggested test, line_loss, is the one controller field that governs the failure phase, so I adopt it as the single change.\n\nCritique points rejected: I do not raise kp, shrink the track, move the sensors, or change mass. Each of those was confounded in earlier rounds, and the critique itself warns against stacking them.\n\nChange from iteration 5: line_loss 'last_direction' to 'search_left' (throttle 0.35, signal fixed at -1, steering the robot right). Nothing else changes. Everything else is the iteration 5 design exactly, so this race isolates the line-loss response. Direction is a guess, because the sign of the steady offset is not measured. If the result is worse, the next step is 'search_right' with the same design.\n\nExpected result: a modest change in max_error and line_loss_events, not a finish. Success threshold: max_error on the oval below 0.0627 (iteration 5) and line_loss_events at 1 or fewer on the oval. Failure threshold: max_error or progress worse than iteration 5 on two or more tracks. In that case the line-loss direction is the wrong way and I flip it, rather than changing any other variable."
+}

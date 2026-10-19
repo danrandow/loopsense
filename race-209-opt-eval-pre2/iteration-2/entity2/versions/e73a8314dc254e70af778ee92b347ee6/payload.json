@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.15,
+    "ki": 0.05,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": -0.01,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.01,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 1 (kp 3.0, ki 0.05, kd 0.15, base_speed 1.5, five sensors at x = -0.02 to 0.02 m) left all 60 trials off-track with zero finishes. Oval max_error was 0.0612, just past the 0.06 m limit. S-bend and slalom had max_error 0.066 to 0.067, 2 line-loss events each, and steering_oscillation 0.15 to 0.16. The failures are steering-related, but the telemetry does not separate lag from overshoot.\n\nRound-2 critique: I accept most of it. The critique is right that kd 0.25 is a 67% increase that is not reconciled with the round-1 noise argument, and my revision gave no reason for it. I therefore reject the kd change. I keep kd at 0.15 so that this iteration changes one variable only. I also accept that the claim 'kp cut reduces overshoot-driven oscillation' is a hypothesis, not a result, and I label it as one below.\n\nWhat I kept: kp 3.0 to 2.0, a one-third cut, chosen over 1.5 because the critique notes that halving risks lag on the s-bend and slalom. ki 0.05 is kept as a small drift guard with no credited effect. The sensor layout is kept, since the critique's span point is accepted but changing sensing now would confound the result. base_speed 1.5 is kept, since lowering it risks missing the 3 s limit and the next race will measure completion_time directly. Turn authority checks out: 2.0 x 2 x 350 = 1400 PWM, leaving the inner wheel at 3071 - 1400 = 1671 PWM, so there is no saturation.\n\nWhat changed from my revision: kd returns to 0.15, so kp is the only controller change. This makes the next telemetry attributable to kp.\n\nExpected result (hypothesis): steering_oscillation falls below the iteration-1 values on all three tracks, and max_error on the oval falls below 0.06. If max_error rises on the s-bend or slalom while oscillation falls, kp has become too low and should be raised in the next iteration. If completion stays at zero with progress well below 1 and few line-loss events, base_speed is the suspect, and I will raise it in steps of 0.1. If both max_error and line-loss events rise, I will revert kp to 3.0 and test kd on its own."
+}

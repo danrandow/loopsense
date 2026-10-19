@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.15,
+    "ki": 0.05,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.06
+      },
+      {
+        "x": -0.012,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.012,
+        "y": 0.06
+      },
+      {
+        "x": 0.024,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 2 (kp 2.0, ki 0.05, kd 0.15, base_speed 1.5, sensors at y 0.05 with x from -0.02 to 0.02 m) left all 60 trials off-track with zero finishes. Max_error was 0.063 to 0.066, just past the 0.06 m limit on every track. Progress was 0.12 to 0.19, so departures happen in the first metre or so. Line-loss events were 1 to 2 per run and steering_oscillation was 0.11 to 0.16. The telemetry is aggregated, so it does not show where the first departure happens.\n\nCritique of the revision (entityC2) and what I kept: I accept that a 1 cm forward move gives only about 7 ms of extra look-ahead at 1.5 m/s, so I do not expect a large max_error change from sensing alone. I accept that kp has barely moved max_error across iterations 1 and 2 (oval 0.0612 to 0.0633, s-bend 0.0663 to 0.0662), so kp 1.7 is not my next step on the strength of that evidence. I accept that the rationale did not quantify the sensor lag or say what result would make the isolation worth an iteration. I also accept that 'steering_oscillation at or below 0.11' cannot discriminate, because it equals the iteration 2 baseline.\n\nWhat I kept: the controller is returned exactly to iteration 2 (kp 2.0, ki 0.05, kd 0.15, base_speed 1.5, last_direction line loss), so this race isolates the sensing change. base_speed stays at 1.5 because lowering it would risk missing the 3 s limit, and the critique's contradiction point is correct. The 0.012 m spacing is kept so that adjacent footprints abut with no dead zones.\n\nWhat I changed from the critique's suggested path: I keep the forward move to y 0.06 and the x span of -0.024 to 0.024 m as a probe of sensor lag, and I state the limit of that probe. Its expected effect is small (max_error maybe a few mm at most), so a null result is informative: it would confirm that sensing lead is not the cause of departures. I do not commit to kp 1.7 as the fallback. If max_error does not fall, the next iteration will change the failure-mode lever, not the same gain, and I will decide which lever once the first-departure timing is known.\n\nRisk on speed: no run has finished, so completion (500 points) remains untested. I will not raise or lower base_speed on this race alone. If completion_time is reported above 3 s with progress well below 1 and few line-loss events, base_speed becomes the first suspect and I will test it in steps of 0.1.\n\nExpected result: max_error on the oval moves toward 0.06 or below, with a small or zero change in line-loss events. Success threshold: any finish, or progress above 0.25 on all three tracks. I accept that a null result on max_error is the most likely outcome, and that it still tells the next iteration that sensing lead is not the main problem."
+}

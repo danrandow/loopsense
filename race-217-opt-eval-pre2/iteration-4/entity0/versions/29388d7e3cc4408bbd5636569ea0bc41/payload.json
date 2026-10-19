@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 1.2,
+    "ki": 0.0,
+    "kp": 6.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.67,
+      -0.33,
+      0.0,
+      0.33,
+      0.67,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": -0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials across three designs ended off_track with zero completions. Progress ranged from 0.04 to 0.17, and max_error reached about 0.06 to 0.067, just past the 0.06 m limit. Iterations 0 and 1 differed in sensor size, kp, kd, ki and base_speed, yet scored almost the same (39.8523 vs 39.8521). Gain tuning at the same speed and sensor layout is not moving the result. Iteration 2 (wider 0.02 m spacing, kp 2.5, mass 0.6, track 0.10) was worst at 26.37, so its changes made things worse, not better. The common pattern is a robot that drifts off the line within the first third of the course at about 1.5 to 1.8 units of base_speed. Oscillation and a lagging response at that speed are the most likely cause, since steering_oscillation was 0.06 to 0.18 and line-loss events of 1 to 2 occurred in every run.\n\nChanges: (1) base_speed 1.8 to 1.0. This is the main structural change. Lower speed gives the steering loop more time to correct, cutting overshoot and the lateral excursions that reach 0.06 m. It sacrifices completion time, so this design may not finish, but progress is worth 250 points and has not yet been earned at all. (2) Sensors back to 7 at 0.01 m spacing across x = -0.03 to +0.03 m, y = 0.04, with sensor_size 0.012. This gives a smoother signal than the 5-sensor, 0.015 m array of iteration 0, and it was the layout used in iteration 3's draft. (3) Weights linear ramp -1.0, -0.67, -0.33, 0, 0.33, 0.67, 1.0. (4) kp 5.0 to 6.0 to keep steering authority at the lower speed; the signal is bounded by about +/-1, so the turn stays under about +/-6 units. (5) kd 0.5 to 1.2 to damp the oscillation seen in steering_oscillation, which has been the consistent symptom. (6) ki 0.0 to avoid windup on curves, since integral action showed no benefit. (7) mass 0.8 to 0.6 and wheel_track 0.12 kept, so yaw inertia drops while turning authority holds. Wheel radius, body dimensions and line_loss 'last_direction' are unchanged.\n\nExpected result: fewer off_track exits and higher progress than the 39.85 baseline, because the robot should now stay on the line for a longer stretch. I do not expect completion at 1.0 base_speed. The evidence is indirect: the outcome depends on whether lower speed actually reduces the excursions, and the Evaluator should test that against the telemetry."
+}

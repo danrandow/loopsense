@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.6,
+    "ki": 0.0,
+    "kp": 1.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.14
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 trials in each of iterations 0-5 ended off track, with exactly one line-loss event per trial and max_error about 0.061 m, just over the 0.06 m limit. Progress stayed at 0.04-0.15 everywhere. The limit cannot be widened: body_width up to 0.18 still gives 0.06 m. Gain changes (kp 1.6-6, kd 0.05-0.5, ki 0-0.3) moved little. Sensor geometry moved s-bend and slalom progress (iteration 3: 0.04 to 0.15 and 0.035 to 0.10), so sensing is the main lever. Iteration 5 had a sensor spread of 0.06 m, which did not help, so the tape is not simply leaving the array. The shared signature (one line loss, then an overshoot past 0.06 m) fits a loop that reacts too late and too hard after the tape is lost.\n\nChanges, kept small so the next race isolates the effect: (1) base_speed 1.1 to 1.0, to give the loop more time per bend. (2) kp 2.5 to 1.5, to lower the correction gain that the 0.35-throttle recovery amplifies. (3) kd 0.5 to 0.6, for damping. (4) ki 0.05 to 0.0, so the integral cannot wind up while the line is lost. (5) Sensors returned to 7 at y = 0.06 m, x = -0.03 to +0.03 at 0.01 m spacing, with footprint 0.016 m. This keeps the array forward enough to steer early, and the finer spacing gives a smoother signal. Weights stay antisymmetric and linear. (6) mass 0.6 kg and wheel_track 0.14 m kept; line_loss stays last_direction.\n\nExpected result: lower max_error and a later or absent first line loss. Progress should rise on the s-bend and slalom, but finishing in 3 s at this speed is unlikely. If the first line loss persists at the same point, the next step is to change the line-loss rule or the start handling, not the gains."
+}

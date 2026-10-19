@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 1.5,
+    "ki": 0.0,
+    "kp": 2.6,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.032,
+        "y": 0.05
+      },
+      {
+        "x": -0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.032,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. The only race data is the iteration-2 design (kp 2.0, ki 0, kd 1.2, base_speed 1.3, five 12 mm sensors at x = -0.024 to +0.024, y 0.05, weights -2..2, last_direction). It finished 20/20 on the oval (mean 955, 1.91 s), finished 1/20 on the s-bend (progress 0.52), and 0/20 on the slalom (progress 0.15, 1.3 line-loss events per run). Off-track was the only end condition on the hard tracks. Gain level does not explain the slalom failure: progress was about 0.15 at kp 2.0 and about 0.13 at kp 4.0.\n\nDiagnosis. The sensors see the 25 mm tape only out to about +/-0.0425 m of lateral offset (outer sensor at 0.024, footprint half-width 0.006, tape half-width 0.0125). The tape can leave the array before the robot reaches the off-track limit, and line loss then hands control to last_direction, which overshoots on quick reversals. Wider spacing addresses this directly.\n\nAccepted from the round-1 critique. (1) The kd/kp ratio was misstated. The stable oval run had 1.2/2.0 = 0.6, and the draft's 0.46 is weaker damping, so kd rises to 1.5 (ratio 0.58). (2) The speed cut is rejected. Completion is worth 500 points, the oval finished 20/20 at base_speed 1.3, and speed was not the diagnosed cause, so base_speed stays at 1.3. (3) The 12 mm footprint stays, so the footprint is not a second variable.\n\nKept. Sensor x positions move to -0.032, -0.016, 0, 0.016, 0.032 at y 0.05. Each outer sensor now covers tape to about +/-0.0505 m. Weights, ki 0 and last_direction are unchanged. kp rises from 2.0 to 2.6 to keep steering authority roughly constant, since the signal per metre falls with wider spacing. This scaling is approximate.\n\nNot fully isolated. Geometry, kp and kd change together. The geometry hypothesis is tested in the slalom line_loss_events and progress, which the gain change alone would not be expected to move much given the iteration-2 evidence.\n\nExpected result (guesses, not measured). Oval still finishes at about 1.9 to 2.1 s. Slalom line_loss_events fall below 1 per run and slalom progress rises above 0.3. Decision rules: if slalom progress stays below 0.3 with line_loss_events above 1, the coverage hypothesis is wrong and the next round should examine sensor y (lead) or line_loss. If oval steering_oscillation exceeds 0.3 (iteration 2 was 0.22), reduce kd toward 1.2. If the oval fails to finish, return kp to 2.0."
+}

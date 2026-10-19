@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.8,
+    "ki": 0.3,
+    "kp": 1.6,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.05
+      },
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      },
+      {
+        "x": 0.06,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.14
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all five designs so far went off track in all 60 trials, with max_error stuck at 0.061 to 0.066 m against the 0.06 m limit (body_width cannot widen it). Line-loss events ran 1 to 2 per run, and progress stayed between 0.04 and 0.18. Gain changes (kp 1.2 to 3) barely moved the failure point, so gain is not the main limit. Iteration 3 scored best (base 0.9, kp 1.2, ki 0.3, kd 0.8), and its progress was higher on s-bend and slalom than the others.\n\nDiagnosis: the sensor span is the likely cause. With sensors at x = \u00b10.032 and size 0.012 m, the outer sensor loses the tape once the robot's centre is about 0.032 + 0.0125 + 0.006 = 0.05 m off the line. The iteration-4 widening to \u00b10.04 only moves that to about 0.058 m, which is still inside the 0.06 m limit. So every run hits line loss just before the off-track limit, and the throttle drop to 0.35 then pushes it over. Widening the span beyond the off-track limit should keep the tape in view through the whole allowed band, so the controller can correct instead of losing the line.\n\nChanges: (1) Seven sensors at x = -0.06 to +0.06 in 0.02 m steps, with size 0.016 m. The 16 mm footprint sees the tape out to about 0.0205 m from each sensor, so line loss now starts only beyond about 0.08 m off-centre. (2) Weights proportional to x (x/0.04): -1.5, -1, -0.5, 0, 0.5, 1, 1.5. This keeps the signal scale near iteration 3 (about 25 per metre of offset). (3) kp 1.6 (about 40 turn per metre), slightly above iteration 3, to keep the correction strong at the wider span. ki 0.3 keeps the bias cancellation from iteration 2 and 3. kd 0.8 damps the response. (4) base_speed 1.0, a small step up from the best run. (5) Sensor y = 0.05, mass 0.6, wheel_track 0.14, wheel_radius 0.03 and body unchanged, so the sensor-span effect can be read directly. line_loss stays last_direction.\n\nExpected result: line-loss events near zero, max_error below about 0.05 m, and progress well above 0.2 on all three development tracks. Completion within 3 s is still unlikely at 1.0 base speed. If max_error still reaches 0.06 with no line loss, the cause is steering lag, and the next step is to raise kd or lower base_speed."
+}

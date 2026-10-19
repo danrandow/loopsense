@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.0,
+    "kd": 0.3,
+    "ki": 0.1,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 0 (score 26.04) and iteration 1 (score 37.04) both went off track in all 60 trials. The s-bend ended at progress 0.040 in every design tried, with kp 2.0 and 3.0, kd 0.05 to 0.15, base_speed 1.3 to 1.7, and two sensor geometries. line_loss_events was exactly 1.0 in every trial, and max_error sat at 0.060 to 0.068. A failure point that does not move with speed or gains points to a fixed early event, not a slow drift.\n\nWhat I accept from the round-1 critique: (1) The motor-mismatch explanation does not fit the magnitude. A 2 percent mismatch is about 80 PWM. Dividing by kp*350 gives a signal offset of about 0.08, or a few millimetres of lateral error, far below the 0.06 m limit. So ki cannot be the main fix. (2) An integral term of 0.6 can overshoot after a sustained bend, since it unwinds slowly. I reduce ki to 0.1, so the integral can only add up to about 70 PWM (0.1 x 2 x 350). That is small enough to be harmless and large enough to show whether bias matters. (3) The draft should be labelled diagnostic. Base_speed 1.2 cannot finish in 3 s (about 1.5 m/s is needed), so this race is not a final-score candidate.\n\nWhat I reject: I keep the iteration-1 geometry (five sensors at x -0.04 to +0.04, y 0.06, footprint 0.016, mass 0.6). Changing geometry again would confound the test. I keep kp 3.0 and kd 0.3, because kd 0.1 and kd 0.15 failed at the same point, so damping is not the cause and kd 0.3 is not shown to be harmful. I keep last_direction, since it suits curves.\n\nWhat I changed: ki 0.6 to 0.1, and base_speed 1.2 to 1.0. The speed cut is a deliberate test. If the failure point is speed-independent (as the 0.040 progress at 1.3 and 1.7 suggests), the result will be unchanged and the cause is structural, probably the start or first sharp bend. If progress moves, the early failure is speed-related and the next step is to tune speed against kp. I accept the critique's point that the time term is out of reach at this stage.\n\nExpected result: progress at the s-bend stays near 0.04 (about 60 percent confidence) and line_loss_events stays at 1.0. If that happens, the cause is not integral drift and not speed, and the next iteration should test the start transient or the line-loss rule (for example search_left or search_right). If progress rises above 0.1 on the s-bend, speed or gain mismatch was the cause, and I will tune base_speed upward in steps of 0.1 while keeping max_error below 0.06."
+}

@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.7,
+    "kd": 0.1,
+    "ki": 0.3,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Round-2 critique: I kept the revised design unchanged. I accept its main points and reject its proposed alternatives.\n\nAccepted:\n(a) The speed claim is unsupported. base_speed is not mapped to ground speed, so 1.7 is a judgement, not a measured result. I keep it, but I label the 'margin for battery sag' claim as untested.\n(b) Line loss is under-analysed. With last_direction, signal is +/-1 and throttle is 0.35, so base_pwm is about 1218. With kp=3 the turn is 1050 PWM, giving wheel commands of about 168 (inner) and 2268 (outer). This is a near-pivot that keeps the robot moving forward. I keep last_direction because search_left and search_right produce the same pivot in the opposite direction, and stop would lose all forward progress. I cannot justify the change without race data, so the design stays as it is.\n(c) The integral has no decay. Its maximum is about 210 PWM (ki=0.3, limit +/-2). I keep ki=0.3 because the fixed left/right mismatch must be cancelled on straights, and ki=0.05 could not do that. The post-bend unwinding is a real risk. I will check it in max_error and steering_oscillation on the s-bend and slalom tracks.\n(d) Noise near the line-loss threshold: the ratio denominator makes signal noise larger when readings are small. My kd estimate of about 70 PWM therefore holds only with a strong signal. This is a known limit of the estimate.\n\nRejected or deferred:\n- Changing sensor geometry (forward-shifted or wider array) is deferred. The critique gives no race evidence that it helps, and only one design races per iteration.\n- Changing base_speed to 1.4 is not done here. I cannot run the comparison within this iteration. The result is in max_error on the sharpest track, which I will check after this race.\n- Scoring: completion carries 500 points, so completing matters more than a small time gain. I keep the speed at 1.7, which is fast enough to finish, not the maximum. Dropping speed to reduce risk would hurt the time term only slightly, but a slow robot may not finish inside 300 steps, so I do not cut speed further without evidence.\n\nChanges: none to the numbers. The rationale is clarified on the points above.\n\nExpected results (hypotheses, not data): completion on the development tracks, a small number of line-loss events, and rms_error below about 0.05 m. Main risks: overshoot on the sharpest bend at base_speed 1.7, and post-bend integral overshoot. The rms_error target has no basis yet, since no race data exists."
+}

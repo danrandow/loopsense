@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 1.2,
+    "ki": 0.02,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.07
+      },
+      {
+        "x": -0.025,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.025,
+        "y": 0.07
+      },
+      {
+        "x": 0.05,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials ended off track, with no finishes. Progress was 0.24 on the oval, 0.14 on the s-bend and 0.10 on the slalom. Max error reached about 0.064 m, just above the 0.06 m off-track limit. Line-loss events averaged 1 to 2 per run. Iteration 1 cut speed and gains and moved the score by only -0.008, so the controller tweak alone is not the lever. The robot is not drifting slowly. It loses the line in bursts at bends and transitions.\n\nDiagnosis: the sensors sit at x = \u00b10.04 with 12 mm footprints, so the outer sensors see no tape until the robot is already about 0.03 m off centre. That gives late, weak correction. The sensor row is also only 5 cm ahead of the axle, which gives little lookahead for the steering loop. The body_width limit cannot help: with body_width 0.18 the limit is max(0.06, 0.0125 + 0.045) = 0.06, so widening the body buys nothing.\n\nChanges: (1) Geometry: spread the sensors to x = -0.05, -0.025, 0, 0.025, 0.05 so the outer pair engages earlier. Move the row forward to y = 0.07 for more lookahead. Increase sensor_size to 0.016 so each footprint covers more of the 25 mm tape and the signal is less noisy. (2) Controller: reduce kp from 4.0 to 3.0 to limit overshoot at the higher sensor gain. Raise kd from 0.8 to 1.2 to damp the jitter (oscillation was 0.14 to 0.21). Keep base_speed at 1.4 so the speed is not cut further, since completion needs about 1.5 m/s average. ki stays at 0.02. Keep line_loss as last_direction.\n\nExpected result: fewer off-track excursions and line losses on the oval and s-bend, with progress rising well above 0.25. The slalom is still the hardest track. I expect the change to lift progress and reduce max_error, though not yet to a finish. The next revision should use the new steering-oscillation and line-loss numbers to set kp and kd."
+}

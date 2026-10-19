@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.6,
+    "ki": 0.02,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.06
+      },
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.06,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials of iterations 0 and 2 went off track with zero completions. Progress was only 0.11 to 0.16, each run had one line-loss event, and max_error (0.061 to 0.068 m) passed the 0.06 m off-track floor, while rms_error stayed near 0.03 m. Steering oscillation is low (0.07 to 0.16), so the failure is not jitter. The robot tracks reasonably on average, then loses the tape at a larger excursion, and the 0.35-throttle last_direction search carries it off the course. Body width cannot widen the limit, since max(0.06, 0.0125 + body_width/4) stays at 0.06 for every allowed width.\n\nChanges: (1) Sensor span widened from x = -0.04..+0.04 to -0.06..+0.06 (five sensors, 0.03 m spacing), so the tape stays visible at larger lateral errors and line loss is less likely. The 0.016 m footprint from iteration 2 is kept for edge coverage. (2) Sensor row kept at y = 0.06 m. (3) kp reduced from 2.5 to 2.0 and kd raised from 0.6 to 0.6 with the wider spacing. Because the wider spacing means each unit of signal now corresponds to a larger physical offset, a lower kp prevents over-correction of the strong edge signal (\u00b12). (4) base_speed reduced from 1.5 to 1.2 to give the controller more margin on the sharpest bends; this trades away finish time, but finishing is currently out of reach and leaving the track costs far more. (5) ki kept at 0.02 and line_loss kept at last_direction. Geometry otherwise unchanged (mass 0.7 kg, body 0.16 x 0.12 m, wheel track 0.12 m, wheel radius 0.03 m).\n\nExpected result: fewer line-loss events, max_error close to or under 0.06 m, and progress above 0.2 on the development tracks. Completion is unlikely at 1.2 base speed, so the score gain should come mainly from progress. The main risk is that the wider span makes the signal less sensitive near centre, which could raise rms_error; the revision round should check this."
+}

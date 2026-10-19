@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.8,
+    "ki": 0.02,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials went off track early (progress 0.11 to 0.16, zero completions). Each run had one line-loss event, and max_error (0.062 to 0.068 m) exceeded the 0.06 m off-track floor, while rms_error stayed near 0.03 m. The robot therefore tracked reasonably on average but drifted out at the first sharp excursion. With body_width 0.12 the off-track limit is the 0.06 m floor, and body_width cannot raise it because the allowed range tops out at 0.18 m, which only reaches about 0.0575 m. The most likely causes are an overshooting, under-damped response at 1.8 base speed with kp 3.0, and a 6 cm sensor span with 12 mm sensors that loses the tape at the edges and triggers line loss.\n\nChanges: (1) Sensor spacing widened to 0.02 m (x = -0.04 to +0.04) so the array keeps the line in view further out, reducing line-loss events. A 16 mm footprint would help edge coverage, but I kept 12 mm to limit changes to one main factor. (2) kp reduced from 3.0 to 2.0 and kd raised from 0.3 to 0.8 to cut overshoot and jitter, since steering oscillation was 0.07 to 0.15. Because the sensor spacing is larger, the signal per mm is smaller, so kp 2.0 remains a firm correction. (3) base_speed reduced from 1.8 to 1.4 to give the controller room to track the bends. (4) ki set to 0.02 to limit integrator windup on the long bends.\n\nTrade-off: slowing the robot lowers the chance of finishing within 3 s, since about 1.5 m/s average is needed. I accept that to stop leaving the track, because finishing is worth 500 points and a run that leaves the track scores almost nothing. Expected result: fewer off-track exits, progress well above 0.5 on the development tracks, and possibly the first completions. Finish time may be near the 3 s limit, so completion is uncertain."
+}

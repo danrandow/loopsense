@@ -1,0 +1,252 @@
+map:
+  id: race-214-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 4
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 3.
+dimensions:
+  time_horizon: prepared
+  iteration: '4'
+overrides:
+  entities:
+  - id: entity0
+    label: Slower, more damped draft
+    notes: 'Lower base speed (1.0), kp 2.0, kd 1.0, ki 0 and a 5-sensor 16 mm array
+      at y=0.05 m, aimed at fewer line losses and longer progress. Based on all 60
+      trials going off track at progress 0.11-0.16 with max_error just over 0.06 m,
+      and on the score being driven by progress.
+
+
+      ### Rationale
+
+
+      Evidence: all 60 development trials on the three tracks went off track with
+      zero completions. Progress was only 0.11 to 0.16, each run had one line-loss
+      event, and max_error (0.061 to 0.068 m) passed the 0.06 m off-track floor, while
+      rms_error stayed near 0.03 m and steering oscillation was low (0.07 to 0.16).
+      The robot tracks reasonably on average, then makes one large excursion, loses
+      the tape, and the 0.35-throttle last_direction search carries it off. Base speed
+      did not change the outcome: 1.2 to 1.8 all gave similar progress, so speed is
+      not the main cause. The score is dominated by progress (250*progress plus a
+      progress-weighted term), so staying on the line longer matters more than finish
+      time, which is out of reach at this stage.
+
+
+      Changes: (1) Base speed lowered from 1.2 to 1.0 to reduce lateral drift in the
+      fast bends. Even this is a modest cut, since a clean run at a slower speed is
+      worth more than a fast run that leaves the track. (2) kp set to 2.0 and kd raised
+      to 1.0 for stronger damping of overshoot at the edge. With edge signal of 2,
+      turn is 4, which gives about 1400 PWM of differential, below the 2047 base PWM
+      at speed 1.0, so the wheels do not reverse. (3) ki set to 0 to remove integrator
+      windup on the bends. (4) Sensors moved to y = 0.05 m, 16 mm footprint kept,
+      spacing 0.02 m across x = -0.04 to +0.04, so the array covers the tape at larger
+      offsets while staying close to the axle for quicker reaction. (5) Mass reduced
+      to 0.6 kg to lower yaw inertia so the body turns more readily. Geometry otherwise
+      unchanged; line_loss stays last_direction.
+
+
+      Expected result: fewer line-loss events, max_error under 0.06 m on most seeds,
+      and progress above 0.3 on the development tracks. Completion remains unlikely.
+      The main risk is that the lower speed and extra damping slow the response enough
+      to hurt rms_error; the revision round should check this.
+
+
+      - [Open this output](iteration-4/entity0/versions/e2d3961c8f4c4967947079667df6b0ac/payload.json)
+
+      - Based on: [entityR2A](iteration-4/entityR2A/versions/carried-22596f928a458be0/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Round-1 Critique. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-4/entityC1/versions/d236309136ce4d55bac623307dacbff2/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/e2d3961c8f4c4967947079667df6b0ac/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-22596f928a458be0/payload.json)'
+  - id: entity1
+    label: Isolated kd test (r2)
+    notes: 'Reverts the draft to the best-raced iteration-2 design and changes only
+      kd (0.2 to 0.4), following the critique''s one-factor request. Keeps kp 2.5
+      and ki 0.2 to correct under-steering and motor mismatch, and rejects the speed
+      cut and the unsupported mass and sensor-height changes.
+
+
+      ### Rationale
+
+
+      Response to the round-1 critique. I partly accept it and reject one part.
+
+
+      Evidence: the raced iteration-2 design (16 mm sensors, x = -0.04..+0.04 at 0.02
+      m pitch, y = 0.04, kp 2.5, kd 0.2, ki 0.2, base 1.6, body 0.18, mass 0.8) is
+      the best-scoring run (52.11). All 60 trials went off track at progress 0.11
+      to 0.16, with one line-loss event each and max_error 0.061 to 0.068 m. rms_error
+      stayed near 0.03 m and steering oscillation was low (0.07 to 0.16). The excursion
+      peak is under-corrected, not oscillating. Iteration 0 (kp 3.0) failed the same
+      way, so gain changes alone have not moved the outcome.
+
+
+      Accepted from the critique: (a) the draft''s kp cut to 2.0 works against the
+      under-correction evidence, so I restore kp to 2.5, the raced value. (b) ki 0.02
+      cannot cancel the fixed motor mismatch, so I restore ki 0.2 (integral maximum
+      about 0.4 turn, roughly 140 PWM). (c) The unexplained mass 0.6, body_length
+      0.16 and y 0.05 changes had no evidence, so I revert them to the raced values
+      (mass 0.8, body_length 0.18, y 0.04). (d) The draft''s kd 1.0 has no noise bound,
+      so I use a moderate kd 0.4. With a signal-rate noise of about 2 units/s, that
+      gives about 0.8 turn (about 280 PWM), below the base PWM of about 3276 at speed
+      1.6.
+
+
+      Rejected from the critique: I do not drop base_speed to 1.0. The critique''s
+      own point is that speed reduction costs progress, and progress is what the score
+      rewards. I keep 1.6, the raced value.
+
+
+      The design now differs from the raced iteration-2 design in one controller parameter
+      only: kd 0.2 to 0.4. This follows the critique''s request to change one main
+      factor per race, so any result change can be attributed to damping.
+
+
+      Expected results (hypotheses, not data): progress close to or above 0.16, and
+      max_error nearer 0.06 m if damping reduces the excursion. A small or no change
+      is the likely outcome, since the failure mode is not yet explained. Completion
+      remains unlikely at this speed. Test: compare progress, max_error and line_loss_events
+      on the s-bend and slalom tracks against iteration 2. If the change is neutral,
+      the next round should test the line-loss recovery mode, which the critique flagged
+      as untested.
+
+
+      - [Open this output](iteration-4/entity1/versions/8037c9356f654abe83b7a673d8590590/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/e2d3961c8f4c4967947079667df6b0ac/payload.json),
+      [entityC1](iteration-4/entityC1/versions/d236309136ce4d55bac623307dacbff2/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-22596f928a458be0/payload.json)'
+  - id: entityC2
+    label: Round-2 Critique
+    notes: 'Critiques the kd 0.2 to 0.4 revision as a one-factor test that probably
+      cannot fix the line-loss-triggered excursion seen in all 60 raced trials. Points
+      to line-loss recovery as the likelier cause and notes that the rationale gives
+      no measurable decision rule.
+
+
+      - [Open this output](iteration-4/entityC2/versions/7be070bc2979494fa58638d7eb51b38b/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/8037c9356f654abe83b7a673d8590590/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-22596f928a458be0/payload.json)'
+  - id: entity2
+    label: kd 0.4 single-factor test
+    notes: 'Final design is the revised candidate: the raced iteration-2 design with
+      kd raised from 0.2 to 0.4, and kp, ki, mass, body length and sensor layout restored
+      to raced values. The critique''s line-loss recovery concern is deferred to the
+      next round, since no evidence yet gives a direction for search modes. The kd
+      noise bound is an assumption, not a measurement.
+
+
+      ### Rationale
+
+
+      Final design. I keep the revised design unchanged, so it races as written.
+
+
+      What I kept from the critique: (a) kp 2.5 and ki 0.2 stay at the raced values,
+      since the evidence points to under-correction at the excursion peak and the
+      critique rightly noted that ki 0.02 cannot cancel the motor mismatch. (b) Mass
+      0.8, body_length 0.18 and y 0.04 are restored to the raced values, since the
+      earlier changes had no evidence. (c) The change is one controller factor against
+      the raced iteration-2 design: kd 0.2 to 0.4. Any result change can then be attributed
+      to damping.
+
+
+      What I rejected: I did not switch line_loss mode, because the critique gives
+      no evidence for search_left or search_right, and the correct turn direction
+      is unknown. I did not cut base_speed to 1.0, because progress is what the score
+      rewards and the critique gave no measured cost.
+
+
+      Noise bound: the kd 0.4 limit rests on an assumed 2 percent signal-rate noise
+      of about 2 units/s, not a measurement. That gives about 0.8 turn (about 280
+      PWM), which is below base PWM of about 3276 at speed 1.6. I flag this as an
+      assumption.
+
+
+      Expected results (hypotheses, not data): a small change in progress, max_error
+      and line_loss_events against iteration 2 (progress 0.11 / 0.16 / 0.11, max_error
+      0.061 to 0.068). Decision rule: if progress rises above 0.16 on the s-bend or
+      max_error falls below 0.06 m on the oval or slalom, keep kd 0.4. If the change
+      is within the seed spread, it is neutral, and the next round should test line-loss
+      recovery, which the critique flagged as untested. Completion is unlikely at
+      this speed.
+
+
+      - [Open this output](iteration-4/entity2/versions/dab43d4307cd413b8bdb99ef3ec957f5/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/8037c9356f654abe83b7a673d8590590/payload.json),
+      [entityC2](iteration-4/entityC2/versions/7be070bc2979494fa58638d7eb51b38b/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-22596f928a458be0/payload.json)'
+  - id: entityR2A
+    label: Score 220.09
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 220.09.
+      Per trial — oval-1: 293.4 (off_track); oval-2: 214.7 (off_track); oval-3: 242.4
+      (off_track); oval-4: 952.6 (finished); oval-5: 293.5 (off_track); oval-6: 956.1
+      (finished); oval-7: 290.3 (off_track); oval-8: 77.8 (off_track); oval-9: 949.0
+      (finished); oval-10: 291.8 (off_track); oval-11: 947.1 (finished); oval-12:
+      205.5 (off_track); oval-13: 312.2 (off_track); oval-14: 286.3 (off_track); oval-15:
+      394.6 (off_track); oval-16: 348.2 (off_track); oval-17: 403.5 (off_track); oval-18:
+      948.4 (finished); oval-19: 327.9 (off_track); oval-20: 935.1 (finished); s-bend-1:
+      105.8 (off_track); s-bend-2: 110.8 (off_track); s-bend-3: 106.9 (off_track);
+      s-bend-4: 112.8 (off_track); s-bend-5: 112.8 (off_track); s-bend-6: 110.8 (off_track);
+      s-bend-7: 106.9 (off_track); s-bend-8: 112.8 (off_track); s-bend-9: 110.8 (off_track);
+      s-bend-10: 60.7 (off_track); s-bend-11: 112.8 (off_track); s-bend-12: 112.8
+      (off_track); s-bend-13: 106.9 (off_track); s-bend-14: 109.0 (off_track); s-bend-15:
+      112.8 (off_track); s-bend-16: 112.8 (off_track); s-bend-17: 110.8 (off_track);
+      s-bend-18: 66.8 (off_track); s-bend-19: 112.8 (off_track); s-bend-20: 108.9
+      (off_track); slalom-1: 70.9 (off_track); slalom-2: 72.8 (off_track); slalom-3:
+      71.8 (off_track); slalom-4: 71.8 (off_track); slalom-5: 70.9 (off_track); slalom-6:
+      73.9 (off_track); slalom-7: 69.8 (off_track); slalom-8: 71.8 (off_track); slalom-9:
+      71.8 (off_track); slalom-10: 46.2 (off_track); slalom-11: 71.8 (off_track);
+      slalom-12: 72.9 (off_track); slalom-13: 75.7 (off_track); slalom-14: 71.8 (off_track);
+      slalom-15: 70.9 (off_track); slalom-16: 70.9 (off_track); slalom-17: 72.9 (off_track);
+      slalom-18: 71.8 (off_track); slalom-19: 72.9 (off_track); slalom-20: 73.9 (off_track).
+
+
+      - [Open this output](iteration-4/entityR2A/versions/8e6dfd505925457488df87b82db21844/payload.json)
+
+      - Based on: [entity2](iteration-4/entity2/versions/dab43d4307cd413b8bdb99ef3ec957f5/payload.json)'
+  - id: entityOut
+    label: Score 220.09
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 220.09.
+      Per trial — oval-1: 293.4 (off_track); oval-2: 214.7 (off_track); oval-3: 242.4
+      (off_track); oval-4: 952.6 (finished); oval-5: 293.5 (off_track); oval-6: 956.1
+      (finished); oval-7: 290.3 (off_track); oval-8: 77.8 (off_track); oval-9: 949.0
+      (finished); oval-10: 291.8 (off_track); oval-11: 947.1 (finished); oval-12:
+      205.5 (off_track); oval-13: 312.2 (off_track); oval-14: 286.3 (off_track); oval-15:
+      394.6 (off_track); oval-16: 348.2 (off_track); oval-17: 403.5 (off_track); oval-18:
+      948.4 (finished); oval-19: 327.9 (off_track); oval-20: 935.1 (finished); s-bend-1:
+      105.8 (off_track); s-bend-2: 110.8 (off_track); s-bend-3: 106.9 (off_track);
+      s-bend-4: 112.8 (off_track); s-bend-5: 112.8 (off_track); s-bend-6: 110.8 (off_track);
+      s-bend-7: 106.9 (off_track); s-bend-8: 112.8 (off_track); s-bend-9: 110.8 (off_track);
+      s-bend-10: 60.7 (off_track); s-bend-11: 112.8 (off_track); s-bend-12: 112.8
+      (off_track); s-bend-13: 106.9 (off_track); s-bend-14: 109.0 (off_track); s-bend-15:
+      112.8 (off_track); s-bend-16: 112.8 (off_track); s-bend-17: 110.8 (off_track);
+      s-bend-18: 66.8 (off_track); s-bend-19: 112.8 (off_track); s-bend-20: 108.9
+      (off_track); slalom-1: 70.9 (off_track); slalom-2: 72.8 (off_track); slalom-3:
+      71.8 (off_track); slalom-4: 71.8 (off_track); slalom-5: 70.9 (off_track); slalom-6:
+      73.9 (off_track); slalom-7: 69.8 (off_track); slalom-8: 71.8 (off_track); slalom-9:
+      71.8 (off_track); slalom-10: 46.2 (off_track); slalom-11: 71.8 (off_track);
+      slalom-12: 72.9 (off_track); slalom-13: 75.7 (off_track); slalom-14: 71.8 (off_track);
+      slalom-15: 70.9 (off_track); slalom-16: 70.9 (off_track); slalom-17: 72.9 (off_track);
+      slalom-18: 71.8 (off_track); slalom-19: 72.9 (off_track); slalom-20: 73.9 (off_track).
+
+
+      - [Open this output](iteration-4/entityOut/versions/8e6dfd505925457488df87b82db21844/payload.json)
+
+      - Based on: [entity2](iteration-4/entity2/versions/dab43d4307cd413b8bdb99ef3ec957f5/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+  - id: action4
+  - id: action5
+measurements: {}

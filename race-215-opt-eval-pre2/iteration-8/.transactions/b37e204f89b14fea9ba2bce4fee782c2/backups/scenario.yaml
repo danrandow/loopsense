@@ -1,0 +1,265 @@
+map:
+  id: race-215-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 8
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 7.
+dimensions:
+  time_horizon: prepared
+  iteration: '8'
+overrides:
+  entities:
+  - id: entity0
+    label: Test integral (ki 1.0)
+    notes: 'Raises ki from 0.05 to 1.0 on the iteration 7 geometry to test whether
+      a steady left/right motor mismatch causes the shared early off-track failure.
+      Every prior trial ended off track at about 0.061 m error, and gain changes alone
+      moved nothing.
+
+
+      ### Rationale
+
+
+      Evidence: all 420 trials across iterations 0-7 ended off track, with exactly
+      one line-loss event per trial and max_error of about 0.061 m. That is just above
+      the 0.06 m off-track limit, which is the floor for any body_width up to 0.18
+      m. Progress stayed between 0.04 and 0.15. Gain, speed and mass changes moved
+      the score very little (kp 1.5 to 6, kd 0.05 to 0.6, ki 0 to 0.3). Moving the
+      sensors forward (iteration 3) and widening the array to 7 sensors (iteration
+      4) raised s-bend and slalom progress, so sensing matters. Switching line_loss
+      to search_right (iteration 7) gave a small score gain, but the oval metrics
+      did not move. The near-identical max_error across every design, with a single
+      early line loss, suggests a steady bias rather than oscillation. The fixed left/right
+      motor mismatch is the likely source. Integral action is clamped at +/-2, so
+      ki = 0.3 can only supply about 0.6 of turn, roughly 210 PWM, which may be too
+      small to cancel the mismatch. I have not yet tested a large ki.
+
+
+      Changes: (1) ki raised from 0.05 to 1.0. The integral clamp at 2 gives up to
+      2 units of turn (about 700 PWM), which tests the mismatch hypothesis directly.
+      (2) Geometry kept from iteration 7 (7 sensors at y = 0.06 m, x = -0.03 to +0.03
+      m, footprint 0.016 m, mass 0.6 kg, wheel_track 0.14 m) so the only change is
+      the integral term. (3) kp 2.0, kd 0.6, base_speed 1.0 and line_loss search_right
+      unchanged, so the comparison with iteration 7 isolates ki.
+
+
+      Expected result: if a steady mismatch bias is the cause, max_error should fall
+      below 0.06 m and the first line loss should move later or disappear, which would
+      raise progress on the oval and s-bend. If the integral causes overshoot, max_error
+      will rise, which would rule out the bias hypothesis and point to a different
+      cause, such as the start condition or the sensor layout. Finishing within 3
+      s is still unlikely at this speed.
+
+
+      - [Open this output](iteration-8/entity0/versions/f14595552af245ba880f3152fc6af033/payload.json)
+
+      - Based on: [entityR2A](iteration-8/entityR2A/versions/carried-a34cba9273e5e30a/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Critique focuses on the ki = 1.0 test: prior ki 0.1 to 0.3 gave identical
+      results, the 2 percent mismatch is only about 0.12 turn, the integral is slow
+      relative to the early first loss, and max_error is censored at 0.06 m. Also
+      re-flags the unaddressed kd saturation risk.
+
+
+      - [Open this output](iteration-8/entityC1/versions/75f5e1a41bb44183adfd7f0e3f3c0f25/payload.json)
+
+      - Based on: [entity0](iteration-8/entity0/versions/f14595552af245ba880f3152fc6af033/payload.json),
+      [entityR2A](iteration-8/entityR2A/versions/carried-a34cba9273e5e30a/payload.json)'
+  - id: entity1
+    label: Iter 7 base, ki 0.1 to
+    notes: 'Returns to the best raced design (iteration 7, score 49.95) and changes
+      only ki, from 0.1 to 1.0, to test whether the integral can cancel the fixed
+      motor-mismatch bias. kd is kept at 0.1 because the critique''s saturation point
+      is valid for kd 0.6, and iteration 6 showed kd 0.05 is worse. Evidence is the
+      identical iteration 0 and 2 results and the one-line-loss pattern in every trial.
+
+
+      ### Rationale
+
+
+      Evidence: the best raced design is iteration 7 (score 49.95): 5 sensors at y
+      = 0.06 m, x = -0.03 to +0.03 m, 0.016 m footprint, mass 0.8 kg, wheel_track
+      0.12 m, kp 2.0, ki 0.1, kd 0.1, base_speed 1.4, search_right. Every trial in
+      every iteration ended off track with exactly one line-loss event, and max_error
+      is censored near 0.061 m by the 0.06 m limit. Iterations 0 and 2 gave identical
+      per-track metrics across large kp, kd and ki changes, so gains did not reach
+      the first loss. Iteration 6 (kd 0.05 instead of 0.1) fell from 49.94 to 35.65,
+      so kd matters somewhat even though it does not set the first loss.
+
+
+      Critique assessment. Accepted: the round-1 draft changed too many things at
+      once. Its geometry (7 sensors, mass 0.6, wheel_track 0.14) and its kp, kd and
+      base_speed were not isolated, so no result could be attributed. Accepted: kd
+      0.6 is about 6 times the raced value and, at a 0.5 signal step per 10 ms, risks
+      saturating the wheels, so kd returns to the raced 0.1. Accepted: the critique
+      is right that a 2% motor mismatch is only about 0.12 turn units, and that the
+      integral''s timing before the first loss is unchecked. Partly accepted: the
+      ki test is still worth running, because it is the only untested term that could
+      counter the fixed left/right bias, and the integral clamp of +/-2 bounds its
+      effect. I do not accept the claim that ki 0.1 to 0.3 was a null test over the
+      whole run, since it was confounded with other changes. Rejected: I keep base_speed
+      at 1.4, since changing speed now would confound the ki test, and I do not claim
+      completion.
+
+
+      Change (one variable from iteration 7): ki 0.1 to 1.0. The integral clamp gives
+      up to 2 turn units (about 700 PWM), which is enough to cancel a steady bias
+      if the bias is the cause. Everything else matches iteration 7.
+
+
+      Expected result (a guess, labelled as such): if a steady bias drives the first
+      loss, the first-loss step should move later or disappear, and progress should
+      rise on the oval and s-bend. If the first loss is unchanged, the integral is
+      not reaching a useful size before the loss, and the cause is the start condition
+      or the recovery rule.
+
+
+      Decision rule for the next round: if the first-loss step and progress at first
+      loss are unchanged, set ki back to 0.1 and test start handling with geometry
+      and gains fixed. If the loss moves later and progress rises, keep ki 1.0 and
+      check whether the integral windup shows up as steering_oscillation. If max_error
+      and oscillation rise together, drop ki to about 0.3. Read first-loss timing
+      and progress at first loss, not max_error, because failed runs are censored
+      at 0.061 m.
+
+
+      - [Open this output](iteration-8/entity1/versions/bba8f6c260da40f58a58bac582cf96bb/payload.json)
+
+      - Based on: [entity0](iteration-8/entity0/versions/f14595552af245ba880f3152fc6af033/payload.json),
+      [entityC1](iteration-8/entityC1/versions/75f5e1a41bb44183adfd7f0e3f3c0f25/payload.json),
+      [entityR2A](iteration-8/entityR2A/versions/carried-a34cba9273e5e30a/payload.json)'
+  - id: entityC2
+    label: Round-2 Critique
+    notes: 'Critiques the ki 1.0 revision: the integral clamp (up to 2 units) is about
+      five times the earlier ''modest'' bound and well above the roughly 0.12-unit
+      motor bias. It also notes that the first-loss step and progress at first loss
+      are not returned by the requested measurements, so the decision rule cannot
+      be read. Evidence is the iteration 0 to 7 outcome table and the prior critiques.
+
+
+      - [Open this output](iteration-8/entityC2/versions/7a1eb78edb3145bea51842b65794f5f4/payload.json)
+
+      - Based on: [entity1](iteration-8/entity1/versions/bba8f6c260da40f58a58bac582cf96bb/payload.json),
+      [entityR2A](iteration-8/entityR2A/versions/carried-a34cba9273e5e30a/payload.json)'
+  - id: entity2
+    label: ki 0.4 integral test
+    notes: 'Final design is iteration 7 with ki reduced from the critiqued 1.0 to
+      0.4, a single-variable test of whether the integral reaches the first line loss.
+      The change is sized so the integral''s clamp (about 0.8 turn units) remains
+      well above the roughly 0.12-unit motor bias estimate without the overshoot risk
+      the critique raised for ki 1.0.
+
+
+      ### Rationale
+
+
+      Evidence: iteration 7 (search_right on the iteration 3 design) is the best raced
+      design at 49.955, but it is only 0.016 above iteration 3, which is within seed
+      noise, so it is a plateau and not a demonstrated improvement. Every trial in
+      every iteration ended off track with one line-loss event, and max_error is censored
+      near 0.061 m, so it cannot be used as a pass test. Iterations 0 and 2 gave identical
+      per-track metrics across large kp, kd and ki changes, so the controller has
+      not been shown to move the first loss. Iteration 6 showed that kd is not neutral
+      (kd 0.05 scored 35.65).
+
+
+      Critique handling. Accepted: ki 1.0 is a tenfold step with an unjustified size.
+      Its clamp (up to 2 turn units) is well above the roughly 0.12-unit motor-mismatch
+      bias estimate, and it could cause overshoot on bends. I reduce it to ki 0.4
+      (integral contribution up to 0.8 units, about 280 PWM). That is still about
+      six times the bias estimate, so the test stays informative, and it is the largest
+      ki the earlier round called modest. Accepted: the rule that relies on max_error
+      is removed. Accepted: the integral units are not stated in the contract, so
+      I state the assumption that the integral accumulates the signal per 10 ms step.
+      Partly accepted: the first-loss timing may be unreachable by the integral, so
+      I state the null outcome in advance rather than claiming a fix. Rejected: changing
+      base_speed or start handling now. Speed would confound the ki test, and the
+      critique''s suggested start test needs a separate round. Kept: kd 0.1, kp 2.0,
+      the five-sensor geometry, search_right, and base_speed 1.4, so the change is
+      a single variable from iteration 7.
+
+
+      Change: ki 0.1 to 0.4. Everything else matches iteration 7.
+
+
+      Falsifiable expectation: if progress on the s-bend and slalom and the oval is
+      unchanged to four decimals versus iteration 7 (oval 0.1117, s-bend 0.1475, slalom
+      0.1042), the integral is not reaching a useful size before the loss, and the
+      next round should test start handling with ki returned to 0.1. If progress rises
+      by more than 0.002 on any track, the integral is contributing, and the next
+      step is to check whether steering_oscillation rises with it. If steering_oscillation
+      and control_effort both rise while progress falls, reduce ki toward 0.2.
+
+
+      - [Open this output](iteration-8/entity2/versions/59dda6fb2f0b44a2b53e75abacb223df/payload.json)
+
+      - Based on: [entity1](iteration-8/entity1/versions/bba8f6c260da40f58a58bac582cf96bb/payload.json),
+      [entityC2](iteration-8/entityC2/versions/7a1eb78edb3145bea51842b65794f5f4/payload.json),
+      [entityR2A](iteration-8/entityR2A/versions/carried-a34cba9273e5e30a/payload.json)'
+  - id: entityR2A
+    label: Score 49.95
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 49.95.
+      Per trial — oval-1: 47.3 (off_track); oval-2: 45.3 (off_track); oval-3: 45.3
+      (off_track); oval-4: 47.3 (off_track); oval-5: 45.3 (off_track); oval-6: 45.3
+      (off_track); oval-7: 45.3 (off_track); oval-8: 47.3 (off_track); oval-9: 45.3
+      (off_track); oval-10: 47.3 (off_track); oval-11: 45.3 (off_track); oval-12:
+      45.3 (off_track); oval-13: 45.3 (off_track); oval-14: 45.3 (off_track); oval-15:
+      47.3 (off_track); oval-16: 45.3 (off_track); oval-17: 45.3 (off_track); oval-18:
+      47.3 (off_track); oval-19: 47.3 (off_track); oval-20: 45.3 (off_track); s-bend-1:
+      61.0 (off_track); s-bend-2: 61.0 (off_track); s-bend-3: 61.0 (off_track); s-bend-4:
+      61.0 (off_track); s-bend-5: 61.0 (off_track); s-bend-6: 61.0 (off_track); s-bend-7:
+      61.0 (off_track); s-bend-8: 61.0 (off_track); s-bend-9: 61.0 (off_track); s-bend-10:
+      61.0 (off_track); s-bend-11: 61.0 (off_track); s-bend-12: 61.0 (off_track);
+      s-bend-13: 61.0 (off_track); s-bend-14: 61.0 (off_track); s-bend-15: 61.0 (off_track);
+      s-bend-16: 61.0 (off_track); s-bend-17: 61.0 (off_track); s-bend-18: 61.0 (off_track);
+      s-bend-19: 61.0 (off_track); s-bend-20: 61.0 (off_track); slalom-1: 43.2 (off_track);
+      slalom-2: 43.2 (off_track); slalom-3: 43.2 (off_track); slalom-4: 43.2 (off_track);
+      slalom-5: 42.2 (off_track); slalom-6: 42.2 (off_track); slalom-7: 43.2 (off_track);
+      slalom-8: 42.2 (off_track); slalom-9: 43.2 (off_track); slalom-10: 43.2 (off_track);
+      slalom-11: 43.2 (off_track); slalom-12: 43.2 (off_track); slalom-13: 43.2 (off_track);
+      slalom-14: 43.2 (off_track); slalom-15: 43.2 (off_track); slalom-16: 42.2 (off_track);
+      slalom-17: 43.2 (off_track); slalom-18: 42.2 (off_track); slalom-19: 43.2 (off_track);
+      slalom-20: 42.2 (off_track).
+
+
+      - [Open this output](iteration-7/entityR2A/versions/fa15ba53355c4a6681e7240ab3b9f665/payload.json)
+
+      - Based on: [entity2](iteration-7/entity2/versions/6f16f61fe4e84144a9cb07cc102f092c/payload.json)'
+  - id: entityOut
+    label: Score 49.95
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 49.95.
+      Per trial — oval-1: 47.3 (off_track); oval-2: 45.3 (off_track); oval-3: 45.3
+      (off_track); oval-4: 47.3 (off_track); oval-5: 45.3 (off_track); oval-6: 45.3
+      (off_track); oval-7: 45.3 (off_track); oval-8: 47.3 (off_track); oval-9: 45.3
+      (off_track); oval-10: 47.3 (off_track); oval-11: 45.3 (off_track); oval-12:
+      45.3 (off_track); oval-13: 45.3 (off_track); oval-14: 45.3 (off_track); oval-15:
+      47.3 (off_track); oval-16: 45.3 (off_track); oval-17: 45.3 (off_track); oval-18:
+      47.3 (off_track); oval-19: 47.3 (off_track); oval-20: 45.3 (off_track); s-bend-1:
+      61.0 (off_track); s-bend-2: 61.0 (off_track); s-bend-3: 61.0 (off_track); s-bend-4:
+      61.0 (off_track); s-bend-5: 61.0 (off_track); s-bend-6: 61.0 (off_track); s-bend-7:
+      61.0 (off_track); s-bend-8: 61.0 (off_track); s-bend-9: 61.0 (off_track); s-bend-10:
+      61.0 (off_track); s-bend-11: 61.0 (off_track); s-bend-12: 61.0 (off_track);
+      s-bend-13: 61.0 (off_track); s-bend-14: 61.0 (off_track); s-bend-15: 61.0 (off_track);
+      s-bend-16: 61.0 (off_track); s-bend-17: 61.0 (off_track); s-bend-18: 61.0 (off_track);
+      s-bend-19: 61.0 (off_track); s-bend-20: 61.0 (off_track); slalom-1: 43.2 (off_track);
+      slalom-2: 43.2 (off_track); slalom-3: 43.2 (off_track); slalom-4: 43.2 (off_track);
+      slalom-5: 42.2 (off_track); slalom-6: 42.2 (off_track); slalom-7: 43.2 (off_track);
+      slalom-8: 42.2 (off_track); slalom-9: 43.2 (off_track); slalom-10: 43.2 (off_track);
+      slalom-11: 43.2 (off_track); slalom-12: 43.2 (off_track); slalom-13: 43.2 (off_track);
+      slalom-14: 43.2 (off_track); slalom-15: 43.2 (off_track); slalom-16: 42.2 (off_track);
+      slalom-17: 43.2 (off_track); slalom-18: 42.2 (off_track); slalom-19: 43.2 (off_track);
+      slalom-20: 42.2 (off_track).
+
+
+      - [Open this output](iteration-7/entityOut/versions/fa15ba53355c4a6681e7240ab3b9f665/payload.json)
+
+      - Based on: [entity2](iteration-7/entity2/versions/6f16f61fe4e84144a9cb07cc102f092c/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+  - id: action4
+  - id: action5
+measurements: {}

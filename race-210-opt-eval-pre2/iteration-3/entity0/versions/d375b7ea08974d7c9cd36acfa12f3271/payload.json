@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 1.2,
+    "ki": 0.5,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.07
+      },
+      {
+        "x": -0.025,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.025,
+        "y": 0.07
+      },
+      {
+        "x": 0.05,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 180 development trials across iterations 0 to 2 ended off track with no finishes. Max error sits at about 0.064 m, just over the 0.06 m limit, while rms error is steady at 0.024 to 0.030 m. Across three different gain sets and two sensor layouts, the scores moved by less than 0.04 points. That means the proportional gains, the derivative gain and the sensor layout are not the binding constraint. A persistent bias is the more likely cause. The fixed left/right motor mismatch pushes the robot to one side, and a purely proportional steering loop settles at an offset of about mismatch/kp. That offset adds to the bend excursions and pushes the peak error over 0.06 m. Iteration 2's kp of 3.0 is the lowest so far, so this offset is largest there, which fits the flat scores.\n\nChange: keep the iteration-2 geometry, which is the best scoring layout, so the race isolates the controller. Raise ki from 0.02 to 0.5 so the integral term removes the steady mismatch offset. The integral is clamped to \u00b12, so the worst-case extra turn is about 350*0.5*2 = 350 PWM counts, which is a bounded correction. Keep kp 3.0, kd 1.2 and base_speed 1.4, because completion needs roughly 1.5 m/s and speed has not been shown to be the cause. Keep last_direction line loss.\n\nExpected result: less steady-state drift, lower max_error (target below 0.05 m on the oval and s-bend), fewer line-loss events, and progress above 0.3. The risk is that ki of 0.5 adds overshoot on the slalom. If so, the next revision should lower ki or raise kd rather than change geometry."
+}

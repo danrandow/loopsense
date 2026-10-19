@@ -1,0 +1,279 @@
+map:
+  id: race-217-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 8
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 7.
+dimensions:
+  time_horizon: prepared
+  iteration: '8'
+overrides:
+  entities:
+  - id: entity0
+    label: Wider track, more damping
+    notes: 'Keeps the forward sensor row at y=0.08 that gave the best score so far
+      (58.17), and raises wheel_track to 0.16 and kd to 1.5 to cut steering gain and
+      oscillation (about 0.17). base_speed drops to 1.4 to reduce overshoot. The evidence
+      is that every run goes off track at max_error just over 0.06 m, so the expected
+      gain is modest.
+
+
+      ### Rationale
+
+
+      Evidence: across 60 trials per design and 8 iterations, every run ended off_track
+      with zero completions. Progress has stayed between 0.04 and 0.17. max_error
+      sits at 0.060 to 0.067, just past the 0.06 m limit, and every run logs 1 to
+      2 line-loss events with steering_oscillation of 0.14 to 0.18. Body width cannot
+      widen the limit: even at body_width 0.18 it is max(0.06, 0.0125 + 0.045) = 0.06
+      m, so the off-track threshold is fixed by the geometry bounds.
+
+
+      What moved the score: iterations with sensors at y = 0.04 scored about 40 (or
+      26 with 2.5 kp and wider spacing). Moving the sensor row forward to y = 0.06
+      and then 0.08, with sensor_size 0.016, wheel_track 0.14 and kp 3.0, gave 57.80
+      and 58.17. The forward-lookahead hypothesis fits, but iteration 7 changed only
+      the sensor y (+0.02), and that gained just 0.38. Lookahead is now close to saturated,
+      so the remaining failure is probably oscillation and overshoot once the robot
+      is off the line.
+
+
+      Changes, applied to the iteration-7 design with sensors kept at y = 0.08, 7
+      sensors at 0.01 m spacing, sensor_size 0.016, and linear weights -1 to +1:
+
+      (1) wheel_track 0.14 to 0.16. A wider track lowers the yaw rate per unit of
+      wheel difference, which reduces the effective steering gain. The earlier 0.12
+      to 0.14 change coincided with the largest gain, so I extend the same direction.
+
+      (2) kd 1.0 to 1.5, to damp the steering_oscillation of about 0.17, the most
+      consistent symptom in the telemetry.
+
+      (3) kp held at 3.0, so the steering authority stays the same while the damping
+      and track change.
+
+      (4) base_speed 1.5 to 1.4. Lower speed gives the loop more time to correct on
+      the bends. This costs some completion-time score, but progress has never gone
+      above 0.17, so the run must first travel further on the line.
+
+      (5) ki 0.0, mass 0.6, body and wheel radius unchanged, line_loss ''last_direction''
+      unchanged.
+
+
+      Expected result: a modest gain over 58.17, from fewer line-loss events and a
+      longer run on the line, with progress rising above 0.2. Completion is still
+      unlikely. The main risk is that the wider track also weakens turning on the
+      sharpest bend and causes under-steering, which would show as lower progress
+      on the slalom.
+
+
+      - [Open this output](iteration-8/entity0/versions/5700d7e59d614056950a664de63cfd0c/payload.json)
+
+      - Based on: [entityR2A](iteration-8/entityR2A/versions/carried-8d62ec433a521438/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Critiques the draft''s kd 1.5 and wheel_track 0.16 steps as unsupported,
+      shows that the steering-gain and speed trade-offs are unquantified, and flags
+      that the oval failure is not addressed. Evidence is the iteration 0 to 7 race
+      aggregates, which show oscillation following kp and geometry rather than kd.
+
+
+      - [Open this output](iteration-8/entityC1/versions/a7cdcf808bc7413e96073590c2604f57/payload.json)
+
+      - Based on: [entity0](iteration-8/entity0/versions/5700d7e59d614056950a664de63cfd0c/payload.json),
+      [entityR2A](iteration-8/entityR2A/versions/carried-8d62ec433a521438/payload.json)'
+  - id: entity1
+    label: Speed 1.3 on raced 58.17
+    notes: 'Reverts to the raced iteration-7 design (58.17) and changes only base_speed
+      from 1.5 to 1.3, rejecting the unraced kd 1.5 and reduced steering-gain draft.
+      The single change is tested against line-loss and progress targets, with a reversal
+      rule if the score falls.
+
+
+      ### Rationale
+
+
+      Evidence: the best raced design is iteration 7 (score 58.17; oval 63.49, s-bend
+      66.85, slalom 44.19; no completions). Its telemetry shows 2 line-loss events
+      per run on the oval, 1 on the s-bend and slalom, and steering_oscillation of
+      0.149 to 0.169. Progress is 0.11 to 0.16. Every run still ends off_track.
+
+
+      What I accepted from the round-1 critique: (1) My draft''s stated baseline was
+      wrong. It attributed the gain to values that were never raced (wheel_track 0.14,
+      kp 3.0, kd 1.0, mass 0.6, sensor_size 0.016). I reject that draft. (2) kd 1.5
+      is not supported. The loop gives kd x 100 turn units per unit of signal change
+      per step, so kd 1.5 amplifies sensor noise. Earlier kd changes did not show
+      damping, and the oscillation tracked kp and sensor geometry instead. I drop
+      kd 1.5 and keep kd 0.1. (3) Reducing the steering gain (wheel_track 0.16 with
+      kp 3.0) is unquantified and is the same direction as the iteration 2 under-steering
+      failure. I drop it. (4) The draft changed several variables at once, so the
+      next race could not be attributed. I return to the raced 58.17 design.
+
+
+      What I rejected from the critique: I did not treat the oval as unexplainable.
+      The oval is an open question, and I do not claim to fix it here.
+
+
+      What I changed: one variable only, base_speed 1.5 to 1.3. Progress, not completion,
+      is the only reachable score term. Completion has not occurred on any track,
+      and the 1.5 m/s finish requirement is unmeasured. Lowering speed reduces the
+      drive demand and gives the loop more time per bend, which may cut the 1 to 2
+      line-loss events. The cost is a possible loss of progress if the robot stalls,
+      and the completion-time term is already zero.
+
+
+      Falsifiable targets relative to 58.17: line_loss_events at or below 1 on every
+      track; oval max_error below 0.06; steering_oscillation not above 0.16; progress
+      at or above 0.16 on all tracks.
+
+
+      Reversal rule: if the score falls below 58.17, or any track''s progress falls,
+      return base_speed to 1.5. If line-loss counts stay at 2 on the oval with progress
+      unchanged, speed is not the cause, and the next single change should target
+      the oval start transient rather than gains.
+
+
+      - [Open this output](iteration-8/entity1/versions/d717e6e4a9bc4d9babe917c054341900/payload.json)
+
+      - Based on: [entity0](iteration-8/entity0/versions/5700d7e59d614056950a664de63cfd0c/payload.json),
+      [entityC1](iteration-8/entityC1/versions/a7cdcf808bc7413e96073590c2604f57/payload.json),
+      [entityR2A](iteration-8/entityR2A/versions/carried-8d62ec433a521438/payload.json)'
+  - id: entityC2
+    label: Round-2 Critique
+    notes: 'Critiques the reverted y 0.08 single-variable change. Evidence: raced
+      iteration 6 shows early drift (progress 0.07 to 0.16, max_error 0.061 to 0.067),
+      so lookahead is unlikely to be the main fix; several falsifiable targets are
+      already met by the baseline.
+
+
+      - [Open this output](iteration-7/entityC2/versions/d41e902925044ec3b1e8121c40a991a9/payload.json)
+
+      - Based on: [entity1](iteration-7/entity1/versions/af1689fb189e4933bacd90be2023e32c/payload.json),
+      [entityR2A](iteration-7/entityR2A/versions/carried-76af15d55730ac74/payload.json)'
+  - id: entity2
+    label: Sensor row y 0.08 test
+    notes: 'Single change from the raced iteration-6 baseline (57.80): sensor row
+      moved from y 0.06 to 0.08, everything else unchanged. Kept as an attributable
+      test; the critique accepted the one-variable design but judged the expected
+      effect small, so reversal and continuation rules are set against the raced values.
+
+
+      ### Rationale
+
+
+      Evidence: the best raced design (iteration 6, score 57.7959) ended off track
+      in all 60 trials. Oval scored 64.37 with 2 line-loss events and max_error 0.0668.
+      S-bend scored 64.84 with 1 line-loss event and max_error 0.0613. Slalom scored
+      44.18 with 1 line-loss event and progress 0.11. No run completed. The critique''s
+      central point is that the failure is early drift, not a lookahead problem. I
+      accept that point as a caveat, but not as a reason to abandon the test. Across
+      raced designs, the robot leaves the line within roughly the first metre, and
+      no change to gain, speed or sensor layout has moved that pattern.
+
+
+      What I kept from the revision and critique: the revision reverted to the exact
+      raced iteration-6 design and changed one variable, sensor row y from 0.06 to
+      0.08. This keeps the 57.7959 baseline measurable, so any score change is attributable.
+      The critique confirms this is the cleanest test available. I keep the change
+      as a test, not a fix.
+
+
+      What I rejected: the critique''s suggestion to stop here is not adopted, because
+      the test is cheap and attributable. I did not add any second change (kd, base_speed,
+      or ki), since that would undo attribution. I did not implement the critique''s
+      point that the falsifiable targets should be restated, beyond noting it here.
+      Targets are measured against the raced values: oval max_error below 0.0668 (not
+      the 0.06 boundary), oval line_loss_events below 2, s-bend and slalom line_loss_events
+      at or below 1 (already met, so they guard against regression only), slalom progress
+      above 0.1075, and oval steering_oscillation at or below 0.1704 (its raced value).
+
+
+      Expected effect: small, about 13 ms of extra lookahead at 1.5 base. I expect
+      a score delta of under about 1 point. Differences smaller than that should be
+      treated as noise, not a real change. Risk: at y 0.08 the 12 mm footprint reads
+      tape up to about 0.088 m ahead, which may bias the outer sensors on sharp bends.
+
+
+      Reversal rule: if the score falls by more than about 1 point, or any track''s
+      mean max_error rises by more than about 0.002 above its raced value, return
+      to y 0.06. If the score rises but runs still leave the track, the next single
+      change is base_speed 1.3 or kd 0.2 (not 0.3, given the critique''s noise concern),
+      chosen by which of line_loss or steering_oscillation worsens.
+
+
+      Open risk: the 2 oval line-loss events and the early start transient remain
+      unexplained. The next race should be read with per-step telemetry, if it is
+      available, to locate the first divergence.
+
+
+      - [Open this output](iteration-7/entity2/versions/a5fecfdec38a4c9eb33d81b0dfbf0123/payload.json)
+
+      - Based on: [entity1](iteration-7/entity1/versions/af1689fb189e4933bacd90be2023e32c/payload.json),
+      [entityC2](iteration-7/entityC2/versions/d41e902925044ec3b1e8121c40a991a9/payload.json),
+      [entityR2A](iteration-7/entityR2A/versions/carried-76af15d55730ac74/payload.json)'
+  - id: entityR2A
+    label: Score 58.17
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 58.17.
+      Per trial — oval-1: 63.5 (off_track); oval-2: 63.5 (off_track); oval-3: 63.5
+      (off_track); oval-4: 63.5 (off_track); oval-5: 63.5 (off_track); oval-6: 63.5
+      (off_track); oval-7: 63.5 (off_track); oval-8: 63.5 (off_track); oval-9: 63.5
+      (off_track); oval-10: 63.5 (off_track); oval-11: 63.5 (off_track); oval-12:
+      63.5 (off_track); oval-13: 63.5 (off_track); oval-14: 63.5 (off_track); oval-15:
+      63.5 (off_track); oval-16: 63.5 (off_track); oval-17: 63.5 (off_track); oval-18:
+      63.5 (off_track); oval-19: 63.5 (off_track); oval-20: 63.5 (off_track); s-bend-1:
+      66.8 (off_track); s-bend-2: 66.8 (off_track); s-bend-3: 66.8 (off_track); s-bend-4:
+      66.8 (off_track); s-bend-5: 66.8 (off_track); s-bend-6: 66.8 (off_track); s-bend-7:
+      66.8 (off_track); s-bend-8: 66.8 (off_track); s-bend-9: 66.8 (off_track); s-bend-10:
+      66.8 (off_track); s-bend-11: 66.8 (off_track); s-bend-12: 66.8 (off_track);
+      s-bend-13: 66.8 (off_track); s-bend-14: 66.8 (off_track); s-bend-15: 66.8 (off_track);
+      s-bend-16: 66.8 (off_track); s-bend-17: 66.8 (off_track); s-bend-18: 66.8 (off_track);
+      s-bend-19: 66.8 (off_track); s-bend-20: 66.8 (off_track); slalom-1: 44.2 (off_track);
+      slalom-2: 44.2 (off_track); slalom-3: 44.2 (off_track); slalom-4: 44.2 (off_track);
+      slalom-5: 44.2 (off_track); slalom-6: 44.2 (off_track); slalom-7: 44.2 (off_track);
+      slalom-8: 44.2 (off_track); slalom-9: 44.2 (off_track); slalom-10: 44.2 (off_track);
+      slalom-11: 44.2 (off_track); slalom-12: 44.2 (off_track); slalom-13: 44.2 (off_track);
+      slalom-14: 44.2 (off_track); slalom-15: 44.2 (off_track); slalom-16: 44.2 (off_track);
+      slalom-17: 44.2 (off_track); slalom-18: 44.2 (off_track); slalom-19: 44.2 (off_track);
+      slalom-20: 44.2 (off_track).
+
+
+      - [Open this output](iteration-7/entityR2A/versions/ce52b1d3b1824423a854c1af00f649ed/payload.json)
+
+      - Based on: [entity2](iteration-7/entity2/versions/a5fecfdec38a4c9eb33d81b0dfbf0123/payload.json)'
+  - id: entityOut
+    label: Score 58.17
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 58.17.
+      Per trial — oval-1: 63.5 (off_track); oval-2: 63.5 (off_track); oval-3: 63.5
+      (off_track); oval-4: 63.5 (off_track); oval-5: 63.5 (off_track); oval-6: 63.5
+      (off_track); oval-7: 63.5 (off_track); oval-8: 63.5 (off_track); oval-9: 63.5
+      (off_track); oval-10: 63.5 (off_track); oval-11: 63.5 (off_track); oval-12:
+      63.5 (off_track); oval-13: 63.5 (off_track); oval-14: 63.5 (off_track); oval-15:
+      63.5 (off_track); oval-16: 63.5 (off_track); oval-17: 63.5 (off_track); oval-18:
+      63.5 (off_track); oval-19: 63.5 (off_track); oval-20: 63.5 (off_track); s-bend-1:
+      66.8 (off_track); s-bend-2: 66.8 (off_track); s-bend-3: 66.8 (off_track); s-bend-4:
+      66.8 (off_track); s-bend-5: 66.8 (off_track); s-bend-6: 66.8 (off_track); s-bend-7:
+      66.8 (off_track); s-bend-8: 66.8 (off_track); s-bend-9: 66.8 (off_track); s-bend-10:
+      66.8 (off_track); s-bend-11: 66.8 (off_track); s-bend-12: 66.8 (off_track);
+      s-bend-13: 66.8 (off_track); s-bend-14: 66.8 (off_track); s-bend-15: 66.8 (off_track);
+      s-bend-16: 66.8 (off_track); s-bend-17: 66.8 (off_track); s-bend-18: 66.8 (off_track);
+      s-bend-19: 66.8 (off_track); s-bend-20: 66.8 (off_track); slalom-1: 44.2 (off_track);
+      slalom-2: 44.2 (off_track); slalom-3: 44.2 (off_track); slalom-4: 44.2 (off_track);
+      slalom-5: 44.2 (off_track); slalom-6: 44.2 (off_track); slalom-7: 44.2 (off_track);
+      slalom-8: 44.2 (off_track); slalom-9: 44.2 (off_track); slalom-10: 44.2 (off_track);
+      slalom-11: 44.2 (off_track); slalom-12: 44.2 (off_track); slalom-13: 44.2 (off_track);
+      slalom-14: 44.2 (off_track); slalom-15: 44.2 (off_track); slalom-16: 44.2 (off_track);
+      slalom-17: 44.2 (off_track); slalom-18: 44.2 (off_track); slalom-19: 44.2 (off_track);
+      slalom-20: 44.2 (off_track).
+
+
+      - [Open this output](iteration-7/entityOut/versions/ce52b1d3b1824423a854c1af00f649ed/payload.json)
+
+      - Based on: [entity2](iteration-7/entity2/versions/a5fecfdec38a4c9eb33d81b0dfbf0123/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+  - id: action4
+  - id: action5
+measurements: {}

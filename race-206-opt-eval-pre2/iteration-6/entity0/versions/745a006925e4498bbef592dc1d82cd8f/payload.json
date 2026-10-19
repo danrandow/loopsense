@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 0.8,
+    "kd": 1.0,
+    "ki": 0.6,
+    "kp": 1.2,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.4,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.05
+      },
+      {
+        "x": -0.04,
+        "y": 0.05
+      },
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      },
+      {
+        "x": 0.04,
+        "y": 0.05
+      },
+      {
+        "x": 0.06,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.14
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all six designs so far ended off-track in all 60 trials. max_error sits at 0.061 to 0.066 m against the 0.06 m limit, and rms_error is about 0.03 m regardless of gain. Iteration 5 widened the sensor span to +/-0.06 m with 16 mm footprints, and its per-track metrics match iteration 3 almost exactly (oval progress 0.1675, max_error 0.0661 vs 0.0662). That rules out the sensor span as the cause, since line loss was not the binding failure. Gain changes from kp 1.2 to 3 and base speed from 0.9 to 1.6 also barely moved the failure point. The common factor looks like a slow, bias-driven drift that the loop corrects too late, combined with the fixed left/right motor mismatch.\n\nChanges: (1) Keep the seven-sensor, 16 mm array and weights from iteration 5, since that geometry is now shown to be neutral and gives the widest tape coverage. (2) Reduce mass from 0.6 to 0.4 kg, the lower bound, to cut yaw inertia so the robot responds faster to steering commands. (3) Lower base_speed from 1.0 to 0.8 to give the loop more time to correct on each bend. (4) Lower kp from 1.6 to 1.2 to reduce overshoot at the lower speed and the lighter mass. (5) Raise ki from 0.3 to 0.6 so the integral cancels the constant motor-mismatch bias faster; the integral stays bounded at +/-2. (6) Set kd to 1.0, a moderate increase, to damp the faster response without amplifying sensor noise. line_loss stays last_direction.\n\nExpected result: max_error below about 0.05 m, zero or near-zero line-loss events, and progress above 0.2 on the development tracks. Completion within 3 s is still unlikely at 0.8 base speed. Uncertainty: this is a combined test of bias and damping, so if max_error stays at 0.06 with no line loss, the next step is a larger change in wheel_track or a further reduction in base_speed."
+}

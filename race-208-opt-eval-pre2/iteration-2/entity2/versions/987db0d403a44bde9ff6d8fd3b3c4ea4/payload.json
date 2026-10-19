@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.4,
+    "ki": 0.3,
+    "kp": 2.8,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.06
+      },
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.06,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 1 (sensors at x \u00b10.06, kp 2.5, kd 0.3, base 1.7) still ended off track in all 60 trials, with progress 0.11 to 0.18 and max_error 0.0607 to 0.0621. Widening the span removed line loss on the oval and s-bend but did not move max_error, so the array edge is not the sole limit. Rms_error stayed at 0.03 m across all tracks, which points to steady tracking error or steering lag. Iteration 0 at base 1.8 gave more oval progress (0.17) than iteration 1 at base 1.7 (0.125), but the two runs also differed in sensor span and kd, so speed cannot be isolated from the data. Iteration 1 also showed steering_oscillation on the oval falling from 0.109 to 0.074 as kd rose from 0.2 to 0.3 to 0.4 across iterations. That is weak, confounded evidence that more damping lowers jitter.\n\nWhat I kept: the wide sensor span x = -0.06 to +0.06 with 16 mm footprints (line-loss removal on two tracks is the only consistent positive signal), sensor y = 0.06 for look-ahead, ki 0.3 (it is in every run so far and handles the fixed motor-mismatch bias, with the integral clamped at \u00b12), kd 0.4 (the oscillation trend above), and body and wheel geometry, since nothing points to them.\n\nWhat I changed in response to the round-2 critique: kp 3.0 to 2.8. The critique is right that with edge-only detection the signal pins at \u00b12, so kp 3.0 gives about 6 turn at full deflection and raises overshoot risk back across the line. 2.8 keeps more steering authority than the 2.5 already run, without moving to the full-saturation gain. base_speed 1.6 stays. It is the margin between 1.5 (no slack for bends or the 0.35 line-loss throttle) and 1.7 to 1.8 (speed effects not isolated). At 1.6 m/s a 4 to 5 m course needs about 2.5 to 3.1 s, so the time limit is a real risk, but a timeout only costs the 500-point completion credit on runs that would otherwise complete, and the critique's concern is accepted as a flag rather than a reason to cut speed further.\n\nRejected: the critique's suggestion to reduce base_speed for time bonus. Completion is worth far more than the bonus.\n\nExpected results (guesses, not measurements): completion 1 on some tracks, completion_time about 2.5 to 3.0 s when it completes, progress above 0.3, max_error below 0.06 on most runs, and line_loss_events 0 to 1.\n\nDecision rules for the next telemetry, keyed on completion and progress rather than time: if the run times out on track (completion 0, progress below 1, no off-track end), raise base_speed to about 1.8. If the robot leaves the track with max_error at 0.06 and no line loss, the cause is overshoot or lag, so lower kp to about 2.5 before raising ki. If line loss returns at the edge, the span is still too narrow. If steering_oscillation exceeds about 0.2, lower kd first."
+}

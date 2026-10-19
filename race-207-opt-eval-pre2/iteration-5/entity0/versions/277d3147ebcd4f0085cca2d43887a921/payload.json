@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.8,
+    "ki": 0.0,
+    "kp": 3.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      1.0,
+      0.5,
+      0.0,
+      -0.5,
+      -1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.07,
+        "y": 0.04
+      },
+      {
+        "x": 0.035,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": -0.035,
+        "y": 0.04
+      },
+      {
+        "x": -0.07,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: across 180 development trials (iterations 0 to 4), none finished. Every run ended off track at progress 0.04 to 0.15, with max_error at the 0.06 m off-track limit. The s-bend progress sat at exactly 0.1475 in iterations 0, 1, 2 and 4, despite changes to kp (2.5 to 4.5), kd (0.5 to 1.0), ki, base_speed (1.3 to 1.6), sensor size (12 vs 16 mm), sensor forward position (y 0.03 to 0.05) and track/mass. Iteration 3 was worse (s-bend 0.043) when the sensors were moved back to y=0.03 and kp was cut to 2.5. The common factor in all runs is the sensor span: every design has sensors within about \u00b10.04 to \u00b10.06 m, and iteration 1 at \u00b10.06 still failed at the same point. A row this narrow means that once the robot drifts about 0.04 m, the outer sensors read little or no tape, the weighted signal collapses, and the controller loses the line. Line loss then happens about once per run, and the robot leaves the tape. The fixed s-bend failure point is therefore most likely a drift-and-lose-line event, not a gain or speed limit.\n\nChanges from iteration 0 (the best-scoring design): (1) Widen the sensor span to \u00b10.07 m with five sensors at x = +0.07, +0.035, 0, -0.035, -0.07 and y = 0.04. This keeps at least one sensor on the tape out to about 0.08 m of offset, which is beyond the 0.06 m off-track limit, so the controller should keep a usable signal through the drift that currently ends the run. (2) Use 16 mm sensor footprints so each sensor overlaps the 25 mm tape more, giving smoother readings at the wider spacing. (3) Keep kp at 3.5 and kd at 0.8, with ki at 0, as in iteration 4, which was not worse than iteration 0. (4) Lower base_speed to 1.4 to give more correction time at the bends where the line is lost. This costs some progress rate, but the score is currently driven by how far the robot travels before going off track. Geometry otherwise matches iteration 0 to keep the comparison clean.\n\nExpected result: the s-bend progress should rise above 0.1475, because the robot should no longer lose the line at the same drift point. Max_error should stay near or below 0.06 m, and line_loss_events should fall toward 0.5 or lower per run. Completion is still unlikely, because the 3 s limit needs about 1.5 m/s average. If progress improves a lot, the next iteration should raise base_speed back toward 1.6 to 1.8. If progress does not improve, the sensor span is not the cause and I should test line_loss 'search_right' or a shorter forward sensor row."
+}

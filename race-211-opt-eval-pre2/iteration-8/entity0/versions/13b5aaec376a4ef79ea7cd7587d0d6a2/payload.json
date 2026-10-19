@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 0.9,
+    "kd": 1.2,
+    "ki": 1.0,
+    "kp": 4.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.67,
+      -0.33,
+      0.0,
+      0.33,
+      0.67,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.5,
+    "sensor_positions": [
+      {
+        "x": -0.075,
+        "y": 0.06
+      },
+      {
+        "x": -0.05,
+        "y": 0.06
+      },
+      {
+        "x": -0.025,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.025,
+        "y": 0.06
+      },
+      {
+        "x": 0.05,
+        "y": 0.06
+      },
+      {
+        "x": 0.075,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 7 designs raced so far went off track in every development trial (finish rate 0). The off-track limit is max(0.06, 0.0125 + body_width/4), so it stays at 0.06 m across the allowed body widths, and max_error sits at that limit in every race. rms_error is about 0.03 and steering_oscillation is low (0.06 to 0.17). The robot therefore drifts steadily toward one edge rather than jittering. Iteration 6 (wide 7-sensor array, kd 1.2, base_speed 0.9, track 0.10, mass 0.5) is the best race at 69.3, with oval progress 0.24 and s-bend progress 0.14. Iteration 7 lowered speed to 0.7 and raised kd to 1.6, and oval progress fell to 0.196, so that step was worse. Slalom progress is fixed at 0.1025 in every race since iteration 5, so kd and speed do not move that failure point.\n\nDiagnosis: a fixed left/right motor mismatch gives a steady bias. With ki = 0, a purely proportional loop settles at an offset of about bias/kp, which is consistent with a constant drift to the edge. Iteration 3 tested ki = 0.6 on the narrow array and changed the score by only -0.58, but that test was confounded by a weak narrow sensor signal and kp 3.0. The wide array's signal is roughly proportional to offset, so integral action should now act on the real bias.\n\nChange: keep the iteration-6 geometry and the kd 1.2, base_speed 0.9 and kp 4.5 controller, and add ki = 1.0 to remove the steady motor-mismatch offset. The integral is capped at +/-2, so the maximum added turn is about 700 PWM (1.0 x 2 x 350), which bounds windup on sustained curves. I am changing only ki so that the race isolates its effect.\n\nExpected result: the steady offset should shrink, so max_error should drop and oval and s-bend progress should rise above 0.24 and 0.14. Completion within 3 s is still unlikely at speed 0.9. If tracking holds, a later revision should raise base_speed in steps. The main risk is integral overshoot on curves, which I will watch through steering_oscillation."
+}

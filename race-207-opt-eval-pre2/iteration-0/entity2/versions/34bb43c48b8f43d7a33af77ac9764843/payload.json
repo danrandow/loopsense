@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.15,
+    "ki": 0.05,
+    "kp": 3.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      1.0,
+      0.5,
+      0.0,
+      -0.5,
+      -1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.04,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "I accept most of the round-2 critique but keep the core design, because no race data exists yet and the critique's alternatives are also unverified.\n\nKept: base_speed 1.5 (base PWM 3071, 75%). Completion in 3 s needs roughly 1.5 m/s average, and the critique offered no measured alternative. I acknowledge that PWM-to-speed mapping is unverified and will check it in the race.\n\nKept: kp 3.5, with kp*signal giving roughly 245 to 735 PWM of turn at typical edge signals. The critique's saturation concern is real, but a lower kp risks losing the line on sharp bends. I keep 3.5 and rely on the next race's steering_oscillation and rms_error to decide.\n\nKept: kd 0.15 and ki 0.05. The ki term is nearly inert and I do not claim it removes steady drift. The kd value is a light damper; I drop the unsupported 2%-per-step noise arithmetic from the rationale.\n\nKept: sensor row at y=0.06 with x from -0.04 to +0.04 in 0.02 m steps and sensor_size 0.012. The critique notes that outer sensors may lose the line on the slalom beyond about 0.04 m offset. That is accepted as a known risk, not fixed here.\n\nChanged: I make the decision rule more precise. Lower base_speed only if line_loss_events is above 2 and max_error exceeds 0.05 together, because max_error alone can rise on a clean recovery. If completion is 0 with progress below 0.9, check line_loss_events and steering_oscillation before changing speed, since this is the sharp-bend failure the critique identified.\n\nRejected: the conservative low-speed start. Completion within 3 s requires real speed.\n\nExpected result: completion on the oval and s-bend, with the most risk on the slalom and on the held-back track's sharpest bend. Results will show whether the speed and gain assumptions hold."
+}

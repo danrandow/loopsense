@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.7,
+    "kd": 0.3,
+    "ki": 0.3,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.06
+      },
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      },
+      {
+        "x": 0.06,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 0 (sensors at x \u00b10.04 with 16 mm footprints, base_speed 1.8, kd 0.2) ended off track in all 60 trials, with progress 0.11 to 0.17, one line-loss event each, and max_error about 0.06 m. Low rms_error (0.02 to 0.03) shows the controller tracks well until the tape leaves the array. The sensor edge at about \u00b10.06 m fits this, so the sensor span is the most credible cause. The round-2 critique does not dispute the diagnosis.\n\nWhat I kept from my revision:\n- Sensor layout: x at -0.06, -0.03, 0, 0.03, 0.06, y 0.06, footprint 0.016. This covers offsets to about \u00b10.07 m, beyond the 0.06 m off-track limit. The 15 mm offset check still holds: the centre sensors read about 0.34 each, so the line-loss sum stays above 0.05.\n- Weights [-2,-1,0,1,2], kp 2.5, ki 0.3, line_loss last_direction, and the body and wheel geometry.\n- kd is kept at a moderate value, not the draft's 0.6.\n\nWhat I changed in response to the critique:\n- base_speed 1.5 to 1.7. The critique is right that 1.5 is the bare minimum for the 3 s limit with no allowance for bends, the line-loss throttle or drivetrain losses. A timeout forfeits the 500-point completion credit, which outweighs the time bonus. I rejected the critique's suggestion to stay at 1.5 for this reason. I did not go to 1.8: the 1.8 run failed on the sensor edge, and speed-driven overshoot is not yet ruled out. 1.7 is a margin between these.\n- kd 0.4 to 0.3. The critique says the increase is unevidenced and steering_oscillation has not been measured at 0.4. 0.3 sits between the tested 0.2 and the untested 0.4, which limits derivative spikes at sensor entry and exit. The race will show the effect in steering_oscillation.\n- Rejected: the critique's point that the signal saturates at \u00b12 at the array edge. This matters only once the robot is near the edge, and the wider array should keep it away from there. I left kp unchanged to keep the race interpretable.\n\nCaveat: the sensor span and speed both change from the iteration 0 design, so improvements or failures cannot be attributed to one change alone. The next race will separate them.\n\nExpected result (a guess, not a measurement): progress near 1 with completion 1, completion_time about 2.7 to 2.9 s, and line_loss_events 0 to 1. Contingency rules: if the robot still leaves the line at one point with a single loss, the next change is kp up or base_speed down, not geometry. If it completes but the completion_time is near 3 s, raise base_speed a little. If steering_oscillation is high on the s-bend, lower kd first."
+}

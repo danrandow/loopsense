@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.05,
+    "ki": 0.0,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.015,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Final design: geometry unchanged, controller unchanged from the revision (base_speed 1.6, kp 2.0, ki 0.0, kd 0.05, sensor_weights [-1.5, -0.75, 0, 0.75, 1.5], line_loss last_direction). No race data exists yet, so every claim below is a judgement, not a measurement.\n\nWhat I kept and why:\n- kd = 0.05 (critique 1 and 2). The critique is right that kd is unverified. A 1-unit signal change over one 10 ms step is 100 units per second, so kd = 0.05 can add about 5 turn units at a sharp tape edge. That is larger than kp times the largest signal (about 3). This is an upper bound, since the sensor footprints change the signal gradually, but it means kd is not negligible. I still keep 0.05, not 0.2, because that is the only change I can attribute cleanly. Reducing kd lowers noise-driven jitter but also reduces lateral damping, so steering_oscillation and max_error could move in either direction. The race will decide. If max_error or line_loss_events rise with no change in jitter, the next step is kd back to about 0.1. If steering_oscillation is high and max_error is low, the next step is kd about 0.02.\n- base_speed = 1.6 (critique 3). The 3 s limit needs about 1.5 m/s average, and the robot must accelerate from rest, so 1.6 is the lowest speed I think is safe for completion. I have no drivetrain data to justify a different value. Turn losses on the slalom are the main risk. If the run completes with max_error or line loss rising on the sharpest bend, the next change is base_speed down, before any gain change.\n- ki = 0 (critique 6). The 2 percent mismatch is about 0.19 turn units, which kp can handle, so ki is not needed for this iteration.\n- last_direction (critique 5). No evidence favours a search direction. I expect few line losses on the oval and s-bend, and more on the slalom.\n- Geometry unchanged (critique 4). Changing it alongside the controller would confound the result. The 0.04 m sensor lead is a deliberate choice to see the line before the wheels reach it, but I have not tested it.\n- Off-track margin: for any body_width the limit is 0.06 m, so I do not rely on body width for safety.\n\nWhat I rejected: the critique's suggestion to restore damping or drop speed now. Both would be a second change in the same race, so I deferred them to the next iteration, where they can be tested alone.\n\nExpected outcome (hypothesis): completion on oval and s-bend, with the slalom as the main risk. The measures that decide the next step are completion, progress, line_loss_events, max_error and steering_oscillation. A failure on the slalom with low max_error points to speed. A high max_error with no line loss points to damping, which is kd."
+}

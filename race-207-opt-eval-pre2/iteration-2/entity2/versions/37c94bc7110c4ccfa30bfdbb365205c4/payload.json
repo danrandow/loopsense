@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.15,
+    "ki": 0.05,
+    "kp": 3.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      1.0,
+      0.5,
+      0.0,
+      -0.5,
+      -1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": 0.04,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 0 (score 53.0178) remains the best design. Its 60 development trials all ended off track at progress 0.11 to 0.15, with about one line-loss event per run and rms_error 0.025 to 0.031. Iteration 1 changed four controller values at once and scored 50.6, so it gives no usable signal about any single factor.\n\nWhat I kept, changed and rejected after the round-2 critique:\n(1) Kept the iteration 0 controller exactly (base_speed 1.5, kp 3.5, ki 0.05, kd 0.15, weights [1, 0.5, 0, -0.5, -1], line_loss last_direction) and the iteration 0 geometry, except for the sensor footprint below.\n(2) Changed one factor only: sensor_size from 0.012 to 0.016. The critique is right that this is a weak mechanism. The line-loss threshold is reached only when the robot is nearly off the tape, so a larger footprint may not prevent the exit. It is kept as a clean single-variable probe, not as a fix. The critique's blur concern is real: at 0.016 m footprints on 0.02 m spacing, the centre signal will average over more of the tape edge, so this change could lower the score. That outcome would itself be informative.\n(3) Accepted the critique's point that the failure is shared across all three tracks at progress 0.11 to 0.15. That suggests a common early feature, such as a start-up transient or the first bend. This race does not test that directly, but progress and max_error will show whether the footprint change moves it.\n(4) Rejected the kp, ki, kd and base_speed changes from iteration 1, because that iteration was confounded and scored lower. Rejected the wider or forward sensor array and the mass and track changes for the same attribution reason.\n\nExpected result: line_loss_events at or below about 1.0 per run and progress at or above 0.15. If line loss falls and progress rises, keep sensor_size 0.016 and test kp alone next. If line loss is unchanged, revert sensor_size and test kp alone. If the score falls below 53 with progress unchanged, treat the larger footprint as blurring the centre signal and revert it. If progress exceeds 0.9 with completion 0, raise base_speed by 0.1."
+}

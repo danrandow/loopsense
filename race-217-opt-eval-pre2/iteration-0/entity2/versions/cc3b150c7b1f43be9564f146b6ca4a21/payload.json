@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.02,
+    "ki": 0.1,
+    "kp": 5.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Final design, adopting most of the round-2 critique but not all of it.\n\nAccepted: (1) The critique is right that base_speed is a PWM demand, not a ground speed, and that completion (500 points) matters more than the time term (60 points). I lower base_speed from 1.7 to 1.6. base_pwm becomes 4095*0.8 = 3276, so the outer wheel saturates only when 350*5*|signal| exceeds 4095-3276 = 819, i.e. |signal| above about 0.47. This gives more steering headroom on sharp bends and is a safer trade for completion, at a small cost in time. (2) The critique is right that the integral was dismissed too quickly. The fixed 2% left/right motor mismatch causes a steady-state offset of roughly mismatch/kp, which could push the robot toward one edge against the 0.06 m off-track floor. I set ki = 0.1 (not 0.05 or 0.2). The integral is clamped to +/-2, so ki*integral is at most 0.2 turn units (about 70 PWM), which is small enough that windup risk is negligible. (3) The critique's point that the 'steering is lost' framing is overstated is accepted; I describe saturation as reduced steering authority.\n\nKept: kp = 5 and sensor_weights [-1,-0.5,0,0.5,1]; kd = 0.02 (at 0.02 the derivative adds about 2 turn units per unit signal change per step, a small damping term whose effect will show in steering_oscillation); sensor_size 0.016 so adjacent footprints overlap and always see the 25 mm tape; sensors at y = 0.06 for about 35 ms lookahead at 1.7 m/s; last_direction line loss; body_width, mass, wheel_track unchanged because the 0.06 m off-track limit is already at its floor. Speed and the 1.7 m/s figure remain unmeasured; the race will show whether completion_time is under 3 s.\n\nExpected outcome: completion on oval and s-bend; slalom is the main risk. Falsifiable checks: if steering_oscillation is large relative to rms_error, kd or kp is too high; if line_loss_events are high on the slalom, base_speed is still too high; if the robot completes with a drift offset in max_error, ki is too small; if completion_time is above 3 s with no line losses, base_speed should rise next iteration. Fallback if the first race fails to complete: reduce base_speed to 1.4 before changing any other parameter."
+}

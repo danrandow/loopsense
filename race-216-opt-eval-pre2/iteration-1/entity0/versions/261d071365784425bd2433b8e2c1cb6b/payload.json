@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.5,
+    "ki": 0.0,
+    "kp": 3.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials ended off track (0 finishes). Progress was only 0.04 to 0.12, and max_error sat at about 0.061 m, just past the 0.06 m off-track limit. RMS error was about 0.03 m on every track, so the robot wandered roughly 3 cm from the line, and each track logged one line-loss event, which likely happened early when the line was lost and then regained. The robot is not cutting corners slowly; it departs the line within a fraction of a second.\n\nWhat I changed and why:\n1. Sensor span and footprint: sensors now sit at x = -0.04, -0.02, 0, 0.02, 0.04 m with 16 mm footprints (previously +/-0.03 m with 12 mm). The wider span keeps some sensor on the 25 mm tape at larger offsets, which should reduce the line-loss events and the momentary blindness that precedes the off-track exits.\n2. Weights scaled to the new spacing: [-2, -1, 0, 1, 2]. Signal is about 50 times the lateral offset, as before, so the steering scale per cm is unchanged while the signal stays inside the +/-2 weight limit.\n3. Gains: kp raised from 2.0 to 3.5 to correct the 3 cm wander harder, especially on bends, and kd raised from 0.2 to 0.5 to damp the swing across the line that appears when the correction overshoots.\n4. Speed: base_speed kept at 1.5. Finishing inside 3 s needs roughly 1.5 m/s, so I did not cut speed; the gain and sensing changes are meant to make the robot hold the line at that speed.\n5. Geometry otherwise unchanged (wheel track 0.12, radius 0.03, body 0.18 x 0.12, mass 0.8). Widening the body would not raise the off-track limit, since max(0.06, 0.0125 + body_width/4) stays at 0.06 for any body up to 0.18 m, so I kept it as it was.\n\nExpected result: fewer off-track exits and fewer line-loss events, so the oval and s-bend should see progress rise well above 0.12. A completion is possible but not certain. If the robot still leaves the line, the next race should show whether the gain or the speed is limiting."
+}

@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.3,
+    "ki": 0.3,
+    "kp": 2.0,
+    "line_loss": "search_right",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 9 iterations (about 540 trials) end off track after exactly one line-loss event, with oval progress 0.115 in almost every design and max_error about 0.061 m. Gains, speed and sensing have not moved this failure point.\n\nReview of the round-1 critique and my draft:\n- Accepted: the draft's rationale wrongly said sensor y stayed at 0.08 m. The last raced design (iteration 8) used y = 0.06 m, and the draft also changed mass (0.8 to 0.6) and wheel_track (0.12 to 0.14) without reporting them. Those changes are reverted here, so this candidate differs from iteration 8 by only the listed controller changes.\n- Accepted: kd = 1.0 is likely to saturate the wheels (about 50 turn units per second at a 0.5 weight step, against a 4095 PWM clamp). kd is moved only to 0.3.\n- Accepted: the base_speed cut to 0.8 has no supporting evidence, since oval progress was flat from 1.0 to 1.8. base_speed stays at 1.4.\n- Accepted: the footprint change to 0.012 m with 0.01 m spacing leaves gaps between sensors, so the footprint returns to 0.016 m (overlapping with 0.015 m spacing).\n- Partly accepted: the first line loss is probably a start or first-contact condition. I cannot change start handling with the inputs I have, so this candidate keeps search_right and changes only kd and ki. The next revision should check controller_errors and the first 0.5 s of telemetry if progress stays at about 0.115.\n\nChanges against iteration 8: kd 0.1 to 0.3 (damping, below the saturation range), ki 1.0 to 0.3 (ki = 0.3 was tested in iteration 2 with no visible change, so the integral is a weak lever here). Everything else is unchanged: kp 2.0, base_speed 1.4, sensors at y = 0.06 m, x = -0.03 to +0.03 m, footprint 0.016 m, geometry as iteration 8, search_right.\n\nExpected result: little change in oval progress (about 0.115). A small gain in s-bend or slalom progress is possible. A full course or completion is not expected from this step. Decision rule for the next revision: if the first-loss progress stays at 0.115 and max_error stays near 0.061, the cause is outside the gains and the next step should test the start condition and track geometry directly."
+}

@@ -1,0 +1,153 @@
+map:
+  id: race-214-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: 'Draft: 5-sensor, kp 3'
+    notes: 'A first draft with five 12 mm sensors spanning ±3 cm, kp 3, kd 0.3, base
+      speed 1.8 and last-direction line-loss recovery. No race telemetry was supplied,
+      so the values come from the contract''s physics and are a prior, not a fit to
+      past results.
+
+
+      ### Rationale
+
+
+      No race telemetry was supplied with this prompt, so this first draft rests on
+      the contract''s physics and sensing description rather than on past results.
+      The main risks are going off track on the sharper bends and failing to cover
+      the course within 3 s. The design therefore aims for a moderate speed with enough
+      steering authority and damping to stay on the line.
+
+
+      Geometry: five sensors spread across x = -0.03 to +0.03 m in 0.015 m steps,
+      all at y = 0.04 m ahead of the axle. This gives a 6 cm sensing span, wide enough
+      to catch the 25 mm tape at speed and to keep a line in view through bends. The
+      12 mm footprint is smaller than the tape, so readings vary smoothly as the line
+      moves across. Wheel track 0.12 m and wheel radius 0.03 m are mid-range. Body
+      width 0.12 m keeps the off-track limit at its 0.06 m floor, and the mass is
+      0.8 kg.
+
+
+      Controller: sensor_weights [-2, -1, 0, 1, 2] make the signal scale with the
+      lateral offset of the line (about 1 unit per 15 mm), and the sign follows the
+      contract (positive = left). kp = 3 gives roughly 875 PWM of differential for
+      a 12 mm offset, which should correct firmly without saturating. kd = 0.3 damps
+      the response to limit oscillation on the bends. ki = 0.05 is small, to avoid
+      integrator wind-up on long bends. base_speed = 1.8 (about 90 percent of full
+      PWM) is chosen to reach the average of about 1.5 m/s needed to finish in under
+      3 s while leaving some headroom for slowing on tight bends. line_loss = last_direction,
+      so the robot keeps turning toward the side it last saw the line.
+
+
+      Expected result: completion on the development tracks, a few line-loss events
+      at most, and rms_error well under 0.05 m. The main uncertainty is whether 1.8
+      is too fast for the sharpest bend; the revision rounds should check this against
+      the Evaluator''s critique.
+
+
+      - [Open this output](iteration-0/entity0/versions/0d2c78118a52492295e771a9ae8acd60/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Round-1 Critique. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-0/entityC1/versions/235d280398534ff3a04283114824b6ca/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/0d2c78118a52492295e771a9ae8acd60/payload.json)'
+  - id: entity1
+    label: Revised design v2
+    notes: 'Lowers base_speed to 1.7 for bend margin, raises ki to 0.3 to cancel the
+      motor mismatch, and cuts kd to 0.1 to limit noise jitter. The changes respond
+      to the critique''s points on speed, mismatch and derivative noise; the geometry
+      is kept unchanged, and the performance figures are hypotheses to test.
+
+
+      ### Rationale
+
+
+      What the critique got right, and what I changed.
+
+
+      (1) Speed. The contract does not map base_speed to ground speed, so 1.5 m/s
+      is an estimate, not a result. Base PWM is 4095*min(1, base_speed/2), so 1.8
+      gives 3686 PWM (90%). The critique also called that ''moderate'' speed wrong,
+      and it is right. I lower base_speed to 1.7 (3482 PWM, 85%). This is still fast,
+      but it keeps more margin for the sharpest bend and for battery sag, while staying
+      near the speed needed to finish within 300 steps on a 4 to 5 m course. The 3
+      s limit is still a hypothesis to test, not a result.
+
+
+      (2) Sharp bends. Turn demand is kp*signal*350 PWM. At kp=3 and signal near 2
+      the differential is about 2100 PWM, so the inner wheel command falls to about
+      1380 PWM and does not stall. Lowering base_speed reduces the risk of overshooting
+      the 0.06 m off-track limit. I keep kp=3, since 1 signal unit gives 1050 PWM,
+      which is firm but not saturating.
+
+
+      (3) Motor mismatch. The critique is correct that ki=0.05 caps the integral contribution
+      at about 35 PWM, which cannot cancel the fixed left/right mismatch. I raise
+      ki to 0.3. The integral is limited to +/-2, so its maximum is 0.6 turn, about
+      210 PWM, enough to remove a realistic steady drift. The wind-up risk is bounded
+      by that limit.
+
+
+      (4) Derivative noise. The critique is also right that kd=0.3 would multiply
+      the 2 percent sensor noise. A noise step of about 0.02 in signal per 10 ms is
+      about 2 units/s, and kd=0.3 would then give about 0.6 turn (about 210 PWM) of
+      jitter. I reduce kd to 0.1, which caps this at about 70 PWM while keeping some
+      damping on real bends. These figures are estimates from the stated noise, not
+      measurements.
+
+
+      (5) Sensors. The critique notes that all sensors share y=0.04 and that the signal
+      is a coarse weighted average. I keep the geometry, because the 6 cm span and
+      12 mm footprints still give a smooth enough response and changing it is not
+      justified without race data. The 15 mm pitch with 12 mm footprints leaves 3
+      mm gaps, which I accept for now.
+
+
+      (6) Line loss. The critique asks what happens on a straight after a loss. With
+      last_direction, the robot keeps the sign of the last valid signal at 0.35 throttle,
+      so a loss on a straight will steer toward the side last seen, which should recover
+      on the next bend. I keep last_direction.
+
+
+      What I rejected: I did not move to search_left or stop, since they add risk
+      on bends and the critique gave no evidence for them.
+
+
+      Expected results (hypotheses, not data): completion on the development tracks,
+      a small number of line-loss events, and rms_error below about 0.05 m. Main risk:
+      the sharpest development track at base_speed 1.7 may still overshoot. Test:
+      compare completion, max_error and line_loss_events on the sharpest track at
+      1.7 against a run at about 1.4 if the first result shows large max_error.
+
+
+      - [Open this output](iteration-0/entity1/versions/ec0137599cd648d798ebb1f349cb91a9/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/0d2c78118a52492295e771a9ae8acd60/payload.json),
+      [entityC1](iteration-0/entityC1/versions/235d280398534ff3a04283114824b6ca/payload.json)'
+  - id: entityC2
+    label: Round-2 Critique
+    notes: 'Round-2 Critique. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-0/entityC2/versions/6d9fc4057f5b413695234d07a4064bc6/payload.json)
+
+      - Based on: [entity1](iteration-0/entity1/versions/ec0137599cd648d798ebb1f349cb91a9/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+measurements: {}

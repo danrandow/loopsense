@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.1,
+    "ki": 0.1,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.032,
+        "y": 0.05
+      },
+      {
+        "x": -0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.016,
+        "y": 0.05
+      },
+      {
+        "x": 0.032,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: the iteration-0 design (weights \u00b12, kp 2.5, kd 0.03, base_speed 1.9, wheel_track 0.12) went off track in all 60 trials on oval, s-bend and slalom. Progress was only 0.035 to 0.115, with one line-loss event each time. max_error sat at about 0.061, just above the 0.06 m off-track limit, and rms_error was about 0.03 on every track. The failure is early and consistent, not a slow growing oscillation. The loss happens in the first part of each run at high speed with high steering gain.\n\nCritique: I accept the main points. (a) Halving the sensor weights halves the steering gain per metre of offset. (b) At this gain, a higher base_speed leaves less time to correct, so the speed should come down. (c) Derivative on sensor edges is a real kick, so kd must be small. (d) With ki = 0, the fixed motor mismatch leaves a steady bias, so a small ki is needed. I partly reject the critique's speed concern: completion is not achievable with a robot that leaves the line within 0.5 s, so I am prioritising staying on the line over completion time. I also reject widening wheel_track in this revision. Keeping wheel_track at 0.12 removes a second, uncalibrated gain change and makes the effect of the weight change easier to read.\n\nChanges: (1) sensor_weights [-1,-0.5,0,0.5,1] with kp 3.0 gives effective gain 1.5 per unit of signal, against 5.0 in iteration 0 (about 3.3 times lower). (2) base_speed 1.9 to 1.5 (base_pwm about 2867, 70 percent), to give the controller time to correct at each bend. (3) kd 0.03 to 0.1. At weights of 0.5 spacing, an edge kick is about 0.5 * 100 * 0.1 = 5 turn units, which is small but still gives some damping. (4) ki 0 to 0.1. Its contribution is capped at about 0.2 turn units by the integral limit, so it removes bias without windup. (5) Sensors moved from y 0.06 to y 0.05, a small change in lead. Sensor x positions, size and line_loss last_direction are kept, since the tape is always on one side after a bend.\n\nKept: body, mass, wheel radius and wheel track at mid-range values. body_width has no lever here (off-track limit stays 0.06 m).\n\nExpected result (hypothesis, not observed): max_error well below 0.06 m, rms_error about 0.02 to 0.03 m, line_loss_events of 0 to 1, and progress above 0.3. Completion is not expected in this revision. Decision rule for the next revision: if max_error is still near 0.06 with low steering_oscillation, the cause is bias or under-steer on tight bends, so raise ki or kp slightly. If steering_oscillation rises, lower kp first."
+}

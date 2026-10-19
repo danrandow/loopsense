@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.7,
+    "ki": 0.1,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.07,
+        "y": 0.06
+      },
+      {
+        "x": -0.035,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.035,
+        "y": 0.06
+      },
+      {
+        "x": 0.07,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 5 (kp 2.2, kd 0.7, ki 0.1, base 1.2, sensors at y 0.06 with size 0.016, x within \u00b10.04) scored 27.04, below iteration 2's 41.42. All 60 trials of both designs ended off track. The s-bend and slalom fail at about 4% progress with almost no seed spread, so the failure is early and systematic. The oval improved from 0.215 to 0.115 progress when speed and kp were lowered, so slower and softer is not the fix. rms_error is about 0.03 m everywhere, but max_error sits at about 0.06 m, the off-track limit. Diagnosis: the sensor array spans only \u00b10.04 m. Once the robot drifts beyond about 0.03 m, the outer sensors cannot see the tape (footprint plus half-tape reaches only about 0.02 m from centre), and the sum of readings can fall below 0.05. That triggers line loss at speed, and the robot leaves the track before recovering. Iterations 4 and 5 changed speed, gains and sensor height together, so they never isolated the spread problem.\n\nChanges: (1) Widen the sensor array to x = -0.07, -0.035, 0, 0.035, 0.07 (the allowed maximum is \u00b10.08), so tape stays visible at about 0.07 m offset and line loss is rarer during excursions. (2) Because the same weights now span a larger distance, the signal gain per metre falls by roughly 40 percent. kp rises from 2.2 to 3.0 to restore the effective correction gain. (3) kd stays at 0.7 for damping and ki stays at 0.1 to offset the motor mismatch. (4) base_speed goes from 1.2 to 1.3, a compromise that keeps the 3 s finish possible while still giving the controller time to react. (5) Sensor y stays at 0.06 and sensor_size at 0.016, so the sensing change is isolated to lateral spread and gain. Geometry is otherwise unchanged.\n\nExpected result: fewer line-loss events and off-track exits, so the s-bend and slalom should progress well beyond 0.04 and the oval should exceed 0.2. A first completion is possible but not expected yet. Main risk: the wider spread may make the robot cut corners or oscillate more on the slalom, which steering_oscillation and max_error in the next race should show."
+}

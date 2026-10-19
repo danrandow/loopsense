@@ -1,0 +1,249 @@
+map:
+  id: race-206-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 7
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 6.
+dimensions:
+  time_horizon: prepared
+  iteration: '7'
+overrides:
+  entities:
+  - id: entity0
+    label: Lighter, damped draft
+    notes: 'Keeps the seven-sensor array, which iteration 5 showed to be neutral,
+      and cuts mass to 0.4 kg, lowers base speed to 0.8, and raises ki and kd to fight
+      the motor-mismatch bias. The evidence is six off-track runs with max_error stuck
+      at about 0.061 to 0.066 m, and iteration 5 matching iteration 3 almost exactly,
+      so the sensor span is not the cause.
+
+
+      ### Rationale
+
+
+      Evidence: all six designs so far ended off-track in all 60 trials. max_error
+      sits at 0.061 to 0.066 m against the 0.06 m limit, and rms_error is about 0.03
+      m regardless of gain. Iteration 5 widened the sensor span to +/-0.06 m with
+      16 mm footprints, and its per-track metrics match iteration 3 almost exactly
+      (oval progress 0.1675, max_error 0.0661 vs 0.0662). That rules out the sensor
+      span as the cause, since line loss was not the binding failure. Gain changes
+      from kp 1.2 to 3 and base speed from 0.9 to 1.6 also barely moved the failure
+      point. The common factor looks like a slow, bias-driven drift that the loop
+      corrects too late, combined with the fixed left/right motor mismatch.
+
+
+      Changes: (1) Keep the seven-sensor, 16 mm array and weights from iteration 5,
+      since that geometry is now shown to be neutral and gives the widest tape coverage.
+      (2) Reduce mass from 0.6 to 0.4 kg, the lower bound, to cut yaw inertia so the
+      robot responds faster to steering commands. (3) Lower base_speed from 1.0 to
+      0.8 to give the loop more time to correct on each bend. (4) Lower kp from 1.6
+      to 1.2 to reduce overshoot at the lower speed and the lighter mass. (5) Raise
+      ki from 0.3 to 0.6 so the integral cancels the constant motor-mismatch bias
+      faster; the integral stays bounded at +/-2. (6) Set kd to 1.0, a moderate increase,
+      to damp the faster response without amplifying sensor noise. line_loss stays
+      last_direction.
+
+
+      Expected result: max_error below about 0.05 m, zero or near-zero line-loss events,
+      and progress above 0.2 on the development tracks. Completion within 3 s is still
+      unlikely at 0.8 base speed. Uncertainty: this is a combined test of bias and
+      damping, so if max_error stays at 0.06 with no line loss, the next step is a
+      larger change in wheel_track or a further reduction in base_speed.
+
+
+      - [Open this output](iteration-6/entity0/versions/745a006925e4498bbef592dc1d82cd8f/payload.json)
+
+      - Based on: [entityR2A](iteration-6/entityR2A/versions/carried-81e004a29a0bf948/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Critiques the iteration-6 draft: kd 1.0 risks a large sensor-edge derivative
+      kick, the bias and start-transient diagnosis is untested, and the expected max_error
+      and progress gains are unsupported. The evidence is the 60-trial results of
+      iterations 0 to 5, where max_error stayed at 0.060 to 0.066 m regardless of
+      gain, and iteration 3 with kp 1.2 already failed.
+
+
+      - [Open this output](iteration-6/entityC1/versions/f22f9c0ebcf740ce8ce292b8390a301a/payload.json)
+
+      - Based on: [entity0](iteration-6/entity0/versions/745a006925e4498bbef592dc1d82cd8f/payload.json),
+      [entityR2A](iteration-6/entityR2A/versions/carried-81e004a29a0bf948/payload.json)'
+  - id: entity1
+    label: Best-tested layout, ki
+    notes: 'Reverts to the iteration-3/5 geometry and controller (best score 39.8),
+      keeping kd 0.1 and mass 0.8 and rejecting the critiqued kd 1.0 and mass 0.4
+      changes. Only ki moves, to 1.0, a minor step within the tested range, because
+      the evidence shows the start departure at max_error about 0.061 is not gain-limited.
+
+
+      ### Rationale
+
+
+      Evidence: every design so far has gone off track in all 60 trials per configuration.
+      max_error sits at 0.060 to 0.066 m across gains from 1.2 to 3, speeds from 0.9
+      to 1.9, sensor spans from +/-0.032 to +/-0.06, and masses from 0.6 to 0.8 kg.
+      Iteration 5 (ki 1.5) matched iteration 3 (ki 0.8) almost exactly, so the integral
+      term is not the binding limit. Widening the span in iteration 4 lowered progress.
+      The Evaluator''s critique is largely correct: the draft changed six variables
+      at once, kd 1.0 adds sensor-edge derivative kicks (about 0.5 x 100 x 1.0 = 50
+      turn units per edge step) with no evidence of oscillation to damp, and the mass
+      change to 0.4 kg was not justified by any measurement.
+
+
+      What I kept: the iteration-3/5 geometry (five sensors at x -0.032 to +0.032,
+      y 0.05, size 0.012, weights -1, -0.5, 0, 0.5, 1, wheel_track 0.14, mass 0.8).
+      This is the best-scoring tested layout (39.81), and the Evaluator''s critique
+      did not contest it. kp 1.5 and base_speed 1.0 are kept because they are the
+      best-tested controller values, and progress rose with speed on the oval. kd
+      0.1 is kept because it is the tested value with the lowest derivative kick.
+      line_loss last_direction is kept.
+
+
+      What I changed: ki from 1.5 to 1.0. ki 1.5 gave no measurable gain over 0.8,
+      and 1.0 sits between the tested values, so this is a minor step, not a claimed
+      fix.
+
+
+      What I rejected: the draft''s kd 1.0, mass 0.4, base_speed 0.8 and kp 1.2 changes.
+      The critique notes that base 0.8 would lower progress, and no run shows that
+      the lower speed or gain helps.
+
+
+      Expected result (hypothesis): similar to iteration 3 and 5, with max_error near
+      0.061 and progress about 0.17 on the oval. A clear gain is not expected from
+      this revision. If max_error stays at about 0.061 with unchanged timing, the
+      cause is most likely the start transient or initial alignment, which no gain
+      or span change tested so far has affected. The next step should then target
+      start conditions, not controller gains.
+
+
+      - [Open this output](iteration-6/entity1/versions/49e0a7c93c90463a96107ef432b7283b/payload.json)
+
+      - Based on: [entity0](iteration-6/entity0/versions/745a006925e4498bbef592dc1d82cd8f/payload.json),
+      [entityC1](iteration-6/entityC1/versions/f22f9c0ebcf740ce8ce292b8390a301a/payload.json),
+      [entityR2A](iteration-6/entityR2A/versions/carried-81e004a29a0bf948/payload.json)'
+  - id: entityC2
+    label: 'Round-2 critique: null ki'
+    notes: 'The ki 1.0 revision is a null change that should score about 39.8, the
+      same as iterations 3 and 5. Geometry-based reach estimate suggests line loss
+      begins near 0.050 m, before the 0.060 m limit, so the line-loss recovery path
+      is the untested cause.
+
+
+      - [Open this output](iteration-6/entityC2/versions/bd173346d21e475e80a1a6a59aa3ac88/payload.json)
+
+      - Based on: [entity1](iteration-6/entity1/versions/49e0a7c93c90463a96107ef432b7283b/payload.json),
+      [entityR2A](iteration-6/entityR2A/versions/carried-81e004a29a0bf948/payload.json)'
+  - id: entity2
+    label: Verified best (iter 5)
+    notes: 'Resubmits the iteration-5 design unchanged (score 39.81, the best raced
+      result), and rejects the Round-2 revision because its stated baseline (kp 1.5,
+      kd 0.1, base 1.0, wheel_track 0.14) does not match the raced 39.8 runs. The
+      rationale names the next test: line-loss recovery on this same baseline.
+
+
+      ### Rationale
+
+
+      Evidence: the best raced design is iteration 5 (score 39.8132). Its geometry
+      is five sensors at x -0.032 to +0.032, y 0.05, size 0.012, wheel_track 0.12,
+      mass 0.8, and its controller is kp 3.0, ki 0.8, kd 0.03, base_speed 1.5, last_direction,
+      with weights [-1, -0.5, 0, 0.5, 1]. Every design so far has gone off track on
+      all 60 trials per configuration, with max_error between 0.060 and 0.066 and
+      1 to 2 line-loss events.
+
+
+      What I rejected: the Round-2 revision (entity1). Its stated baseline is wrong.
+      It describes iteration 3/5 as kp 1.5, kd 0.1, base_speed 1.0, wheel_track 0.14,
+      but the raced 39.8 runs used kp 3.0, kd 0.03, base_speed 1.5 and wheel_track
+      0.12. Iteration 2 used wheel_track 0.14 with different gains and scored 26.36,
+      so the 0.14 and kp 1.5 set has no tested record near 39.8. Its ki 1.0 change,
+      and the critique''s null-change finding, both rest on that mislabelled baseline.
+      I therefore do not carry the revision forward.
+
+
+      What I kept: the exact iteration-5 design, which is the verified best. The critique''s
+      fair points are accepted: the revision did not test anything new, and the uniform
+      0.061 m departure looks like a fixed early event (start, first bend, or line-loss
+      recovery) rather than gain. I did not invent a new line_loss or start change
+      in this final submission, because none has evidence behind it, and an untested
+      change could drop the score below the known 39.8 baseline.
+
+
+      Expected result: about 39.8 on the development tracks (oval progress about 0.1675,
+      s-bend about 0.07, slalom about 0.06), with max_error near 0.061 and 2 line-loss
+      events per run. Completion is not expected. The next iteration should test one
+      change to the line-loss recovery path (for example line_loss ''search_right''
+      or ''stop'') on this same baseline, so that the effect is measurable.
+
+
+      - [Open this output](iteration-6/entity2/versions/c82b8f1bb79a4242a32492d3432795c6/payload.json)
+
+      - Based on: [entity1](iteration-6/entity1/versions/49e0a7c93c90463a96107ef432b7283b/payload.json),
+      [entityC2](iteration-6/entityC2/versions/bd173346d21e475e80a1a6a59aa3ac88/payload.json),
+      [entityR2A](iteration-6/entityR2A/versions/carried-81e004a29a0bf948/payload.json)'
+  - id: entityR2A
+    label: Score 39.81
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 39.81.
+      Per trial — oval-1: 66.2 (off_track); oval-2: 66.2 (off_track); oval-3: 66.2
+      (off_track); oval-4: 66.2 (off_track); oval-5: 66.2 (off_track); oval-6: 66.2
+      (off_track); oval-7: 66.2 (off_track); oval-8: 66.2 (off_track); oval-9: 66.2
+      (off_track); oval-10: 66.2 (off_track); oval-11: 66.2 (off_track); oval-12:
+      66.2 (off_track); oval-13: 66.2 (off_track); oval-14: 66.2 (off_track); oval-15:
+      66.2 (off_track); oval-16: 66.2 (off_track); oval-17: 66.2 (off_track); oval-18:
+      66.2 (off_track); oval-19: 66.2 (off_track); oval-20: 66.2 (off_track); s-bend-1:
+      28.6 (off_track); s-bend-2: 28.6 (off_track); s-bend-3: 28.6 (off_track); s-bend-4:
+      28.6 (off_track); s-bend-5: 28.6 (off_track); s-bend-6: 28.6 (off_track); s-bend-7:
+      28.6 (off_track); s-bend-8: 28.6 (off_track); s-bend-9: 28.6 (off_track); s-bend-10:
+      28.6 (off_track); s-bend-11: 28.6 (off_track); s-bend-12: 28.6 (off_track);
+      s-bend-13: 28.6 (off_track); s-bend-14: 28.6 (off_track); s-bend-15: 28.6 (off_track);
+      s-bend-16: 28.6 (off_track); s-bend-17: 28.6 (off_track); s-bend-18: 28.6 (off_track);
+      s-bend-19: 28.6 (off_track); s-bend-20: 28.6 (off_track); slalom-1: 24.6 (off_track);
+      slalom-2: 24.6 (off_track); slalom-3: 24.6 (off_track); slalom-4: 24.6 (off_track);
+      slalom-5: 24.6 (off_track); slalom-6: 24.6 (off_track); slalom-7: 24.6 (off_track);
+      slalom-8: 24.6 (off_track); slalom-9: 24.6 (off_track); slalom-10: 24.6 (off_track);
+      slalom-11: 24.6 (off_track); slalom-12: 24.6 (off_track); slalom-13: 24.6 (off_track);
+      slalom-14: 24.6 (off_track); slalom-15: 24.6 (off_track); slalom-16: 24.6 (off_track);
+      slalom-17: 24.6 (off_track); slalom-18: 24.6 (off_track); slalom-19: 24.6 (off_track);
+      slalom-20: 24.6 (off_track).
+
+
+      - [Open this output](iteration-6/entityR2A/versions/434437f2b9a342ce86f170f1bea7b341/payload.json)
+
+      - Based on: [entity2](iteration-6/entity2/versions/c82b8f1bb79a4242a32492d3432795c6/payload.json)'
+  - id: entityOut
+    label: Score 39.81
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 39.81.
+      Per trial — oval-1: 66.2 (off_track); oval-2: 66.2 (off_track); oval-3: 66.2
+      (off_track); oval-4: 66.2 (off_track); oval-5: 66.2 (off_track); oval-6: 66.2
+      (off_track); oval-7: 66.2 (off_track); oval-8: 66.2 (off_track); oval-9: 66.2
+      (off_track); oval-10: 66.2 (off_track); oval-11: 66.2 (off_track); oval-12:
+      66.2 (off_track); oval-13: 66.2 (off_track); oval-14: 66.2 (off_track); oval-15:
+      66.2 (off_track); oval-16: 66.2 (off_track); oval-17: 66.2 (off_track); oval-18:
+      66.2 (off_track); oval-19: 66.2 (off_track); oval-20: 66.2 (off_track); s-bend-1:
+      28.6 (off_track); s-bend-2: 28.6 (off_track); s-bend-3: 28.6 (off_track); s-bend-4:
+      28.6 (off_track); s-bend-5: 28.6 (off_track); s-bend-6: 28.6 (off_track); s-bend-7:
+      28.6 (off_track); s-bend-8: 28.6 (off_track); s-bend-9: 28.6 (off_track); s-bend-10:
+      28.6 (off_track); s-bend-11: 28.6 (off_track); s-bend-12: 28.6 (off_track);
+      s-bend-13: 28.6 (off_track); s-bend-14: 28.6 (off_track); s-bend-15: 28.6 (off_track);
+      s-bend-16: 28.6 (off_track); s-bend-17: 28.6 (off_track); s-bend-18: 28.6 (off_track);
+      s-bend-19: 28.6 (off_track); s-bend-20: 28.6 (off_track); slalom-1: 24.6 (off_track);
+      slalom-2: 24.6 (off_track); slalom-3: 24.6 (off_track); slalom-4: 24.6 (off_track);
+      slalom-5: 24.6 (off_track); slalom-6: 24.6 (off_track); slalom-7: 24.6 (off_track);
+      slalom-8: 24.6 (off_track); slalom-9: 24.6 (off_track); slalom-10: 24.6 (off_track);
+      slalom-11: 24.6 (off_track); slalom-12: 24.6 (off_track); slalom-13: 24.6 (off_track);
+      slalom-14: 24.6 (off_track); slalom-15: 24.6 (off_track); slalom-16: 24.6 (off_track);
+      slalom-17: 24.6 (off_track); slalom-18: 24.6 (off_track); slalom-19: 24.6 (off_track);
+      slalom-20: 24.6 (off_track).
+
+
+      - [Open this output](iteration-6/entityOut/versions/434437f2b9a342ce86f170f1bea7b341/payload.json)
+
+      - Based on: [entity2](iteration-6/entity2/versions/c82b8f1bb79a4242a32492d3432795c6/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+  - id: action4
+  - id: action5
+measurements: {}

@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.8,
+    "ki": 0.4,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Final design: the raced 465.03 run (iteration 6) with one change, ki 0.2 to 0.4. Geometry, base_speed 1.6, kp 2.5, kd 0.8 and line_loss last_direction are unchanged.\n\nEvidence. The kd 1.0 race (iteration 7, 430.91) is below the kd 0.8 run. Oval finishes rose to 20 of 20, but s-bend fell from 401 to 273 mean score, with finishes down from 4 of 20 to 1 of 20 and steering_oscillation up from 0.38 to 0.41. Slalom stayed at zero finishes. The kd sweep therefore peaks near 0.8, and kd 0.8 is the base. Oval finish reliability is already saturated at kd 1.0, so the remaining loss is on the s-bend.\n\nWhy ki 0.4, not 0.5. The critique is right that a larger integral can wind up during line loss, where the failures start, and can bias the robot toward one edge on tracks with persistent curvature. I keep the single-variable test because it is the only controller test that does not change a second factor. I lower the step from 0.5 to 0.4 to limit wind-up. Integral capacity is still limited to 2, so ki 0.4 adds at most 0.8 turn, about 280 PWM. That is still a measurable change, and it is a modest step from the 0.2 baseline.\n\nChange: ki 0.2 to 0.4. Expected (hypothesis, not data): s-bend progress and finishes rise modestly, oval finish rate holds at 19 or 20 of 20, and total score rises by roughly 0 to 40 points. A gain under about 20 points is within seed noise over 20 trials per track, so it would not count as support.\n\nDecision rule, applied per track and paired per seed against the iteration-6 run:\n- Adopt ki 0.4 as the new base only if total score exceeds 465.03, oval finishes are at least 19 of 20, s-bend steering_oscillation is at most 0.45, and slalom progress is at least 0.15.\n- If total score rises but any of those per-track limits fails, reject as mixed: the gain is track-specific and the integral is creating bias or jitter.\n- If the result is flat within about 20 points, keep ki 0.2. Do not adopt on noise.\n- If the score falls, ki 0.2 stays, and the next single-variable test is kp alone, from 2.5 toward 2.8 on the kd 0.8 base.\n\nNot addressed here: line-loss integral behaviour and slalom exit. Those need their own single-variable race."
+}

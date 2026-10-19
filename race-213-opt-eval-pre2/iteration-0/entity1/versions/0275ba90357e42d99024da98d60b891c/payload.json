@@ -1,0 +1,59 @@
+{
+  "controller": {
+    "base_speed": 1.8,
+    "kd": 0.2,
+    "ki": 0.1,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.02,
+        "y": 0.05
+      },
+      {
+        "x": -0.01,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.01,
+        "y": 0.05
+      },
+      {
+        "x": 0.02,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort"
+    ]
+  },
+  "rationale": "Kept: the base design's sensor layout (five 12 mm sensors, 12 mm pitch, 50 mm ahead of the axle), the weight signs (-2..2, so tape to the left gives a positive signal that steers left), base_speed 1.8, ki 0.1, line_loss last_direction, and the chassis geometry. The critique's main points are sound, and I accepted them where the contract supports them. Changed: (1) kp from 4.0 to 2.5. Each unit of turn is 350 PWM, so kp 4 gives a 1400 PWM differential at signal 1 against a base of 3685, which nearly stalls one wheel and risks oscillation. kp 2.5 keeps a 1-unit signal to about 875 PWM and leaves room for the controller to correct. (2) kd from 0.5 to 0.2. At 100 Hz, 2% sensor noise produces large derivative spikes (kd times the signal slope), so a smaller kd limits jitter while still damping overshoot. (3) Sensor pitch from 12 mm to 10 mm (x = -0.02 to +0.02). This keeps the 25 mm tape covered by at least two central sensors across more of the range and reduces the edge-sensor dropout the critique raised. Sensor size stays at 12 mm. Rejected: I kept base_speed at 1.8 rather than lowering it, because the 3 s limit needs about 1.5 m/s on a 4.5 m course (the contract gives 4 to 5 m), and cutting speed risks a timeout. I kept body_width at 0.12, accepting the critique's point that it does not change the off-track limit (fixed at 0.06 m across the allowed range); it is a neutral choice, not a benefit. Expected result, unverified because no telemetry exists: completion with rms_error reduced versus the baseline because of lower gain, and fewer oscillation events. The main unknown is whether 1.8 base speed holds the line on the slalom with kp 2.5. The next revision should use steering_oscillation and max_error to decide whether to raise kp or lower base_speed. If max_error approaches 0.06 m, reduce base_speed. If rms_error is high and oscillation is low, raise kp in steps of 0.5."
+}

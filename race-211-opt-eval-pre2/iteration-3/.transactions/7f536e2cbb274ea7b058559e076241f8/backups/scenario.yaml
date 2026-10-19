@@ -1,0 +1,265 @@
+map:
+  id: race-211-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 3
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 2.
+dimensions:
+  time_horizon: prepared
+  iteration: '3'
+overrides:
+  entities:
+  - id: entity0
+    label: Add integral to kp=3
+    notes: 'Keeps the best-raced geometry (iteration 1) and adds ki=0.6 to cancel
+      the steady drift from the motor mismatch. Evidence: every race went off track
+      with small jitter and a steady offset near the 0.06 m limit, and no run had
+      integral action.
+
+
+      ### Rationale
+
+
+      Evidence: iterations 0 and 1 both went off track in all 60 development trials.
+      Progress was only 0.04 to 0.125, and max_error sat at about 0.06 m, the off-track
+      limit. rms_error was about 0.03 and steering_oscillation was small (0.06 to
+      0.15). So the robot is not jittering. It drifts steadily to one side, which
+      points to a constant bias rather than an unstable loop. The contract adds a
+      fixed left/right motor mismatch every race. A purely proportional controller
+      settles at a steady offset of roughly bias/kp, and neither iteration had any
+      integral action (ki = 0). Iteration 1 also scored best (37.04) with kp 3.0,
+      and iteration 2 was never raced, so its geometry change is unverified.
+
+
+      Changes: (1) Keep the iteration-1 geometry (5 sensors at x = -0.04 to +0.04,
+      y = 0.06, sensor size 0.016, mass 0.6, wheel track 0.12, radius 0.03, body 0.12
+      by 0.16). This changes one thing at a time, so the race isolates the effect
+      of integral action. (2) Keep kp 3.0, kd 0.3, sensor weights [-1, -0.5, 0, 0.5,
+      1] and last_direction line loss, as in the best race. (3) Add ki = 0.6 so the
+      integral removes the steady drift caused by the motor mismatch. The integral
+      is capped at +/-2, so the maximum added turn is bounded at about 420 PWM. Keep
+      base_speed at 1.2 so speed does not confound the test.
+
+
+      Expected result: the steady offset should shrink, so max_error should fall clearly
+      below 0.06 and fewer runs should leave the track. I expect progress to rise
+      above 0.15 on the oval and s-bend. Finishing the course in 3 s still needs a
+      higher base_speed, which I will raise in a later revision once tracking holds.
+      The main risk is integral windup on sustained curves, which the +/-2 cap limits.
+
+
+      - [Open this output](iteration-3/entity0/versions/21fe090fcffb4614960fd754cd133ab9/payload.json)
+
+      - Based on: [entityR2A](iteration-3/entityR2A/versions/carried-2a389fcaa16692ed/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Critiques the ki = 0.6 draft: the 2% motor mismatch cannot produce the
+      observed 6 cm drift by the bias/kp arithmetic, and the identical s-bend failure
+      at progress 0.04 across designs points to a fixed early event. Integral overshoot
+      after bends and the unreachable 3 s finish are also flagged.
+
+
+      - [Open this output](iteration-3/entityC1/versions/690dfefe850f4404aaa4dbf13a1748a5/payload.json)
+
+      - Based on: [entity0](iteration-3/entity0/versions/21fe090fcffb4614960fd754cd133ab9/payload.json),
+      [entityR2A](iteration-3/entityR2A/versions/carried-2a389fcaa16692ed/payload.json)'
+  - id: entity1
+    label: 'Diagnostic: speed and ki'
+    notes: 'Keeps the iteration-1 geometry and kp 3.0, cuts ki from 0.6 to 0.1 and
+      base_speed to 1.0. The s-bend failed at progress 0.04 in every prior design,
+      so this race tests whether the early failure depends on speed or integral action.
+      This is a diagnostic iteration, not a final-score candidate.
+
+
+      ### Rationale
+
+
+      Evidence: iteration 0 (score 26.04) and iteration 1 (score 37.04) both went
+      off track in all 60 trials. The s-bend ended at progress 0.040 in every design
+      tried, with kp 2.0 and 3.0, kd 0.05 to 0.15, base_speed 1.3 to 1.7, and two
+      sensor geometries. line_loss_events was exactly 1.0 in every trial, and max_error
+      sat at 0.060 to 0.068. A failure point that does not move with speed or gains
+      points to a fixed early event, not a slow drift.
+
+
+      What I accept from the round-1 critique: (1) The motor-mismatch explanation
+      does not fit the magnitude. A 2 percent mismatch is about 80 PWM. Dividing by
+      kp*350 gives a signal offset of about 0.08, or a few millimetres of lateral
+      error, far below the 0.06 m limit. So ki cannot be the main fix. (2) An integral
+      term of 0.6 can overshoot after a sustained bend, since it unwinds slowly. I
+      reduce ki to 0.1, so the integral can only add up to about 70 PWM (0.1 x 2 x
+      350). That is small enough to be harmless and large enough to show whether bias
+      matters. (3) The draft should be labelled diagnostic. Base_speed 1.2 cannot
+      finish in 3 s (about 1.5 m/s is needed), so this race is not a final-score candidate.
+
+
+      What I reject: I keep the iteration-1 geometry (five sensors at x -0.04 to +0.04,
+      y 0.06, footprint 0.016, mass 0.6). Changing geometry again would confound the
+      test. I keep kp 3.0 and kd 0.3, because kd 0.1 and kd 0.15 failed at the same
+      point, so damping is not the cause and kd 0.3 is not shown to be harmful. I
+      keep last_direction, since it suits curves.
+
+
+      What I changed: ki 0.6 to 0.1, and base_speed 1.2 to 1.0. The speed cut is a
+      deliberate test. If the failure point is speed-independent (as the 0.040 progress
+      at 1.3 and 1.7 suggests), the result will be unchanged and the cause is structural,
+      probably the start or first sharp bend. If progress moves, the early failure
+      is speed-related and the next step is to tune speed against kp. I accept the
+      critique''s point that the time term is out of reach at this stage.
+
+
+      Expected result: progress at the s-bend stays near 0.04 (about 60 percent confidence)
+      and line_loss_events stays at 1.0. If that happens, the cause is not integral
+      drift and not speed, and the next iteration should test the start transient
+      or the line-loss rule (for example search_left or search_right). If progress
+      rises above 0.1 on the s-bend, speed or gain mismatch was the cause, and I will
+      tune base_speed upward in steps of 0.1 while keeping max_error below 0.06.
+
+
+      - [Open this output](iteration-3/entity1/versions/997feed8498c46e19f40b8bca0bdce21/payload.json)
+
+      - Based on: [entity0](iteration-3/entity0/versions/21fe090fcffb4614960fd754cd133ab9/payload.json),
+      [entityC1](iteration-3/entityC1/versions/690dfefe850f4404aaa4dbf13a1748a5/payload.json),
+      [entityR2A](iteration-3/entityR2A/versions/carried-2a389fcaa16692ed/payload.json)'
+  - id: entityC2
+    label: Round-2 critique
+    notes: 'Flags that the revision changes geometry, mass, ki, speed and kd together
+      while the rationale says geometry is unchanged, so the test is confounded. Points
+      out that the s-bend failure at progress 0.040 is fixed across all tried speeds
+      and gains, which suggests a sensing or geometry event rather than speed. Evidence:
+      the iteration 0 and 1 race metrics.
+
+
+      - [Open this output](iteration-3/entityC2/versions/57e37a0ef4e74b898f0aea0f8eddd80c/payload.json)
+
+      - Based on: [entity1](iteration-3/entity1/versions/997feed8498c46e19f40b8bca0bdce21/payload.json),
+      [entityR2A](iteration-3/entityR2A/versions/carried-2a389fcaa16692ed/payload.json)'
+  - id: entity2
+    label: Speed 1.3, kp 3.0 final
+    notes: 'Final design keeps the revised controller (base_speed 1.3, kp 3.0, kd
+      0.15, ki 0.02) with geometry unchanged, so the race isolates speed and steering.
+      It rests on iteration 0, where every trial left the line at speed 1.7 with low
+      oscillation and max_error at the limit; the rationale notes the speed and kp
+      changes are confounded and sets a decision rule to separate them.
+
+
+      ### Rationale
+
+
+      Final rationale. I kept the revised design (entity1) with its controller values
+      unchanged: base_speed 1.3, kp 3.0, kd 0.15, ki 0.02, last_direction line loss.
+      Geometry is unchanged, so the race still isolates speed and steering gains.
+
+
+      Evidence: the iteration-0 design (base_speed 1.7, kp 2.0, kd 0.1) left the line
+      in all 60 trials, with progress 0.035 to 0.115 and one line-loss event per run.
+      max_error reached the 0.06 m limit while steering_oscillation stayed low (0.064
+      to 0.075). Low oscillation with a bend-entry departure points to insufficient
+      steering authority as well as excess speed.
+
+
+      Accepted from the round-2 critique: (a) the critique is right that base_speed
+      and kp were changed together, so this race cannot fully attribute any improvement.
+      I accept that cost, because the first priority is a design that stays on the
+      line. The decision rule below separates the two effects in the next iteration.
+      (b) The critique''s point that low oscillation with high max_error points to
+      steering authority supports the kp increase. (c) The critique''s warning that
+      base_speed 1.3 may fall short of the roughly 1.5 m/s needed to finish in 3 s
+      is accepted. Completion is not expected in this iteration, and the time term
+      is treated as secondary until the robot holds the line.
+
+
+      Rejected or deferred: (d) I keep kd at 0.15 rather than the critique''s implied
+      higher values. At 0.3, derivative action would saturate on sharp signal changes
+      and amplify sensor noise. I will raise kd only if steering_oscillation is high
+      while max_error is low. (e) I keep ki at 0.02. Its effect is small (about 14
+      PWM maximum), so it is a bias trim, not a fix for the motor mismatch. (f) I
+      keep last_direction, since the courses are curved and it recovers in the direction
+      of the last valid signal. I do not add an integral reset, because the contract
+      offers no such option.
+
+
+      Decision rule for the next iteration: if line_loss_events is 1 or more, or max_error
+      reaches 0.06 before progress 0.5, lower base_speed to 1.1 before changing any
+      gain. If the robot stays on track but does not finish, raise base_speed in steps
+      of 0.1. If steering_oscillation is high with max_error low, raise kd before
+      lowering kp. Success means completion 1 with rms_error under 0.03 m.
+
+
+      Predictions (guesses, not expectations): progress rises well above 0.115 on
+      the oval and s-bend, and max_error falls below 0.05 m. Completion within 3 s
+      is unlikely at this speed, and a timeout that stays on track would count as
+      a useful result.
+
+
+      - [Open this output](iteration-1/entity2/versions/9b7b241d5a4144a6840be70c2441f809/payload.json)
+
+      - Based on: [entity1](iteration-1/entity1/versions/67f1235c5f944e808823a2ed7d82bb39/payload.json),
+      [entityC2](iteration-1/entityC2/versions/9d313a7c43b54ff2b03e0dee30ae3b86/payload.json),
+      [entityR2A](iteration-1/entityR2A/versions/carried-5344f13f5235f14d/payload.json)'
+  - id: entityR2A
+    label: Score 37.04
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 37.04.
+      Per trial — oval-1: 51.4 (off_track); oval-2: 51.4 (off_track); oval-3: 51.3
+      (off_track); oval-4: 51.4 (off_track); oval-5: 51.4 (off_track); oval-6: 51.4
+      (off_track); oval-7: 51.4 (off_track); oval-8: 51.4 (off_track); oval-9: 51.4
+      (off_track); oval-10: 51.4 (off_track); oval-11: 53.4 (off_track); oval-12:
+      51.4 (off_track); oval-13: 51.4 (off_track); oval-14: 51.4 (off_track); oval-15:
+      51.4 (off_track); oval-16: 51.4 (off_track); oval-17: 51.4 (off_track); oval-18:
+      51.4 (off_track); oval-19: 51.4 (off_track); oval-20: 51.4 (off_track); s-bend-1:
+      16.4 (off_track); s-bend-2: 16.4 (off_track); s-bend-3: 16.4 (off_track); s-bend-4:
+      16.4 (off_track); s-bend-5: 16.4 (off_track); s-bend-6: 16.4 (off_track); s-bend-7:
+      16.4 (off_track); s-bend-8: 16.4 (off_track); s-bend-9: 16.4 (off_track); s-bend-10:
+      16.4 (off_track); s-bend-11: 16.4 (off_track); s-bend-12: 16.4 (off_track);
+      s-bend-13: 16.4 (off_track); s-bend-14: 16.4 (off_track); s-bend-15: 16.4 (off_track);
+      s-bend-16: 16.4 (off_track); s-bend-17: 16.4 (off_track); s-bend-18: 16.4 (off_track);
+      s-bend-19: 16.4 (off_track); s-bend-20: 16.4 (off_track); slalom-1: 43.2 (off_track);
+      slalom-2: 43.2 (off_track); slalom-3: 43.2 (off_track); slalom-4: 43.2 (off_track);
+      slalom-5: 43.2 (off_track); slalom-6: 43.2 (off_track); slalom-7: 43.2 (off_track);
+      slalom-8: 43.2 (off_track); slalom-9: 43.2 (off_track); slalom-10: 43.2 (off_track);
+      slalom-11: 43.2 (off_track); slalom-12: 43.2 (off_track); slalom-13: 43.2 (off_track);
+      slalom-14: 43.2 (off_track); slalom-15: 43.2 (off_track); slalom-16: 43.2 (off_track);
+      slalom-17: 43.2 (off_track); slalom-18: 43.2 (off_track); slalom-19: 43.2 (off_track);
+      slalom-20: 43.2 (off_track).
+
+
+      - [Open this output](iteration-1/entityR2A/versions/4b35a6c3731f41f4b48911def11cd69d/payload.json)
+
+      - Based on: [entity2](iteration-1/entity2/versions/9b7b241d5a4144a6840be70c2441f809/payload.json)'
+  - id: entityOut
+    label: Score 37.04
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 37.04.
+      Per trial — oval-1: 51.4 (off_track); oval-2: 51.4 (off_track); oval-3: 51.3
+      (off_track); oval-4: 51.4 (off_track); oval-5: 51.4 (off_track); oval-6: 51.4
+      (off_track); oval-7: 51.4 (off_track); oval-8: 51.4 (off_track); oval-9: 51.4
+      (off_track); oval-10: 51.4 (off_track); oval-11: 53.4 (off_track); oval-12:
+      51.4 (off_track); oval-13: 51.4 (off_track); oval-14: 51.4 (off_track); oval-15:
+      51.4 (off_track); oval-16: 51.4 (off_track); oval-17: 51.4 (off_track); oval-18:
+      51.4 (off_track); oval-19: 51.4 (off_track); oval-20: 51.4 (off_track); s-bend-1:
+      16.4 (off_track); s-bend-2: 16.4 (off_track); s-bend-3: 16.4 (off_track); s-bend-4:
+      16.4 (off_track); s-bend-5: 16.4 (off_track); s-bend-6: 16.4 (off_track); s-bend-7:
+      16.4 (off_track); s-bend-8: 16.4 (off_track); s-bend-9: 16.4 (off_track); s-bend-10:
+      16.4 (off_track); s-bend-11: 16.4 (off_track); s-bend-12: 16.4 (off_track);
+      s-bend-13: 16.4 (off_track); s-bend-14: 16.4 (off_track); s-bend-15: 16.4 (off_track);
+      s-bend-16: 16.4 (off_track); s-bend-17: 16.4 (off_track); s-bend-18: 16.4 (off_track);
+      s-bend-19: 16.4 (off_track); s-bend-20: 16.4 (off_track); slalom-1: 43.2 (off_track);
+      slalom-2: 43.2 (off_track); slalom-3: 43.2 (off_track); slalom-4: 43.2 (off_track);
+      slalom-5: 43.2 (off_track); slalom-6: 43.2 (off_track); slalom-7: 43.2 (off_track);
+      slalom-8: 43.2 (off_track); slalom-9: 43.2 (off_track); slalom-10: 43.2 (off_track);
+      slalom-11: 43.2 (off_track); slalom-12: 43.2 (off_track); slalom-13: 43.2 (off_track);
+      slalom-14: 43.2 (off_track); slalom-15: 43.2 (off_track); slalom-16: 43.2 (off_track);
+      slalom-17: 43.2 (off_track); slalom-18: 43.2 (off_track); slalom-19: 43.2 (off_track);
+      slalom-20: 43.2 (off_track).
+
+
+      - [Open this output](iteration-1/entityOut/versions/4b35a6c3731f41f4b48911def11cd69d/payload.json)
+
+      - Based on: [entity2](iteration-1/entity2/versions/9b7b241d5a4144a6840be70c2441f809/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+  - id: action4
+  - id: action5
+measurements: {}

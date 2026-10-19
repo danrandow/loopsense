@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.3,
+    "ki": 0.15,
+    "kp": 3.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: the iteration-0 race (26.04) had 0 of 60 finishes. Every trial ended off track with progress of 0.04 to 0.12, RMS error of about 0.03 m on all tracks, and max_error of about 0.061 m, just past the 0.06 m limit. Oscillation was low (about 0.07), so the robot leaves the line steadily rather than jittering.\n\nCritique, point by point:\n1. Speed: accepted. I restore base_speed to 1.5 (from the draft's 1.3). The 3 s limit needs about 1.5 m/s on average, and no race evidence shows speed is the limit. The 500-point completion bonus depends on finishing.\n2. Changing many variables at once: partly accepted. I keep the draft's sensing and gain changes but size them more conservatively, so the next race stays interpretable.\n3. Integral (bias) term: accepted in part. The critique's point that ki = 0.5 is a large untested probe is fair. I reduce ki to 0.15, which is a cheap test for the about 2 percent motor mismatch. With the integral capped at +/-2, the maximum contribution is 0.3 turn units, a small and safe correction.\n4. Proportional gain: kp 4.0 reduced to 3.5. At the 3 cm offset seen in iteration 0, the signal is about 1.5, so kp 3.5 gives about 5 turn units (about 1800 PWM). The weights saturate at +/-2, so kp 4 pushes the signal further into saturation without adding authority. The lower value keeps the same correction at offsets under 3 cm.\n5. Derivative gain: partly accepted. kd 0.6 was not supported by data, and derivative action amplifies sensor noise and tape-edge transitions. I set kd to 0.3, which damps the swing without a large noise term.\n6. Sensing: kept. Sensors at x = -0.04 to +0.04 m with 16 mm footprints and weights [-2, -1, 0, 1, 2] keep sensors on the tape at larger offsets, and the signal stays about 50 times the lateral offset with a valid range.\n7. Line loss: kept as last_direction. No evidence favours a search direction.\n\nExpected result: fewer off-track exits, and progress well above 0.12 on the oval and s-bend. Completion is possible but not assured. The check is max_error below 0.06, line_loss_events below 1 per track, and completion_time under 3 s. If the robot still leaves early, the next race should show whether the gain or the speed is limiting."
+}

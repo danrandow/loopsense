@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.6,
+    "ki": 0.5,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.04,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 0 raced to 26.04 with 0 of 60 development trials finishing. Every trial ended off track, progress was only 0.04 to 0.12, RMS error was about 0.03 m on all three tracks, and max error sat just past the 0.06 m limit. Steering oscillation was low (about 0.07), so the controller is not jittering. The robot drifts off the line steadily and quickly rather than oscillating. The near-identical RMS on all three tracks suggests a constant bias, most likely the fixed left/right motor mismatch that the contract describes. With ki = 0, a steady bias produces a steady offset, which is what the data shows. Iteration 1 was never raced, so I have no evidence on its changes.\n\nChanges:\n1. Integral term: ki set to 0.5. The integral is capped at +/-2, so it can add up to about 1 unit of turn (about 350 PWM) to cancel the mismatch without windup risk.\n2. Proportional gain: kp raised from 2.0 to 4.0 to give more steering authority per cm of offset.\n3. Derivative gain: kd set to 0.6 to damp the faster correction and limit overshoot across the line.\n4. Speed: base_speed lowered from 1.6 to 1.3. The robot leaves the line within a fraction of a second, so I want more correction time per unit of distance. This trades some speed against the 3 s finish target, so finishing may be harder, but staying on track is the first requirement.\n5. Sensing: sensors widened to x = -0.04 to +0.04 at 0.02 m spacing with 16 mm footprints, so a sensor stays on the 25 mm tape at larger offsets. Weights [-2, -1, 0, 1, 2] keep the signal near 50 times the lateral offset, as before.\n6. Geometry otherwise unchanged. The off-track limit stays at 0.06 m for any body width up to 0.18 m, so widening the body gains nothing.\n\nExpected result: lower RMS error from the bias correction, fewer off-track exits, and progress rising well above 0.12 on the oval and s-bend. Completion is possible but not assured. If the robot still leaves early, the next race should show whether the bias or the speed is limiting."
+}

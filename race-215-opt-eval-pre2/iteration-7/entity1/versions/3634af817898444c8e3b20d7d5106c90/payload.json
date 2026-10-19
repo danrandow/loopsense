@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.1,
+    "ki": 0.1,
+    "kp": 2.0,
+    "line_loss": "search_right",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: across iterations 0 to 6, all 60-trial designs ended off track with exactly one line-loss event each, and max_error is censored near 0.061 m by the 0.06 m limit. Iterations 0 and 2 gave identical per-track metrics across large kp, kd and ki changes, so gains do not reach the first loss. Iteration 6 changed only kd (0.1 to 0.05) from iteration 3 and fell from 49.94 to 35.65, so kd is not neutral, but it is also not the cause of the shared first loss. Iteration 5 (search_left) was not clearly better than last_direction at the same geometry (oval 43.25 vs 46.33 at iteration 4 geometry). The recovery rule search_right has never been tested.\n\nCritique assessment. Accepted: the round-1 draft changed about six variables at once (kp, kd, ki, base_speed, sensor spread and count, mass), so no result could be attributed. Accepted: kd = 0.6 is likely to saturate the wheels, since a 0.5 signal step per 10 ms times kd gives turn values far above the 4095 PWM limit. Accepted: the base_speed cut to 1.0 is unsupported, and it lowers completion chances. Accepted: the sensor-spread and mass changes had no test behind them. Partly accepted: the critique's point that the fault looks like an early, track-independent event is fair, but this step does not yet test that directly. Rejected: I am not reverting to iteration 6 controller values, because iteration 6 scored worse and would add a second variable.\n\nChange. I return to the best raced design (iteration 3, score 49.94) and change one variable: line_loss from last_direction to search_right. Everything else matches iteration 3, so the result is attributable to the recovery rule. The direction is a judgement call, since no telemetry shows which side the drift goes.\n\nExpected result (a guess): the first line-loss step moves, or the loss disappears, and progress on the s-bend and slalom rises above the iteration 3 level (0.15 and 0.10). max_error is censored on failing runs, so I will not use it as a pass test.\n\nDecision rule for the next revision. If the first-loss step and progress at first loss are unchanged, the recovery rule is not the cause, and the next step is to test start alignment or the first 0.5 s of telemetry with geometry and gains fixed. If the first loss moves later and progress rises, keep search_right and test base_speed next. If the first loss moves earlier or progress falls, switch to search_left at the same geometry. Speed stays at 1.4 until line-loss timing is understood."
+}

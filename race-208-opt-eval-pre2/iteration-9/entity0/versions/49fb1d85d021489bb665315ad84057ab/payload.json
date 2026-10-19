@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.4,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.1,
+    "mass": 0.5,
+    "sensor_positions": [
+      {
+        "x": -0.08,
+        "y": 0.08
+      },
+      {
+        "x": -0.04,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.04,
+        "y": 0.08
+      },
+      {
+        "x": 0.08,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.1
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 trials of every design so far ended off track, with max_error pinned at about 0.06 m (the off-track limit for every allowed body width) and rms_error about 0.03 m. The best design is iteration 5 (score 137.76). Several single-parameter changes gave identical metrics to four decimals: kd 0.4 vs 1.0 (iterations 2 and 4), ki 0 vs 1.0 (iterations 5 and 6), wheel_track 0.12 vs 0.10 (iterations 5 and 7), and base_speed 1.3 vs 1.1 (iterations 7 and 8). Gain, track-width and speed tuning are therefore not the binding limit. The only sensing change that moved the score was widening the sensor span from +/-0.04 to +/-0.06 and enlarging the footprint to 16 mm (iteration 2), which cut line-loss events from about 1.0 to about 0.05-0.8. The contract allows the sensors to reach +/-0.08 in x and y up to 0.08 m ahead of the axle, and I have not used either limit.\n\nChange: move the 5 sensors to x = -0.08, -0.04, 0, +0.04, +0.08 (still 5 sensors, same weights -2..+2 and the same 16 mm footprint), and move the sensor row forward from y = 0.07 to y = 0.08. The wider span keeps the tape inside the array when the robot drifts further sideways before it corrects, and the extra lead gives the loop more time to react. The geometry is otherwise the iteration-5 body (0.14 x 0.10 m, 0.5 kg), wheel_track 0.10 (no measurable effect), and the controller is iteration 8's gains (kp 3.0, kd 0.4, ki 0) with base_speed back at 1.3 so the sensing change is the only meaningful variable. Tape-coverage math: with 5 sensors at 4 cm spacing, the outer sensors read the tape only at large offsets, so the weighted signal stays linear over a wider range; the 0.04 m spacing keeps adjacent sensors overlapping the 25 mm tape.\n\nExpected result: fewer line-loss events and a later first off-track excursion, so progress should rise above 0.55 on the oval if the span is the limit. If max_error still reaches 0.06 at the same point, the failure is in the steering dynamics rather than sensing, and the next iteration should test a lower kp with a larger kd. Finishing within 3 s is still unlikely at base_speed 1.3."
+}

@@ -1,0 +1,60 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.3,
+    "ki": 0.6,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors"
+    ]
+  },
+  "rationale": "Evidence: iterations 0 and 1 both went off track in all 60 development trials. Progress was only 0.04 to 0.125, and max_error sat at about 0.06 m, the off-track limit. rms_error was about 0.03 and steering_oscillation was small (0.06 to 0.15). So the robot is not jittering. It drifts steadily to one side, which points to a constant bias rather than an unstable loop. The contract adds a fixed left/right motor mismatch every race. A purely proportional controller settles at a steady offset of roughly bias/kp, and neither iteration had any integral action (ki = 0). Iteration 1 also scored best (37.04) with kp 3.0, and iteration 2 was never raced, so its geometry change is unverified.\n\nChanges: (1) Keep the iteration-1 geometry (5 sensors at x = -0.04 to +0.04, y = 0.06, sensor size 0.016, mass 0.6, wheel track 0.12, radius 0.03, body 0.12 by 0.16). This changes one thing at a time, so the race isolates the effect of integral action. (2) Keep kp 3.0, kd 0.3, sensor weights [-1, -0.5, 0, 0.5, 1] and last_direction line loss, as in the best race. (3) Add ki = 0.6 so the integral removes the steady drift caused by the motor mismatch. The integral is capped at +/-2, so the maximum added turn is bounded at about 420 PWM. Keep base_speed at 1.2 so speed does not confound the test.\n\nExpected result: the steady offset should shrink, so max_error should fall clearly below 0.06 and fewer runs should leave the track. I expect progress to rise above 0.15 on the oval and s-bend. Finishing the course in 3 s still needs a higher base_speed, which I will raise in a later revision once tracking holds. The main risk is integral windup on sustained curves, which the +/-2 cap limits."
+}

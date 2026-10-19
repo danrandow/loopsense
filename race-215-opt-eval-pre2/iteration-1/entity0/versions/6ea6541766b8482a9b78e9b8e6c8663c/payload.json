@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.35,
+    "ki": 0.0,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": -0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence from the single race (iteration 0, 60 trials across oval, s-bend and slalom): every trial went off track, with progress only 0.04 to 0.12 and no completions. The max_error of about 0.061 m sits just above the 0.06 m off-track limit (body_width 0.12 gives max(0.06, 0.0125 + 0.03) = 0.06). RMS error was about 0.03 m, and steering_oscillation and control_effort were non-trivial. The robot is therefore oscillating across the line and exceeding the lateral limit within the first fraction of a metre, not drifting slowly. The likely cause is over-aggressive steering: kp = 6 with sensor weights up to 1.5 gives turn values near 9, which saturates the wheel commands (350 PWM per unit of turn), and kd = 0.05 is too weak to damp the swing. Combined with base_speed 1.8, the loop overshoots each correction.\n\nChanges: (1) kp 6.0 to 2.5, so a full-scale signal produces a moderate correction and the robot does not swing past the 0.06 m limit. (2) kd 0.05 to 0.35 to add damping to the swing, since the signal changes quickly when the robot crosses the tape. (3) ki kept at 0.0 so the integral does not wind up on bends or add overshoot. (4) base_speed 1.8 to 1.6: slightly slower so the lower-gain loop has time to correct, while still close to the roughly 1.5 m/s needed to finish in 3 s. (5) Sensor footprint 0.012 to 0.016 m, with 5 sensors at 0.01 m spacing (x from -0.02 to +0.02) and y = 0.04. The larger footprint gives smoother, less noisy readings and keeps the tape visible across a wider range of offsets, and the narrower spacing keeps the signal responsive near the centre. Weights are kept antisymmetric [-1.5, -0.75, 0, 0.75, 1.5] so the signal stays zero on-centre.\n\nBody geometry is unchanged (wheel_track 0.12, wheel_radius 0.03, mass 0.8, body_width 0.12). Widening the body does not help: at body_width 0.18 the limit is still 0.0575 m, below the 0.06 floor, so the limit barely moves.\n\nExpected result: much smaller lateral oscillation (max_error well below 0.06 m, RMS near 0.015 to 0.025 m), so runs should reach the off-track limit less often and progress should rise substantially on the oval and s-bend. Completion on the slalom remains uncertain and may need a further kd or base_speed adjustment once telemetry exists."
+}

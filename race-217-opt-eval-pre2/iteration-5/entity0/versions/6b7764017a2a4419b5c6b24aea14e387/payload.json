@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.8,
+    "ki": 0.0,
+    "kp": 4.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.67,
+      -0.33,
+      0.0,
+      0.33,
+      0.67,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.04
+      },
+      {
+        "x": -0.02,
+        "y": 0.04
+      },
+      {
+        "x": -0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.01,
+        "y": 0.04
+      },
+      {
+        "x": 0.02,
+        "y": 0.04
+      },
+      {
+        "x": 0.03,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials across four designs ended off_track with zero completions. Progress ranged from 0.04 to 0.17. max_error sat at 0.06 to 0.067, just past the 0.06 m limit. Every run had 1 to 2 line-loss events and steering_oscillation of 0.06 to 0.18. Iterations 0 and 1 scored almost identically (39.8523 vs 39.8521) despite different sensor sizes, kp, kd, ki and speed, so the failure is not a simple gain-scale problem. Iteration 2 (wider spacing, kp 2.5) was worst at 26.37, so widening the array and lowering kp hurt. Iteration 0 had the highest kp (5.0) and the best score. The robot drifts off the line and oscillates while doing so.\n\nChanges: (1) Sensors: 7 sensors at 0.01 m spacing across x = -0.03 to +0.03 m, y = 0.04 m, sensor_size 0.012. This keeps the finer, less saturating signal from iteration 3's draft, which still covers the 25 mm tape at the outer offsets. (2) Weights: linear ramp -1.0 to +1.0. (3) kp 5.0 to 4.0. Iteration 0's kp is high enough to give steering authority, but the oscillation suggests the loop overshoots, so I soften it. (4) kd 0.3 to 0.8. Iterations with higher kd (1 and 1.2) showed no clear benefit, but damping is the most direct response to the oscillation telemetry. I choose a middle value to avoid derivative noise. (5) ki 0.0, since integral action has shown no benefit and risks windup on bends. (6) base_speed 1.8 to 1.3. Lower speed gives the loop more time to correct, while 1.3 keeps some chance of finishing; iteration 4's 1.0 is likely too slow to complete in 3 s. (7) mass 0.6 and wheel_track 0.12, body 0.12 x 0.18 m, wheel_radius 0.03 m. line_loss 'last_direction' is kept.\n\nExpected result: fewer off-track exits and fewer line-loss events than the 39.85 baseline, with max_error under 0.06 on the oval and s-bend. Completion is still uncertain. The main risk is that the 0.8 kd or the 1.3 speed is still wrong, and the next telemetry should show whether oscillation dropped."
+}

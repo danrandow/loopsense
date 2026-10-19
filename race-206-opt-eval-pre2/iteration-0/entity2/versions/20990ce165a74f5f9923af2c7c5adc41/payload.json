@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0,
+    "ki": 0.1,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.032,
+        "y": 0.06
+      },
+      {
+        "x": -0.016,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.016,
+        "y": 0.06
+      },
+      {
+        "x": 0.032,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Final design. I accepted the round-2 critique's main point and reduced base_speed from 1.9 to 1.6.\n\nWhat changed and why:\n1) Wheel-command clipping. At base_speed 1.9, base_pwm = 4095 x 0.95 = 3890, leaving only about 205 counts of headroom. A turn of about 0.59 already clips the outer wheel, so steering authority on the S-bend and slalom would be cut by about a third. At base_speed 1.6, base_pwm = 3276 and headroom is about 819 counts, which allows a turn of about 2.3 (signal about 0.94 at kp 2.5) before clipping. That covers the expected correction for a 12 mm offset (turn about 1.9, differential about 665 counts) without saturation. The speed cost is real: the 3.0 s finish needs an average near 1.5 m/s, so completion is the main risk. I judge that a completed run at 1.6 is worth more than a faster run that leaves the line, since completion is worth 500 points.\n2) Derivative. The critique showed that kd 0.03 still gives about 3 turn units per sensor edge, which is larger than the proportional term at a 12 mm offset and can saturate the wheels. I set kd to 0 for this test so the race isolates the proportional and integral terms. Derivative will be reintroduced only if steering_oscillation shows a need for damping.\n3) Integral. I kept ki at 0.1. The integral is limited to plus or minus 2, so its contribution is at most about 0.2 turn units, which is small relative to the clip headroom. It corrects the fixed motor mismatch. I accept the critique's point that the integration basis is unclear; the cap bounds the effect either way.\n4) Sensor lead. Sensors stay at y 0.06 m. At 1.6 m/s this is about 37 ms of lead (0.06/1.6), not the 32 ms or 37 ms quoted earlier at other speeds; the figure is corrected here.\n\nKept: five sensors at 16 mm spacing, x from -0.032 to +0.032, sensor size 0.012 (always covers the 25 mm tape). Weights (-2, -1, 0, 1, 2) keep the sign convention (negative = right, so a left-side tape gives a positive signal and a left steer). line_loss last_direction suits a line that stays on one side after each bend. Body, mass, wheel track and wheel radius are unchanged because no evidence motivates changing them. Off-track limit is 0.06 m from the centre line (about 47 mm beyond the tape edge).\n\nExpected (hypothesis, untested): completion on the development tracks, average speed about 1.4 to 1.6 m/s, rms_error under about 0.03 m, few line-loss events. If completion fails on time, the next step is a moderate increase of base_speed (to about 1.7, headroom about 614 counts) rather than raising kp. If max_error or steering_oscillation is high, the next step is to lower kp slightly."
+}

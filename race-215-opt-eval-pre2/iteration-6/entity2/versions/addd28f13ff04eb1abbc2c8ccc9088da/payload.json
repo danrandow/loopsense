@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.05,
+    "ki": 0.1,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence. The best raced design is iteration 3 (score 49.94): five sensors at y = 0.06 m, x = -0.03 to +0.03 m, 0.016 m footprint, kp 2.0, ki 0.1, kd 0.1, base_speed 1.4, wheel_track 0.12 m, last_direction. Every trial in every iteration ended off track with exactly one line-loss event, and max_error is censored near 0.061 m, just past the fixed 0.06 m limit. Iterations 0 and 2 gave identical per-track metrics while kp, ki, kd, base_speed and sensor layout all changed, so the controller does not reach the first loss. Iteration 4 (sensors at y = 0.08) gave no gain (49.73 vs 49.94). Iteration 5 (search_left) was slightly worse (48.70), so the recovery rule is not a clear improvement.\n\nCritique handling. I accept the round-2 critique's main point that the kd = 0.05 change is probably a null result. Iterations 0 and 2 differed tenfold in kd and gave the same numbers, so I expect the same first loss here. I also accept that the derivative kick at a tape edge is larger than my earlier estimate, because the full sensor-weight swing of about 1.5 per 10 ms gives a kd-scaled kick of roughly 15 turn units at kd 0.1. Halving kd reduces that kick, so the test still isolates the derivative term from the rest of the design. I partly accept the critique's request for a stronger test: this round stays a one-variable change, so any result is attributable. I reject the request to switch to a start-alignment or line_loss test now. Those tests change behaviour that the current evidence does not yet exclude, and they would need a separate round. I keep base_speed at 1.4 because no run has reached a progress level where speed is the limit, and speed has no completion evidence either way. I keep the raced geometry and the other gains unchanged.\n\nChange. kd 0.1 to 0.05, a single variable from iteration 3.\n\nFalsifiable expectation. If the first-loss step, progress, and max_error are unchanged to four decimals on all three tracks, the derivative term is ruled out and the next round should test start alignment or the line_loss rule. If progress or max_error moves by more than the seed spread (about 0.01 progress on the oval), derivative action was contributing and kd should be tuned again. The first-loss step itself is not returned by the requested measurements, so I read the change through progress, max_error, steering_oscillation and line_loss_events."
+}

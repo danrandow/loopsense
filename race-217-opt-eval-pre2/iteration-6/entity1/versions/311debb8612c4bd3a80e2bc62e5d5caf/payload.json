@@ -1,0 +1,71 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.1,
+    "ki": 0.0,
+    "kp": 4.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.67,
+      -0.33,
+      0.0,
+      0.33,
+      0.67,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.02,
+        "y": 0.06
+      },
+      {
+        "x": -0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.01,
+        "y": 0.06
+      },
+      {
+        "x": 0.02,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: all 60 development trials across the raced designs ended off track with zero completions. Scores were flat at about 39.85 for iterations 0, 1 and 5 despite different sensor sizes, kp, kd and speeds, and iteration 2 (lower kp, wider spacing) was worst at 26.37. Gain and layout changes alone are not moving the result, so the failure may be set early in the course, but the aggregate telemetry cannot show where.\n\nWhat I accepted from the critique: (1) The draft changed too many variables at once to be attributed. I now keep wheel_track 0.12 and mass 0.8, which match the raced baseline, so the steering gain is not silently reduced. (2) kd 1.0 is not supported. The loop gives 100*kd*(signal change per step), so kd 1.0 amplifies sensor noise by hundreds of PWM counts. I set kd 0.1. (3) kp 3.0 is a cut from the best-scoring value, and iteration 2 showed under-steering is harmful. I set kp 4.5, a compromise with about 0.9 of iteration 5's steering authority. (4) The sensor_size 0.016 with 0.01 m spacing overlaps heavily and blurs the edge. I set 0.012, which still covers the 25 mm tape at the outer offsets. (5) The 'far end of the range' claim was false: y = 0.06 m is within the 0.08 m limit. I keep y = 0.06 as a moderate lookahead increase over the raced 0.04 m, not as a maximum.\n\nWhat I rejected: I did not revert to the raced 5-sensor array. The 7-sensor, 0.01 m ramp is a hypothesis that has not raced, and I accept that risk because the 5-sensor version has already shown a flat score. I kept ki 0 and last_direction line-loss handling.\n\nSaturation check: base_speed 1.5 gives base PWM 3071, so the outer wheel saturates at a signal of about 0.65 with kp 4.5. This is a known limit, not a failure of the design.\n\nSpeed: 1.5 is the nearest value to the roughly 1.5 m/s needed to finish, and the 500-point completion term requires it. The true ground speed is unmeasured, so completion is a risk, not an expectation.\n\nFalsifiable targets for the next race: max_error below 0.06 m on the oval and s-bend; line_loss_events at or below 1; steering_oscillation below 0.15; progress above 0.5 on all tracks. If max_error stays at 0.06 or above and progress is unchanged from the flat baseline, the cause is not the controller or the sensor layout, and the next iteration should look for a fixed early divergence rather than tuning gains. If steering_oscillation rises above 0.18, kd or kp is still too high. If completion_time exceeds 3 s with no line losses, base_speed must rise."
+}

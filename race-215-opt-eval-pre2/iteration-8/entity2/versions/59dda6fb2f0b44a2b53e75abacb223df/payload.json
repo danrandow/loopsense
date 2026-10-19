@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.4,
+    "kd": 0.1,
+    "ki": 0.4,
+    "kp": 2.0,
+    "line_loss": "search_right",
+    "sensor_weights": [
+      -1.5,
+      -0.75,
+      0.0,
+      0.75,
+      1.5
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.06
+      },
+      {
+        "x": -0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.015,
+        "y": 0.06
+      },
+      {
+        "x": 0.03,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 7 (search_right on the iteration 3 design) is the best raced design at 49.955, but it is only 0.016 above iteration 3, which is within seed noise, so it is a plateau and not a demonstrated improvement. Every trial in every iteration ended off track with one line-loss event, and max_error is censored near 0.061 m, so it cannot be used as a pass test. Iterations 0 and 2 gave identical per-track metrics across large kp, kd and ki changes, so the controller has not been shown to move the first loss. Iteration 6 showed that kd is not neutral (kd 0.05 scored 35.65).\n\nCritique handling. Accepted: ki 1.0 is a tenfold step with an unjustified size. Its clamp (up to 2 turn units) is well above the roughly 0.12-unit motor-mismatch bias estimate, and it could cause overshoot on bends. I reduce it to ki 0.4 (integral contribution up to 0.8 units, about 280 PWM). That is still about six times the bias estimate, so the test stays informative, and it is the largest ki the earlier round called modest. Accepted: the rule that relies on max_error is removed. Accepted: the integral units are not stated in the contract, so I state the assumption that the integral accumulates the signal per 10 ms step. Partly accepted: the first-loss timing may be unreachable by the integral, so I state the null outcome in advance rather than claiming a fix. Rejected: changing base_speed or start handling now. Speed would confound the ki test, and the critique's suggested start test needs a separate round. Kept: kd 0.1, kp 2.0, the five-sensor geometry, search_right, and base_speed 1.4, so the change is a single variable from iteration 7.\n\nChange: ki 0.1 to 0.4. Everything else matches iteration 7.\n\nFalsifiable expectation: if progress on the s-bend and slalom and the oval is unchanged to four decimals versus iteration 7 (oval 0.1117, s-bend 0.1475, slalom 0.1042), the integral is not reaching a useful size before the loss, and the next round should test start handling with ki returned to 0.1. If progress rises by more than 0.002 on any track, the integral is contributing, and the next step is to check whether steering_oscillation rises with it. If steering_oscillation and control_effort both rise while progress falls, reduce ki toward 0.2."
+}

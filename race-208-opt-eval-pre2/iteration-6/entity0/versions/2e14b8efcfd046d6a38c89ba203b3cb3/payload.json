@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.4,
+    "ki": 1.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.1,
+    "mass": 0.5,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.07
+      },
+      {
+        "x": -0.03,
+        "y": 0.07
+      },
+      {
+        "x": 0.0,
+        "y": 0.07
+      },
+      {
+        "x": 0.03,
+        "y": 0.07
+      },
+      {
+        "x": 0.06,
+        "y": 0.07
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: every development trial ends off track at max_error about 0.06 m, the off-track limit, with rms_error about 0.03 m in all tracks and seeds. Line loss is now rare (0.0 to 0.8 events), so sensing coverage is adequate. The best design so far is iteration 5 (score 137.8), with a smaller body and mass and the sensor row at y=0.07. Iterations 2 and 4 scored identically (132.0028) although kd moved from 0.4 to 1.0 and kp from 3.0 to 2.8, so gain tuning alone is not the binding limit. The most likely cause is the fixed left/right motor mismatch that the contract describes. With ki=0, a constant mismatch produces a steady lateral offset of roughly bias/kp, which would show up as a consistent rms error of about 0.03 m and drift to the off-track limit on every track, matching the data. A non-zero integral term can cancel that constant turn bias, since the integral is clipped to +/-2 and so cannot wind up without bound. Changes: (1) keep the iteration-5 geometry exactly (body 0.14 x 0.10, mass 0.5, 5 sensors at x=-0.06..+0.06 and y=0.07, 16 mm footprint, wheel_track 0.12, wheel_radius 0.03), so the controller change is isolated; (2) set ki from 0 to 1.0 to cancel the steady bias; (3) keep kp 3.0, kd 0.4, base_speed 1.3 and last_direction line loss. Expected result: rms_error and max_error should fall, with fewer off-track ends and progress above the 0.27 to 0.55 range seen so far. If the integral removes the offset but progress still stalls on speed, the next step is base_speed toward 1.6 for the finish-time term. The telemetry will show whether rms_error drops sharply, which would confirm the bias explanation."
+}

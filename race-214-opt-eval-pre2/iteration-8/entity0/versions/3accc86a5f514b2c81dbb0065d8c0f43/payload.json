@@ -1,0 +1,61 @@
+{
+  "controller": {
+    "base_speed": 0.9,
+    "kd": 1.5,
+    "ki": 0.0,
+    "kp": 2.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.04,
+        "y": 0.08
+      },
+      {
+        "x": -0.02,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.02,
+        "y": 0.08
+      },
+      {
+        "x": 0.04,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: iteration 6 (kp 2.0, kd 1.0, base_speed 0.9, sensors at y=0.08) is the best design so far at 465.03. Its oval finished in 19 of 20 trials (mean 1.94 s), so the course is completable at 0.9 speed. The s-bend finished in 4 of 20 trials (progress 0.71, steering oscillation 0.38, 0.75 line-loss events per run), and the slalom almost never gets past progress 0.16. Iteration 7 raised kp to 2.4 and scored lower (430.9). Oval became perfect (20 of 20, 956 mean), but the s-bend fell to 1 of 20 finishes (progress 0.60, oscillation 0.41), so the extra proportional gain overshoots on the s-bend. The off-track limit is 0.06 m for every allowed body width, so geometry cannot widen it, and sensors are already at the forward limit of y=0.08.\n\nChange: revert kp to 2.0 and raise kd from 1.0 to 1.5, keeping every geometry value and the other controller values fixed. The s-bend failures show overshoot and jitter that grow with gain, so extra derivative damping should cut that without the overshoot that kp 2.4 caused. kd of 1.5 is well inside its range, and the wheel command stays within limits (edge turn of 4 gives about 1400 PWM of differential, below the 1843 base PWM at speed 0.9).\n\nExpected result: oval completion stays at about 90 percent or better, s-bend finishes rise above the 20 percent seen in iteration 7, and steering oscillation drops below 0.35. Score target is roughly 480 to 560. Main risk: higher kd amplifies sensor noise or slows the response on the oval. The revision rounds should check this against the critique."
+}

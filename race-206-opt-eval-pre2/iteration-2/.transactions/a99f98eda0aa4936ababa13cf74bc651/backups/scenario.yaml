@@ -1,0 +1,293 @@
+map:
+  id: race-206-opt-eval-pre2
+  schema: v0.2
+  scenario: Iteration 2
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 1.
+dimensions:
+  time_horizon: prepared
+  iteration: '2'
+overrides:
+  entities:
+  - id: entity0
+    label: Lower gain, add integral
+    notes: 'Cuts kp from 3.0 to 2.0, adds ki 0.3 to cancel the motor-mismatch bias,
+      and lowers base speed to 1.3 and mass to 0.6 kg. Based on iteration 1: halving
+      gain raised oval progress from 0.115 to 0.176, but every run still left the
+      line near the 0.06 m limit.
+
+
+      ### Rationale
+
+
+      Evidence: iteration 1 (weights halved, kp 3, kd 0.6, base 1.4) still left the
+      line in all 60 trials, with progress 0.04 to 0.18 and max_error about 0.061,
+      just past the 0.06 m off-track limit. Halving the gain improved oval progress
+      (0.115 to 0.176), so the loop is too aggressive, but the failure is still early
+      in every track. rms_error is nearly identical across designs (about 0.03), which
+      suggests a steady bias plus oscillation, not a single bad bend. The fixed left/right
+      motor mismatch in the disturbance would produce a constant turn bias. With kp
+      only, that bias leaves a steady offset of bias/(kp gain), and that offset is
+      large enough to reach the 0.06 m limit. The control loop has no integral action
+      to remove it.
+
+
+      Changes: (1) kp reduced from 3.0 to 2.0, since the earlier change showed gain
+      is the main driver of overshoot. The sensor-to-offset slope is about 31 per
+      metre, so the proportional turn is about 62 per metre of offset. (2) ki set
+      to 0.3 so the integral cancels the constant mismatch bias. The integral is limited
+      to +/-2, so windup is bounded. (3) kd raised to 0.8 to damp the oscillation
+      that a lower kp still allows. (4) base_speed reduced to 1.3 to reduce lateral
+      slip and the time spent in each bend. Completion in under 3 s is unlikely at
+      this speed, but a stable run to progress near 1.0 is worth far more than the
+      current near-zero progress (about 250 points for progress alone). (5) mass reduced
+      to 0.6 kg to lower yaw inertia, so the robot responds faster to steering commands.
+      Sensor layout, weights, wheel_track 0.14 and wheel_radius 0.03 are unchanged,
+      so the effect of the gain changes can be read directly from the race.
+
+
+      Expected result: the robot should stay on the line through the bends, with max_error
+      below about 0.05 m and no line-loss events. Progress should move well beyond
+      0.2 on all three development tracks, and completion may be reached on the oval.
+      If the run still goes off track, the next step is to lower kp to about 1.5 or
+      raise ki.
+
+
+      - [Open this output](iteration-2/entity0/versions/a716bffbb75648c8bfe07a226060d850/payload.json)
+
+      - Based on: [entityR2A](iteration-2/entityR2A/versions/carried-fe4f0e4365092828/payload.json)'
+  - id: entityC1
+    label: Round-1 Critique
+    notes: 'Round-1 Critique. The model did not supply a valid label and summary,
+      so the orchestrator wrote this one.
+
+
+      - [Open this output](iteration-2/entityC1/versions/71d3db1514bb449e992d078870325203/payload.json)
+
+      - Based on: [entity0](iteration-2/entity0/versions/a716bffbb75648c8bfe07a226060d850/payload.json),
+      [entityR2A](iteration-2/entityR2A/versions/carried-fe4f0e4365092828/payload.json)'
+  - id: entity1
+    label: Halved gain, slower base
+    notes: 'Revised design keeps the critique''s halved steering gain (weights ±1
+      to ±0.5, effective gain 1.5), lowers base_speed to 1.5, reduces kd to 0.1 and
+      adds ki 0.1 for the motor bias. Iteration 0 went off track in all 60 trials
+      with max_error about 0.061, so the aim is staying on the line first, not completion.
+
+
+      ### Rationale
+
+
+      Evidence: the iteration-0 design (weights ±2, kp 2.5, kd 0.03, base_speed 1.9,
+      wheel_track 0.12) went off track in all 60 trials on oval, s-bend and slalom.
+      Progress was only 0.035 to 0.115, with one line-loss event each time. max_error
+      sat at about 0.061, just above the 0.06 m off-track limit, and rms_error was
+      about 0.03 on every track. The failure is early and consistent, not a slow growing
+      oscillation. The loss happens in the first part of each run at high speed with
+      high steering gain.
+
+
+      Critique: I accept the main points. (a) Halving the sensor weights halves the
+      steering gain per metre of offset. (b) At this gain, a higher base_speed leaves
+      less time to correct, so the speed should come down. (c) Derivative on sensor
+      edges is a real kick, so kd must be small. (d) With ki = 0, the fixed motor
+      mismatch leaves a steady bias, so a small ki is needed. I partly reject the
+      critique''s speed concern: completion is not achievable with a robot that leaves
+      the line within 0.5 s, so I am prioritising staying on the line over completion
+      time. I also reject widening wheel_track in this revision. Keeping wheel_track
+      at 0.12 removes a second, uncalibrated gain change and makes the effect of the
+      weight change easier to read.
+
+
+      Changes: (1) sensor_weights [-1,-0.5,0,0.5,1] with kp 3.0 gives effective gain
+      1.5 per unit of signal, against 5.0 in iteration 0 (about 3.3 times lower).
+      (2) base_speed 1.9 to 1.5 (base_pwm about 2867, 70 percent), to give the controller
+      time to correct at each bend. (3) kd 0.03 to 0.1. At weights of 0.5 spacing,
+      an edge kick is about 0.5 * 100 * 0.1 = 5 turn units, which is small but still
+      gives some damping. (4) ki 0 to 0.1. Its contribution is capped at about 0.2
+      turn units by the integral limit, so it removes bias without windup. (5) Sensors
+      moved from y 0.06 to y 0.05, a small change in lead. Sensor x positions, size
+      and line_loss last_direction are kept, since the tape is always on one side
+      after a bend.
+
+
+      Kept: body, mass, wheel radius and wheel track at mid-range values. body_width
+      has no lever here (off-track limit stays 0.06 m).
+
+
+      Expected result (hypothesis, not observed): max_error well below 0.06 m, rms_error
+      about 0.02 to 0.03 m, line_loss_events of 0 to 1, and progress above 0.3. Completion
+      is not expected in this revision. Decision rule for the next revision: if max_error
+      is still near 0.06 with low steering_oscillation, the cause is bias or under-steer
+      on tight bends, so raise ki or kp slightly. If steering_oscillation rises, lower
+      kp first.
+
+
+      - [Open this output](iteration-1/entity1/versions/058d843471b848e78aeb3d097fdb422e/payload.json)
+
+      - Based on: [entity0](iteration-1/entity0/versions/2f3eef131a3942fe8d07874a59631d4d/payload.json),
+      [entityC1](iteration-1/entityC1/versions/6816de5d24ca4a23b712f492c5755612/payload.json),
+      [entityR2A](iteration-1/entityR2A/versions/carried-99c4a7a3a3ee016d/payload.json)'
+  - id: entityC2
+    label: Round-2 Critique
+    notes: 'Critiques the revised design and rationale. Main points: the kd edge kick
+      is about three times the proportional term, the 3.3-fold gain cut may under-steer
+      tight bends, and base_pwm is misstated (3071, not 2867). Evidence is the iteration-0
+      race data and the contract equations.
+
+
+      - [Open this output](iteration-1/entityC2/versions/ad29aa54ce574e8eb09fd756e091c5fb/payload.json)
+
+      - Based on: [entity1](iteration-1/entity1/versions/058d843471b848e78aeb3d097fdb422e/payload.json),
+      [entityR2A](iteration-1/entityR2A/versions/carried-99c4a7a3a3ee016d/payload.json)'
+  - id: entity2
+    label: Halved gain, kd 0.03
+    notes: 'Keeps the draft''s halved steering gain (weights ±1, kp 3.0) and ki 0.1,
+      with base_speed 1.5, which fixes the draft''s base_pwm error (3071, not 2867).
+      Lowers kd from 0.1 to 0.03 because the critique showed kd 0.1 gives an edge
+      kick about three times the proportional term. Evidence is the iteration-0 result,
+      where ±2 weights saturated the wheel clip and left the robot off the line on
+      all 60 trials.
+
+
+      ### Rationale
+
+
+      Final design. I kept the main change from the draft and the partly accepted
+      critique points, and corrected the arithmetic.
+
+
+      Evidence: the iteration-0 design (weights ±2, kp 2.5, base_speed 1.6, no kd)
+      went off track in all 60 trials on oval, s-bend and slalom, with progress of
+      0.035 to 0.115 and max_error about 0.061. In that design the signal reaches
+      ±2 at the sensor edges, so turn reaches about 5 units. The wheel clip at base_speed
+      1.6 starts at about 2.3 turn units, so the controller saturated on any firm
+      correction. The failure was early and consistent, with low steering_oscillation
+      (0.06 to 0.07), which points to too little effective correction on bends rather
+      than jitter.
+
+
+      What I kept from the draft and why:
+
+      1) Steering gain. Weights [-1,-0.5,0,0.5,1] with kp 3.0 give an effective gain
+      of 1.5 per unit of signal, against 5.0 before. At the edges, turn is at most
+      3.0 units, so the clip is only reached at the full edge reading; at a 12 mm
+      offset (signal about 0.4) turn is about 1.2 units, well inside the limit. I
+      accept the critique''s point that the lower gain could under-steer tight bends.
+      I keep it because the old gain saturated, and the decision rule below covers
+      the under-steer case.
+
+      2) base_speed 1.5. The draft''s base_pwm of 2867 was wrong. The correct value
+      is 4095 x 0.75 = 3071 (75 percent), leaving about 1024 counts of headroom, which
+      is more than before. I keep 1.5 to prioritise staying on the line. Completion
+      is not expected in this test.
+
+      3) ki 0.1, kept. The bias from the 2 percent motor mismatch is about 0.18 turn
+      units, and the integral is capped at ±2 (at most about 0.2 turn units). I accept
+      that the integral''s exact accumulation rate is not confirmed, so the cap is
+      the bound I rely on.
+
+      4) Sensors at y 0.05, kept. Lead is 0.05/1.5 = about 33 ms. The reason for the
+      move is stated only as a small lead change; I accept that it is not separately
+      tested.
+
+
+      What I changed after the critique:
+
+      5) kd 0.03 (was 0.1, and 0.03 in the draft''s wording). The critique is correct
+      that kd 0.1 gives an edge kick of about 5 turn units (0.5 signal change per
+      10 ms, or 50 per second, times kd), which is larger than the proportional term
+      of 1.5 at that edge. kd 0.03 gives about 1.5 units, comparable to the proportional
+      term, so it still damps without dominating. I set kd to 0.03 rather than 0 to
+      keep a small damping term, since the critique''s own suggestion allows either
+      and I have no measured edge response to justify a larger value.
+
+
+      Rejected from the critique: I did not change the speed upward to chase completion,
+      because a robot that leaves the line within 0.5 s scores nothing and the main
+      risk is still stability. I did not widen wheel_track or change body or mass,
+      which keeps the test readable.
+
+
+      Expected (hypothesis, untested): max_error well below 0.06 m, rms_error about
+      0.02 to 0.03 m, 0 to 1 line-loss events, and progress above 0.3. Completion
+      is not expected.
+
+
+      Decision rule for the next revision: if max_error stays near 0.06 with low steering_oscillation,
+      the cause is under-steer or bias on tight bends, so raise kp first (to about
+      3.5), then ki slightly. If steering_oscillation rises, lower kp first, then
+      kd to 0. If progress is high but completion fails on time, raise base_speed
+      to about 1.7 (base_pwm about 3481, headroom about 614 counts).
+
+
+      - [Open this output](iteration-1/entity2/versions/08e6596c9a054524934ad5867933914e/payload.json)
+
+      - Based on: [entity1](iteration-1/entity1/versions/058d843471b848e78aeb3d097fdb422e/payload.json),
+      [entityC2](iteration-1/entityC2/versions/ad29aa54ce574e8eb09fd756e091c5fb/payload.json),
+      [entityR2A](iteration-1/entityR2A/versions/carried-99c4a7a3a3ee016d/payload.json)'
+  - id: entityR2A
+    label: Score 33.89
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 33.89.
+      Per trial — oval-1: 51.3 (off_track); oval-2: 50.3 (off_track); oval-3: 50.3
+      (off_track); oval-4: 87.6 (off_track); oval-5: 48.3 (off_track); oval-6: 48.3
+      (off_track); oval-7: 85.7 (off_track); oval-8: 50.3 (off_track); oval-9: 87.6
+      (off_track); oval-10: 85.7 (off_track); oval-11: 87.6 (off_track); oval-12:
+      87.6 (off_track); oval-13: 51.3 (off_track); oval-14: 85.7 (off_track); oval-15:
+      48.3 (off_track); oval-16: 50.3 (off_track); oval-17: 87.6 (off_track); oval-18:
+      87.6 (off_track); oval-19: 87.6 (off_track); oval-20: 87.6 (off_track); s-bend-1:
+      17.5 (off_track); s-bend-2: 17.5 (off_track); s-bend-3: 16.5 (off_track); s-bend-4:
+      17.5 (off_track); s-bend-5: 17.5 (off_track); s-bend-6: 16.5 (off_track); s-bend-7:
+      16.5 (off_track); s-bend-8: 16.5 (off_track); s-bend-9: 17.5 (off_track); s-bend-10:
+      16.5 (off_track); s-bend-11: 16.5 (off_track); s-bend-12: 17.5 (off_track);
+      s-bend-13: 17.5 (off_track); s-bend-14: 17.5 (off_track); s-bend-15: 17.5 (off_track);
+      s-bend-16: 17.5 (off_track); s-bend-17: 17.5 (off_track); s-bend-18: 16.5 (off_track);
+      s-bend-19: 17.5 (off_track); s-bend-20: 17.5 (off_track); slalom-1: 13.4 (off_track);
+      slalom-2: 14.4 (off_track); slalom-3: 14.4 (off_track); slalom-4: 13.4 (off_track);
+      slalom-5: 14.4 (off_track); slalom-6: 14.4 (off_track); slalom-7: 14.4 (off_track);
+      slalom-8: 14.4 (off_track); slalom-9: 14.4 (off_track); slalom-10: 14.4 (off_track);
+      slalom-11: 13.4 (off_track); slalom-12: 14.4 (off_track); slalom-13: 14.4 (off_track);
+      slalom-14: 14.4 (off_track); slalom-15: 14.4 (off_track); slalom-16: 14.4 (off_track);
+      slalom-17: 14.4 (off_track); slalom-18: 14.4 (off_track); slalom-19: 14.4 (off_track);
+      slalom-20: 14.4 (off_track).
+
+
+      - [Open this output](iteration-1/entityR2A/versions/3ae2c467925440049607378ee75c597c/payload.json)
+
+      - Based on: [entity2](iteration-1/entity2/versions/08e6596c9a054524934ad5867933914e/payload.json)'
+  - id: entityOut
+    label: Score 33.89
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 33.89.
+      Per trial — oval-1: 51.3 (off_track); oval-2: 50.3 (off_track); oval-3: 50.3
+      (off_track); oval-4: 87.6 (off_track); oval-5: 48.3 (off_track); oval-6: 48.3
+      (off_track); oval-7: 85.7 (off_track); oval-8: 50.3 (off_track); oval-9: 87.6
+      (off_track); oval-10: 85.7 (off_track); oval-11: 87.6 (off_track); oval-12:
+      87.6 (off_track); oval-13: 51.3 (off_track); oval-14: 85.7 (off_track); oval-15:
+      48.3 (off_track); oval-16: 50.3 (off_track); oval-17: 87.6 (off_track); oval-18:
+      87.6 (off_track); oval-19: 87.6 (off_track); oval-20: 87.6 (off_track); s-bend-1:
+      17.5 (off_track); s-bend-2: 17.5 (off_track); s-bend-3: 16.5 (off_track); s-bend-4:
+      17.5 (off_track); s-bend-5: 17.5 (off_track); s-bend-6: 16.5 (off_track); s-bend-7:
+      16.5 (off_track); s-bend-8: 16.5 (off_track); s-bend-9: 17.5 (off_track); s-bend-10:
+      16.5 (off_track); s-bend-11: 16.5 (off_track); s-bend-12: 17.5 (off_track);
+      s-bend-13: 17.5 (off_track); s-bend-14: 17.5 (off_track); s-bend-15: 17.5 (off_track);
+      s-bend-16: 17.5 (off_track); s-bend-17: 17.5 (off_track); s-bend-18: 16.5 (off_track);
+      s-bend-19: 17.5 (off_track); s-bend-20: 17.5 (off_track); slalom-1: 13.4 (off_track);
+      slalom-2: 14.4 (off_track); slalom-3: 14.4 (off_track); slalom-4: 13.4 (off_track);
+      slalom-5: 14.4 (off_track); slalom-6: 14.4 (off_track); slalom-7: 14.4 (off_track);
+      slalom-8: 14.4 (off_track); slalom-9: 14.4 (off_track); slalom-10: 14.4 (off_track);
+      slalom-11: 13.4 (off_track); slalom-12: 14.4 (off_track); slalom-13: 14.4 (off_track);
+      slalom-14: 14.4 (off_track); slalom-15: 14.4 (off_track); slalom-16: 14.4 (off_track);
+      slalom-17: 14.4 (off_track); slalom-18: 14.4 (off_track); slalom-19: 14.4 (off_track);
+      slalom-20: 14.4 (off_track).
+
+
+      - [Open this output](iteration-1/entityOut/versions/3ae2c467925440049607378ee75c597c/payload.json)
+
+      - Based on: [entity2](iteration-1/entity2/versions/08e6596c9a054524934ad5867933914e/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+  - id: action3
+  - id: action4
+  - id: action5
+measurements: {}

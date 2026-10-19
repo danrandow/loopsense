@@ -1,0 +1,70 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 1.5,
+    "ki": 0.2,
+    "kp": 2.5,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.67,
+      -0.33,
+      0.0,
+      0.33,
+      0.67,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.08
+      },
+      {
+        "x": -0.04,
+        "y": 0.08
+      },
+      {
+        "x": -0.02,
+        "y": 0.08
+      },
+      {
+        "x": 0.0,
+        "y": 0.08
+      },
+      {
+        "x": 0.02,
+        "y": 0.08
+      },
+      {
+        "x": 0.04,
+        "y": 0.08
+      },
+      {
+        "x": 0.06,
+        "y": 0.08
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Evidence: 240 development trials across five designs, and none finished. Every run ended off track. Max error sits at about 0.063 to 0.064 m, just above the 0.06 m limit, while rms error stays at 0.025 to 0.036 m. Iteration 4 was the best (81.56, from 65.2). Its gains came from widening the sensors to x = \u00b10.06 and moving them forward to y = 0.07, together with lower speed (1.3) and lower kp (2.5). Oval progress rose from 0.25 to 0.33, and s-bend progress rose from 0.13 to 0.17.\n\nThe off-track limit is max(0.06, 0.0125 + body_width/4). Even the widest allowed body (0.18 m) gives only 0.0575, so the limit stays at 0.06 m. The controller has to keep the robot inside that band. Widening the array helped, so the line-detection geometry is still the most useful lever. The outer sensors at \u00b10.06 are the widest I can place within the 0.08 m limit, and I can't push them further. I can add sensors between them instead. A 7-sensor array at x = -0.06, -0.04, -0.02, 0, 0.02, 0.04, 0.06 keeps the same outer reach while giving finer, overlapping coverage of the 25 mm tape, so the signal changes more smoothly as the robot drifts.\n\nI also move the sensor row forward to y = 0.08, the maximum allowed. More lookahead lets the controller react earlier at bends, which is where the excursions happen. Weights scale as offset/0.06 (about 1 unit per 0.06 m), the same scale that iteration 4 used. This keeps kp near its tested value and avoids a new gain change.\n\nController: keep base_speed 1.3, kp 2.5 and ki 0.2, since these are the values that produced the best result. Raise kd from 1.2 to 1.5 to damp the steering oscillation (0.15 to 0.21 so far) that comes with the denser sensor array. Keep last_direction line loss.\n\nExpected result: fewer off-track excursions at bends, max_error nearer 0.055 to 0.06, and oval and s-bend progress above 0.35. Completion on any track is still unlikely at this speed, but the score should rise above 81.6 if the lower max error holds. The main risk is that the extra sensors add noise or raise the signal sensitivity, so the next revision should check the oscillation and line-loss numbers before changing kd or kp again."
+}
