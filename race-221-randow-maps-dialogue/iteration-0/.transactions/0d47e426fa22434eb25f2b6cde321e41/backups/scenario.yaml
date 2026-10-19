@@ -1,0 +1,121 @@
+map:
+  id: race-221-randow-maps-dialogue
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor
+    notes: 'First geometry proposal: five 12 mm sensors spaced 12 mm apart, 50 mm
+      ahead of the axle, on a 0.12 m track with 0.6 kg mass. No race data yet, so
+      this is a design-reasoned baseline, and the next iteration will test span and
+      forward offset.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no Integration Feedback and no Geometry Race Data, so this proposal
+      rests on design reasoning rather than evidence. The course is about 4 to 5 m
+      and must be covered in under 3 s, so the robot needs speed (about 1.5 m/s or
+      more) and a sensor array that reads the 25 mm tape reliably through bends. I
+      chose five sensors at 12 mm spacing with 12 mm footprints, spanning about ±24
+      mm. Adjacent footprints overlap, so at least one sensor should see the tape
+      across the line-loss-free band, and the weighted signal changes smoothly as
+      the line moves across the array. I placed the sensors 50 mm ahead of the axle,
+      so the robot reads the line before its wheels reach a bend, which should help
+      high-speed stability and reduce the lag that causes overshoot. The wheel track
+      is 0.12 m, a middle value that balances turn responsiveness against stability.
+      The wheel radius is 0.03 m, and mass is 0.6 kg, low enough to accelerate quickly
+      but not so light that the chassis is fragile. The body width of 0.14 m gives
+      an off-track limit of about 0.0525 m, which is max(0.06, 0.0125+0.035), so the
+      limit stays at 0.06 m and the track edge is not tightened. Body length is 0.16
+      m, which only affects the envelope. I expect a first race that completes most
+      of the development tracks, with the main risks being overshoot on the slalom
+      and line loss at tight bends if the Integrator''s gains are too aggressive.
+      I have not yet tested whether a wider or narrower sensor span is better, so
+      the next iterations should compare span and forward offset.
+
+
+      - [Open this output](iteration-0/entity0/versions/12a4cb79d9d74303ac1714163a4cf25e/payload.json)'
+  - id: entity1
+    label: Baseline robot package
+    notes: 'Complete runnable robot using the unchanged baseline geometry with a proportional
+      controller. Gains are design estimates because no race telemetry exists yet.
+
+
+      ### Rationale
+
+
+      There are no earlier races, so no telemetry or outcome table exists yet. The
+      controller is therefore built from first principles for the supplied baseline
+      geometry, which is kept exactly as proposed. The five sensors sit at x = -0.024,
+      -0.012, 0, 0.012, 0.024 m, and each sensor''s signed x position is used as its
+      weight, scaled to -1, -0.5, 0, 0.5, 1. Positive weight steers left, so a line
+      on the left side gives a positive signal and the robot turns toward it, which
+      matches the contract''s sign convention. kp = 3.0 gives a maximum turn of 3,
+      about 1050 PWM of differential at full signal. That is firm enough to hold a
+      1.5 m/s run through bends without saturating the wheels. ki = 0 avoids integral
+      windup on the oval and slalom, where the signal changes sign often. kd = 0.25
+      damps overshoot from the 50 mm forward offset without amplifying sensor noise
+      too much. base_speed = 1.5 sits just above the 1.5 m/s average the 3 s limit
+      requires, with some margin for the slalom. line_loss = last_direction is chosen
+      because it keeps the robot turning toward the side it last saw the tape, which
+      suits the bends better than a fixed search direction. The observation request
+      asks for every measurement the Geometry Builder asked for, so their next iteration
+      can compare sensor span and forward offset directly. The expected result is
+      completion on the development tracks, but this is a prediction from design reasoning,
+      not a measured outcome.
+
+
+      - [Open this output](iteration-0/entity1/versions/1f80895da50142afb629efc0955ed68c/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/12a4cb79d9d74303ac1714163a4cf25e/payload.json)'
+  - id: entityR1
+    label: Baseline integration
+    notes: 'Feedback based only on design reasoning, since no earlier races exist.
+      It asks the Builder to hold the baseline and gives conditional span and forward-offset
+      changes to test once the first race reports line loss and oscillation.
+
+
+      ### Feedback
+
+
+      No earlier races exist, so this feedback is based only on design reasoning and
+      I have no outcome evidence to cite. For the baseline, I used the five-sensor
+      layout with weights scaled by x position, which works with a proportional controller.
+      The main integration concerns are the sign convention and the controller''s
+      ability to hold 1.5 m/s. Holding the current geometry is reasonable for the
+      first race, because it gives a clean baseline. Once the first race reports rms_error,
+      line_loss_events and steering_oscillation, use them to decide the next change.
+      If line_loss_events is high on the sharp bends, the array is probably too narrow
+      and a wider span is worth testing. If steering_oscillation is high at speed,
+      the sensors may be too far ahead of the axle and a shorter forward offset is
+      worth testing. Do not change both at once, so each effect can be attributed.
+
+
+      ### Requested changes
+
+
+      - Hold the baseline geometry for the first race to establish a reference result
+      for rms_error, line_loss_events and steering_oscillation.
+
+      - If line_loss_events is high on the sharp bends, test a wider sensor span of
+      about ±0.03 m while keeping the forward offset at 0.05 m.
+
+      - If steering_oscillation is high at speed, test a shorter forward offset of
+      about 0.03 m while keeping the span unchanged.
+
+
+      - [Open this output](iteration-0/entityR1/versions/1f80895da50142afb629efc0955ed68c/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/12a4cb79d9d74303ac1714163a4cf25e/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

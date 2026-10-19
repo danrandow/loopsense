@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 1.2,
+    "kd": 0.3,
+    "ki": 0.05,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.12,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.03
+      },
+      {
+        "x": -0.03,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.03,
+        "y": 0.03
+      },
+      {
+        "x": 0.06,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "learning": "Iteration 3 (y 0.02 with softer controller) raised line loss to 0.6 and 0.65 on oval and slalom, so the controller was not the cause. If line loss returns near zero with y 0.03 and the iteration-1 gains, the sensor offset was the lever. If line loss stays at 0.2 or higher, the mass and body_length reduction is the next suspect.",
+  "notes": "Adopts the Builder's sensor y revert to 0.03 with mass 0.7 and body_length 0.14, and returns the controller to the iteration-1 gains (kp 3.0, kd 0.3, base_speed 1.2). Iteration 3 showed the controller softening did not fix line loss, so the geometry is the cause.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Iteration 3 falsified the controller-only explanation. Softening to kp 3.5 and base_speed 1.0 with sensor y 0.02 made line loss worse, not better: 0.6 events on oval and 0.65 on slalom, against 0.25 and 0.3 in iteration 2 and 0 and 0.1 in iteration 1. That geometry is the probable cause, so I am following the revert rule I set in iteration 3 and adopting the Builder's proposal: sensor y back to 0.03, keeping mass 0.7 and body_length 0.14. Iteration 1 with y 0.03 had zero line loss on oval and 0.1 on slalom, so the sensor forward offset is the strongest known line-retention lever. For the controller I am returning to the iteration-1 gains (kp 3.0, kd 0.3, ki 0.05, base_speed 1.2, last_direction). These were the settings that worked with y 0.03, and they avoid the kd 0.6 and kp 4 combination that produced the oscillation seen in iteration 2 on s-bend (0.28). The mass and body change lowers yaw inertia, which is why I keep base_speed at 1.2 rather than cutting it. Expected result, not yet measured: line loss near 0 to 0.1 on oval and slalom, with the score near the iteration-1 and iteration-2 range. max_error is likely to stay near 0.063 m, which would point to turn authority (wheel_track) rather than sensing. The wheel_track change is not made here, so this race isolates the sensor y revert against the iteration-1 controller."
+}

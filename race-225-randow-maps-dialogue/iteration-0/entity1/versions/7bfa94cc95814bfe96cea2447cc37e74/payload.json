@@ -1,0 +1,62 @@
+{
+  "controller": {
+    "base_speed": 1.5,
+    "kd": 0.3,
+    "ki": 0.05,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.016,
+        "y": 0.04
+      },
+      {
+        "x": -0.008,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.008,
+        "y": 0.04
+      },
+      {
+        "x": 0.016,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "learning": "Next race: check steering_oscillation against kd, check line_loss_events and whether they cluster on specific bends, and check whether completion_time allows base_speed to rise. Reduce kp if oscillation is high; raise base_speed only if the robot completes with few losses.",
+  "notes": "Baseline controller for the symmetric five-sensor geometry, with weights proportional to sensor lateral position. Gains are conservative because there is no race data yet.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors"
+    ]
+  },
+  "rationale": "No race evidence exists yet (iteration 0), so the controller is a conservative, physics-based starting point. The five sensors sit at x = -0.016 to +0.016 m, so weights proportional to sensor x (positive = left, matching the positive-signal-steers-left convention) give a signal that is zero when centred and grows with lateral error. Weights are [-1, -0.5, 0, 0.5, 1], keeping |signal| at most 1. Gains: kp = 3 gives a turn of up to 3 at full signal, which is about 1050 PWM of wheel differential, enough to correct a bend without violent swings. kd = 0.3 damps overshoot on the sensor-to-signal derivative, and ki = 0.05 is small to avoid windup on the persistent offset from the motor mismatch. base_speed = 1.5 gives base PWM of about 3071 (75% of full), which should give an average speed near the 1.5 m/s needed to finish in 3 s, while leaving headroom for turning. line_loss = 'last_direction' suits a line that is lost on a bend, because the robot continues in the direction it was already turning. Expected result: the baseline completes the oval and s-bend with few line-loss events. The slalom, with its sharper alternating bends, is the most likely to show oscillation or line loss. This is untuned, so the next race's steering_oscillation and line_loss_events will decide whether kp, kd or base_speed should change."
+}

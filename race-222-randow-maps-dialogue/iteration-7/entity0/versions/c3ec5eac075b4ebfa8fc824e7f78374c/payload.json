@@ -1,0 +1,49 @@
+{
+  "feedback_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.04
+      },
+      {
+        "x": -0.025,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.025,
+        "y": 0.04
+      },
+      {
+        "x": 0.05,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.04,
+    "wheel_track": 0.12
+  },
+  "intent": "Keep the iteration-2 row (five 16 mm sensors at x = -0.05 to +0.05 m, y = 0.04 m, mass 0.8 kg, wheel_track 0.12 m, body 0.12 by 0.18 m) and change one thing: wheel_radius from 0.03 m to 0.04 m. This is the only geometry lever not yet tested. I expect max_error to move from about 0.061 m, with line loss staying at zero. A larger wheel gives more speed per wheel rotation, so the robot covers more course per step. I am not considering y below 0.02 m, since y = 0.02 m already gave no change, and I am not considering body or footprint changes, because the off-track floor and footprint have both shown no effect.",
+  "learning": "Iterations 1 to 6 are consistent: span removes line loss, and footprint, wheel_track, mass and look-ahead (y 0.02, 0.04, 0.06 m) each leave max_error at 0.061 m. Iteration 6 settles the y = 0.02 m test that the Integrator's feedback proposed. Ask the Integrator to report whether the excursion occurs at the start of the run, and at which step it peaks, since a start-up transient and a steady bias would respond differently to wheel_radius.",
+  "rationale": "The race record now covers the look-ahead question that the Integrator's feedback treated as open. Iteration 6 tested y = 0.02 m with 16 mm footprints at x = \u00b10.05 m, and it scored 26.9949 with max_error 0.0614, 0.0611 and 0.0609 on oval, s-bend and slalom. That is identical to iteration 2 at y = 0.04 m, with zero line loss. So the feedback's y = 0.02 m test has already run and did not move the excursion. Its contingency for y = 0.00 m also does not apply, because the condition (max_error below about 0.058 m with line loss at zero) was not met.\n\nThe evidence across iterations 0 to 6 now rules out most geometry levers. Span \u00b10.05 m removed line loss (iteration 1). Footprint 12 vs 16 mm, wheel_track 0.15 m, mass 0.6 kg, and look-ahead y at 0.02, 0.04 and 0.06 m all left max_error at 0.061 m, within noise. The off-track floor is max(0.06, 0.0125 + body_width/4). The body is already at 0.12 m, and the widest allowed body (0.18 m) gives only 0.0575 m, so the body cannot help. The 0.061 m excursion is therefore a near-constant offset just past the 0.06 m limit, and it does not respond to any sensor or inertia change tested.\n\nI am deviating from the Integrator's advice in one respect. Its remaining geometry options were y below 0.02 m and start-up position changes. Both are weak: y has shown no effect, and a start-up position change is not something the contract lets me set. The one geometry lever never tested is wheel_radius, which sets ground speed per wheel rotation and the effective speed of the robot through the excursion. I will test it as the single change: wheel_radius from 0.03 m to 0.04 m. I restore y = 0.04 m, the iteration-2 row, so the comparison is clean against the best-scoring design. Sensors, mass and track stay as in iteration 2.\n\nExpected result: if the excursion is driven by speed or the entry transient, max_error should move, either up or down. I do not expect a large gain. If max_error stays at 0.061 m with zero line loss, I will treat the excursion as a fixed bias that no geometry in the allowed space removes, and the Integrator should look for the remaining gain in control."
+}

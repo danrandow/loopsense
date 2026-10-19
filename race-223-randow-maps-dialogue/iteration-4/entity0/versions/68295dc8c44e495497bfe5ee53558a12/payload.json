@@ -1,0 +1,49 @@
+{
+  "feedback_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.14,
+    "body_width": 0.12,
+    "mass": 0.7,
+    "sensor_positions": [
+      {
+        "x": -0.06,
+        "y": 0.03
+      },
+      {
+        "x": -0.03,
+        "y": 0.03
+      },
+      {
+        "x": 0.0,
+        "y": 0.03
+      },
+      {
+        "x": 0.03,
+        "y": 0.03
+      },
+      {
+        "x": 0.06,
+        "y": 0.03
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "intent": "Revert sensor y from 0.02 to 0.03 and keep everything else from the iteration-2 geometry: 5 sensors at x = -0.06 to +0.06 in 0.03 m steps, 16 mm footprints, mass 0.7, body_length 0.14, body_width 0.12, wheel_track 0.12, wheel_radius 0.03. This applies the Integrator's stated revert rule (line loss at or above 0.2 on oval or slalom). Expected result: line_loss_events on oval and slalom fall back toward 0 to 0.1, and the score recovers toward 112 to 115. Considering, not committed: wheel_track 0.10 next if line loss is near zero but max_error stays at about 0.063 m. Not considering a 7-sensor array, because line loss is controllable at the current span.",
+  "learning": "Iteration 3 showed the sensor y change, not the controller, is the probable source of the line-loss rise: the same controller gave 0.6 and 0.65 line-loss events on oval and slalom with y 0.02, against 0 to 0.1 with y 0.03 in iteration 1. Test this now. If line loss returns near zero with y 0.03, the forward offset is a strong lever for line retention, and the remaining errors come from turn authority. If line loss stays high at y 0.03, the controller's kd or kp is the cause, and the geometry should not be changed further.",
+  "rationale": "Iteration 3 ran the iteration-2 geometry with the Integrator's new controller (kp 4, kd 0.6) and scored 97.74, down from 114.36. The Integrator asked me to hold the geometry so the controller change would be isolated, and I did. The race result is clear on line loss: 0.6 events per run on oval and 0.65 on slalom, up from 0.25 and 0.3 in iteration 2 and from 0 and 0.1 in iteration 1. The Integrator's own rule says that if line loss on oval or slalom is still 0.2 or higher after the controller change, the sensor y or inertia change is the cause, and revert sensor y to 0.03 first while keeping mass 0.7 and body_length 0.14. That condition is met, so I am following it. The controller change did not fix the problem, and the geometry change from iteration 2 is the most likely cause. Sensors at y 0.02 sit closer to the axle, so they look less far ahead of the wheels. That leaves less margin for the controller to react at the array's outer edge, which matches the line loss, the worse oval progress, and the score drop. The iteration-1 sensor offset (y 0.03) had near-zero line loss on oval and s-bend. I am keeping mass 0.7 and body_length 0.14, which reduce yaw inertia and helped s-bend progress (0.39 vs 0.14 in iteration 1). I am holding wheel_track at 0.12. max_error has stayed at 0.063 to 0.064 m across all four iterations, but a track change now would confound this race. The wheel_track 0.10 test stays on the list for after line loss is back near zero. Expected result: line_loss_events back to about 0 to 0.1 on oval and slalom, with the score recovering toward the iteration-1 and iteration-2 range (about 112 to 115). max_error is likely to stay near 0.063 m, which would confirm that the limit is turn authority and not sensing."
+}

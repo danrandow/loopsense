@@ -1,0 +1,122 @@
+map:
+  id: race-219-randow-maps-dialogue
+  schema: v0.2
+  scenario: Iteration 0
+  inherits: base.yaml
+  notes: Initial prepared state before either AI role or the simulator has acted.
+dimensions:
+  time_horizon: prepared
+  iteration: '0'
+overrides:
+  entities:
+  - id: entity0
+    label: Baseline 5-sensor array
+    notes: 'Baseline geometry: five 12 mm sensors spanning 40 mm at 0.04 m ahead of
+      the axle, on a light 0.6 kg chassis. No race evidence exists yet, so this is
+      built from the contract: the span is wider than the 25 mm tape and the lookahead
+      lets the robot react early.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no Integration Feedback and no Geometry Race Data, so this is
+      a baseline built from the contract rather than from evidence. A 25 mm tape needs
+      a sensor array wider than the tape so the robot can tell which side it has drifted
+      to, and the sensors should sit ahead of the axle so the robot reacts before
+      the line reaches the wheels. I chose five sensors spaced 10 mm apart, spanning
+      40 mm (about 1.6 tape widths), at y = 0.04 m ahead of the axle. Sensor size
+      is 12 mm, so neighbouring footprints overlap slightly and the readings change
+      smoothly as the line moves across them. Wheel track 0.12 m and wheel radius
+      0.03 m give a moderate turn rate. Mass 0.6 kg keeps yaw inertia and response
+      lag low. Body width 0.12 m keeps the off-track limit at its 0.06 m floor, so
+      the robot is not given extra room to drift. Expected result: the array should
+      keep line loss near zero on gentle bends, and the Integrator should be able
+      to reach the 1.5 m/s average speed. Sharp slalom bends are the most likely source
+      of error and are what I want measured.
+
+
+      - [Open this output](iteration-0/entity0/versions/822b86fdddce455f8bd06cd8dea39ad9/payload.json)'
+  - id: entity1
+    label: Baseline controller v0
+    notes: 'Symmetric proportional steering with small integral and derivative terms,
+      sized for 1.5 m/s on the supplied five-sensor geometry. Gains are first-principles
+      estimates because no race data exists yet.
+
+
+      ### Rationale
+
+
+      Iteration 0 has no Integration Race Data and no earlier outcomes, so this controller
+      is a first-principles baseline for the supplied geometry, not a tuned one. The
+      geometry is kept exactly as the Builder supplied it (five sensors at x = -0.02
+      to 0.02 m, y = 0.04 m, 12 mm footprints, 0.12 m track, 0.03 m wheels, 0.6 kg).
+      Sensor x is positive to the left and positive weights steer left, so each weight
+      is set proportional to its sensor''s x position: [-1, -0.5, 0, 0.5, 1]. A reading
+      on the left sensors pushes the signal positive, steering the robot back toward
+      the tape. With readings in [0, 1], the signal stays within about ±1. kp = 3
+      gives turn up to about ±3, which is roughly ±1050 PWM between the wheels, a
+      firm but not saturating response for the expected bends. ki = 0.1 is kept small
+      because the integral can only reach ±2, and it is there mainly to remove steady
+      bias from the fixed left/right motor mismatch. kd = 0.1 damps overshoot from
+      the 0.04 m lookahead without amplifying sensor noise much. base_speed = 1.8
+      gives PWM base of about 3685, which should give the 1.5 m/s average needed to
+      finish inside 3 s while keeping some margin for slowdowns on the slalom. line_loss
+      = ''last_direction'' lets the robot keep turning the way it was going when the
+      tape drops out, which suits the bends better than a fixed search. I expect this
+      to complete the development tracks with few line-loss events, and I have no
+      measured result yet to support that. The race will show whether kp or base_speed
+      is the limit.
+
+
+      - [Open this output](iteration-0/entity1/versions/6246df1b463f4b5abe61381a83adefb0/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/822b86fdddce455f8bd06cd8dea39ad9/payload.json)'
+  - id: entityR1
+    label: Baseline feedback, no
+    notes: 'Iteration 0 feedback from the contract alone, with no earlier races to
+      cite. Suggests widening the span or moving the array forward, depending on what
+      the first race shows for line loss and off-track failures.
+
+
+      ### Feedback
+
+
+      No race has run yet, so this feedback rests on the contract and on your stated
+      intent, not on earlier outcomes. There is no earlier iteration to cite; this
+      is iteration 0. Your choice of a symmetric five-sensor array with 12 mm footprints
+      at 10 mm spacing covers the 25 mm tape with about 40 mm of span, so the signal
+      should not saturate on the tape. The 0.04 m lookahead is short enough that a
+      proportional-plus-derivative law should handle it. I used the same weight pattern
+      on both sides, so the integrator has not yet needed any asymmetric compensation.
+      Next race: if line_loss_events is above zero on the slalom, widen the span (for
+      example x = ±0.025 m) before changing the lookahead. If steering_oscillation
+      is high and rms_error is low, keep the geometry and have the integrator adjust
+      gains instead. If completion fails on the sharpest bends with max_error near
+      the off-track limit, try moving the array forward toward y = 0.05 to 0.06 m
+      for more reaction time. Reserve the lighter-mass idea until the race shows whether
+      turning authority is limiting.
+
+
+      ### Requested changes
+
+
+      - If line_loss_events > 0 on the slalom, widen the sensor span from 0.04 m to
+      about 0.05 m (x = ±0.025 m) while keeping five sensors and the 12 mm footprint.
+
+      - If the run goes off track on the sharpest bend, move the array forward from
+      y = 0.04 m to about 0.05 to 0.06 m, which gives more lookahead without changing
+      the span.
+
+      - Keep the current geometry if the race completes with low rms_error and little
+      line loss, and report the completion_time so the Integrator can judge whether
+      base_speed can rise.
+
+
+      - [Open this output](iteration-0/entityR1/versions/6246df1b463f4b5abe61381a83adefb0/payload.json)
+
+      - Based on: [entity0](iteration-0/entity0/versions/822b86fdddce455f8bd06cd8dea39ad9/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+measurements: {}

@@ -1,0 +1,219 @@
+map:
+  id: race-222-randow-maps-dialogue
+  schema: v0.2
+  scenario: Iteration 4
+  inherits: base.yaml
+  notes: Authoritative state carried forward after iteration 3.
+dimensions:
+  time_horizon: prepared
+  iteration: '4'
+overrides:
+  entities:
+  - id: entity0
+    label: Track 0.15m, revert
+    notes: 'Reverts sensor y to 0.04 with the 16 mm, ±0.05 m row, which was the best
+      design (26.99), because y=0.06 brought back line loss and did not move max_error.
+      It adds one test, wheel_track 0.15 m, to see whether more turning authority
+      lowers the 0.061 m excursion.
+
+
+      ### Rationale
+
+
+      Iteration 3 moved sensor y from 0.04 to 0.06 and scored 26.62, below iteration
+      2''s 26.99. Line loss returned on the s-bend and slalom (1 event each), and
+      max_error stayed at about 0.061 m on every track. The longer look-ahead therefore
+      did not reduce the excursion and reintroduced line loss. Iteration 1 showed
+      that span removes line loss, and iteration 2 showed that footprint does not
+      move max_error. Following the Integrator''s contingency, I revert y to 0.04
+      and keep the 16 mm footprint at x = ±0.05 m, which is the best-scoring geometry
+      so far. I also add one change to test the Integrator''s remaining lever: wheel_track
+      from 0.12 to 0.15 m, for more turning authority. The off-track floor is max(0.06,
+      0.0125 + body_width/4), and body_width cannot lift it above 0.06 m, so the body
+      stays at 0.12 m. Mass and body are unchanged. This is a deliberate deviation
+      from the Integrator''s plain revert, which I can take because it still starts
+      from the best-known row. Expected result: max_error falls below about 0.058
+      m with line loss at zero. If max_error stays at about 0.061 m, the wheel track
+      is not the lever either, and the next test should be mass or the start-up transient.
+
+
+      - [Open this output](iteration-4/entity0/versions/0b7f26a29d214a639d514a2d56496a80/payload.json)
+
+      - Based on: [entityR1](iteration-4/entityR1/versions/carried-8ef989d0f9f9a698/payload.json),
+      [entityR2A](iteration-4/entityR2A/versions/carried-c3dab39fe2de97bb/payload.json)'
+  - id: entity1
+    label: Track 0.15 with kp scaled
+    notes: 'Iteration-2 controller and 16 mm ±0.05 m row at y 0.04, with the Builder''s
+      wheel_track 0.15 and kp raised to 4.4 to keep yaw gain equal, since wider track
+      lowers yaw per PWM difference. Iteration 3''s y and ki changes are reverted
+      because they were confounded and line loss returned.
+
+
+      ### Rationale
+
+
+      Iteration 2 is the best-scoring controller and geometry pairing (26.99): 16
+      mm footprints at x = ±0.05 m, y = 0.04 m, kp 3.5, ki 0, kd 0.05, with zero line
+      loss on oval and slalom. Iteration 3 moved y to 0.06 and added ki 0.3 together,
+      so the two changes are confounded. It scored lower (26.62), line loss returned
+      on s-bend and slalom, and max_error stayed at 0.061 m, so I revert both to iteration
+      2 values. The Builder''s geometry sets wheel_track to 0.15 m, and the Builder''s
+      proposal and rationale attribute this to more turning authority. The physics
+      works the other way: yaw rate is the wheel-speed difference divided by wheel_track,
+      so a wider track gives less yaw per unit of PWM difference. To keep the effective
+      steering gain equal to the best design, I scale kp by 0.15/0.12, giving 3.5
+      x 1.25 = 4.4. This isolates the wheel-track test: any change in max_error then
+      reflects the track''s effect on dynamics rather than a weaker steering loop.
+      ki stays at 0 and kd at 0.05, with base_speed 1.6 and last_direction recovery
+      unchanged. Expected result is line loss at zero and max_error near 0.061 m.
+      A drop below about 0.058 m would support the Builder''s hypothesis, but I make
+      no prediction of the score.
+
+
+      - [Open this output](iteration-4/entity1/versions/57766e61a45f4ed6bd1f2c01664b9524/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/0b7f26a29d214a639d514a2d56496a80/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-c3dab39fe2de97bb/payload.json)'
+  - id: entityR1
+    label: Wheel track test
+    notes: 'Feedback rests on iterations 0 to 3, which all show max_error of about
+      0.061 m regardless of span, footprint, kp or y. It flags that a wider wheel_track
+      reduces steering gain, so the test needs compensation, and gives fallbacks for
+      mass or a revert.
+
+
+      ### Feedback
+
+
+      Evidence: iterations 0 to 3 all ended off_track with max_error of about 0.061
+      m on every track, regardless of span (±0.024 vs ±0.05 m), footprint (12 vs 16
+      mm) or kp (3.0 vs 3.5), so none of these set the excursion. Iteration 1 removed
+      line loss on oval and slalom by widening the span. Iteration 2 (16 mm, ±0.05
+      m, y 0.04, kp 3.5, ki 0) is still the best at 26.99. Iteration 3 changed y to
+      0.06 and added ki 0.3 at once: line loss returned on s-bend and slalom and max_error
+      stayed at 0.061 m, so the look-ahead and integral change did not help. Before
+      the next race, two points on wheel_track. First, yaw rate is the wheel-speed
+      difference divided by wheel_track, so widening the track reduces yaw per unit
+      of steering command. Your ''more turning authority'' is therefore likely to
+      act as less steering gain, and I compensate with kp 4.4 in the package, which
+      keeps the effective gain equal to iteration 2. Second, the excursion is identical
+      across tracks, so it may be a start-up transient or a fixed bias rather than
+      a corner-tracking limit. The outcome of this race is unknown. Hold the best-known
+      geometry (16 mm, ±0.05 m, y 0.04) and read the wheel_track result alongside
+      max_error. If max_error still sits at about 0.061 m with line loss at zero,
+      the excursion does not respond to track or gain, and the next test should be
+      mass (lighter, about 0.6 kg, to reduce yaw inertia) or a change in the start-up
+      geometry. If line loss returns at 0.15 m, revert the track to 0.12 m.
+
+
+      ### Requested changes
+
+
+      - Keep the 16 mm footprint at x = ±0.05 m and y = 0.04 m (iteration 2 geometry),
+      and test wheel_track 0.15 m as the single geometry change; report max_error
+      and line_loss_events per track.
+
+      - If max_error stays at about 0.061 m with line loss at zero, try mass 0.6 kg
+      (lower yaw inertia) with the same sensors, leaving wheel_track as the best result
+      shows.
+
+      - If line loss returns at wheel_track 0.15 m, revert to 0.12 m and hold the
+      iteration-2 geometry, since y = 0.06 already reintroduced line loss.
+
+
+      - [Open this output](iteration-4/entityR1/versions/57766e61a45f4ed6bd1f2c01664b9524/payload.json)
+
+      - Based on: [entity0](iteration-4/entity0/versions/0b7f26a29d214a639d514a2d56496a80/payload.json),
+      [entityR2B](iteration-4/entityR2B/versions/carried-c3dab39fe2de97bb/payload.json)'
+  - id: entity2
+    label: Score 26.99
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 26.99.
+      Per trial — oval-1: 49.0 (off_track); oval-2: 49.0 (off_track); oval-3: 49.0
+      (off_track); oval-4: 49.0 (off_track); oval-5: 49.0 (off_track); oval-6: 49.0
+      (off_track); oval-7: 49.0 (off_track); oval-8: 49.0 (off_track); oval-9: 49.0
+      (off_track); oval-10: 49.0 (off_track); oval-11: 49.0 (off_track); oval-12:
+      49.0 (off_track); oval-13: 49.0 (off_track); oval-14: 49.0 (off_track); oval-15:
+      49.0 (off_track); oval-16: 49.0 (off_track); oval-17: 49.0 (off_track); oval-18:
+      49.0 (off_track); oval-19: 49.0 (off_track); oval-20: 49.0 (off_track); s-bend-1:
+      17.1 (off_track); s-bend-2: 17.1 (off_track); s-bend-3: 17.1 (off_track); s-bend-4:
+      17.1 (off_track); s-bend-5: 17.1 (off_track); s-bend-6: 17.1 (off_track); s-bend-7:
+      17.1 (off_track); s-bend-8: 17.1 (off_track); s-bend-9: 17.1 (off_track); s-bend-10:
+      17.1 (off_track); s-bend-11: 17.1 (off_track); s-bend-12: 17.1 (off_track);
+      s-bend-13: 17.1 (off_track); s-bend-14: 17.1 (off_track); s-bend-15: 17.1 (off_track);
+      s-bend-16: 17.1 (off_track); s-bend-17: 17.1 (off_track); s-bend-18: 17.1 (off_track);
+      s-bend-19: 17.1 (off_track); s-bend-20: 17.1 (off_track); slalom-1: 14.9 (off_track);
+      slalom-2: 14.9 (off_track); slalom-3: 14.9 (off_track); slalom-4: 14.9 (off_track);
+      slalom-5: 14.9 (off_track); slalom-6: 14.9 (off_track); slalom-7: 14.9 (off_track);
+      slalom-8: 14.9 (off_track); slalom-9: 14.9 (off_track); slalom-10: 14.9 (off_track);
+      slalom-11: 14.9 (off_track); slalom-12: 14.9 (off_track); slalom-13: 14.9 (off_track);
+      slalom-14: 14.9 (off_track); slalom-15: 14.9 (off_track); slalom-16: 14.9 (off_track);
+      slalom-17: 14.9 (off_track); slalom-18: 14.9 (off_track); slalom-19: 14.9 (off_track);
+      slalom-20: 14.9 (off_track).
+
+
+      - [Open this output](iteration-4/entity2/versions/0939c3f85e904c5494f9b0f10eb51ad2/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/57766e61a45f4ed6bd1f2c01664b9524/payload.json)'
+  - id: entityR2B
+    label: Score 26.99
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 26.99.
+      Per trial — oval-1: 49.0 (off_track); oval-2: 49.0 (off_track); oval-3: 49.0
+      (off_track); oval-4: 49.0 (off_track); oval-5: 49.0 (off_track); oval-6: 49.0
+      (off_track); oval-7: 49.0 (off_track); oval-8: 49.0 (off_track); oval-9: 49.0
+      (off_track); oval-10: 49.0 (off_track); oval-11: 49.0 (off_track); oval-12:
+      49.0 (off_track); oval-13: 49.0 (off_track); oval-14: 49.0 (off_track); oval-15:
+      49.0 (off_track); oval-16: 49.0 (off_track); oval-17: 49.0 (off_track); oval-18:
+      49.0 (off_track); oval-19: 49.0 (off_track); oval-20: 49.0 (off_track); s-bend-1:
+      17.1 (off_track); s-bend-2: 17.1 (off_track); s-bend-3: 17.1 (off_track); s-bend-4:
+      17.1 (off_track); s-bend-5: 17.1 (off_track); s-bend-6: 17.1 (off_track); s-bend-7:
+      17.1 (off_track); s-bend-8: 17.1 (off_track); s-bend-9: 17.1 (off_track); s-bend-10:
+      17.1 (off_track); s-bend-11: 17.1 (off_track); s-bend-12: 17.1 (off_track);
+      s-bend-13: 17.1 (off_track); s-bend-14: 17.1 (off_track); s-bend-15: 17.1 (off_track);
+      s-bend-16: 17.1 (off_track); s-bend-17: 17.1 (off_track); s-bend-18: 17.1 (off_track);
+      s-bend-19: 17.1 (off_track); s-bend-20: 17.1 (off_track); slalom-1: 14.9 (off_track);
+      slalom-2: 14.9 (off_track); slalom-3: 14.9 (off_track); slalom-4: 14.9 (off_track);
+      slalom-5: 14.9 (off_track); slalom-6: 14.9 (off_track); slalom-7: 14.9 (off_track);
+      slalom-8: 14.9 (off_track); slalom-9: 14.9 (off_track); slalom-10: 14.9 (off_track);
+      slalom-11: 14.9 (off_track); slalom-12: 14.9 (off_track); slalom-13: 14.9 (off_track);
+      slalom-14: 14.9 (off_track); slalom-15: 14.9 (off_track); slalom-16: 14.9 (off_track);
+      slalom-17: 14.9 (off_track); slalom-18: 14.9 (off_track); slalom-19: 14.9 (off_track);
+      slalom-20: 14.9 (off_track).
+
+
+      - [Open this output](iteration-4/entityR2B/versions/0939c3f85e904c5494f9b0f10eb51ad2/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/57766e61a45f4ed6bd1f2c01664b9524/payload.json)'
+  - id: entityR2A
+    label: Score 26.99
+    notes: 'Development race of the integrated design on 60 trial(s); mean score 26.99.
+      Per trial — oval-1: 49.0 (off_track); oval-2: 49.0 (off_track); oval-3: 49.0
+      (off_track); oval-4: 49.0 (off_track); oval-5: 49.0 (off_track); oval-6: 49.0
+      (off_track); oval-7: 49.0 (off_track); oval-8: 49.0 (off_track); oval-9: 49.0
+      (off_track); oval-10: 49.0 (off_track); oval-11: 49.0 (off_track); oval-12:
+      49.0 (off_track); oval-13: 49.0 (off_track); oval-14: 49.0 (off_track); oval-15:
+      49.0 (off_track); oval-16: 49.0 (off_track); oval-17: 49.0 (off_track); oval-18:
+      49.0 (off_track); oval-19: 49.0 (off_track); oval-20: 49.0 (off_track); s-bend-1:
+      17.1 (off_track); s-bend-2: 17.1 (off_track); s-bend-3: 17.1 (off_track); s-bend-4:
+      17.1 (off_track); s-bend-5: 17.1 (off_track); s-bend-6: 17.1 (off_track); s-bend-7:
+      17.1 (off_track); s-bend-8: 17.1 (off_track); s-bend-9: 17.1 (off_track); s-bend-10:
+      17.1 (off_track); s-bend-11: 17.1 (off_track); s-bend-12: 17.1 (off_track);
+      s-bend-13: 17.1 (off_track); s-bend-14: 17.1 (off_track); s-bend-15: 17.1 (off_track);
+      s-bend-16: 17.1 (off_track); s-bend-17: 17.1 (off_track); s-bend-18: 17.1 (off_track);
+      s-bend-19: 17.1 (off_track); s-bend-20: 17.1 (off_track); slalom-1: 14.9 (off_track);
+      slalom-2: 14.9 (off_track); slalom-3: 14.9 (off_track); slalom-4: 14.9 (off_track);
+      slalom-5: 14.9 (off_track); slalom-6: 14.9 (off_track); slalom-7: 14.9 (off_track);
+      slalom-8: 14.9 (off_track); slalom-9: 14.9 (off_track); slalom-10: 14.9 (off_track);
+      slalom-11: 14.9 (off_track); slalom-12: 14.9 (off_track); slalom-13: 14.9 (off_track);
+      slalom-14: 14.9 (off_track); slalom-15: 14.9 (off_track); slalom-16: 14.9 (off_track);
+      slalom-17: 14.9 (off_track); slalom-18: 14.9 (off_track); slalom-19: 14.9 (off_track);
+      slalom-20: 14.9 (off_track).
+
+
+      - [Open this output](iteration-4/entityR2A/versions/0939c3f85e904c5494f9b0f10eb51ad2/payload.json)
+
+      - Based on: [entity1](iteration-4/entity1/versions/57766e61a45f4ed6bd1f2c01664b9524/payload.json)'
+  actions:
+  - id: action0
+  - id: action1
+  - id: action2
+measurements: {}

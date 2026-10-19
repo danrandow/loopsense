@@ -1,0 +1,47 @@
+{
+  "feedback_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "noise_robustness"
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.14,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.03,
+        "y": 0.05
+      },
+      {
+        "x": -0.015,
+        "y": 0.05
+      },
+      {
+        "x": 0.0,
+        "y": 0.05
+      },
+      {
+        "x": 0.015,
+        "y": 0.05
+      },
+      {
+        "x": 0.03,
+        "y": 0.05
+      }
+    ],
+    "sensor_size": 0.016,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "intent": "Changed one geometry variable: sensor_size from 0.012 to 0.016, keeping the \u00b10.03 m span at 15 mm spacing, the forward offset at 0.05 m, and all wheel, body and mass values. I kept the span because iteration 1 showed it helps. Expected result: fewer line-loss events and higher progress than iteration 1 (69.32). Under consideration without commitment: a forward offset of about 0.03 m if steering_oscillation rises at speed. I would test that as a separate change, not together with the footprint change.",
+  "learning": "Iteration 1 showed that widening the span to \u00b10.03 m raised the score from 54.37 to 69.32 and kept max_error near the 0.06 m limit. Line loss still occurs about once per run. Next iteration: if line_loss_events drops with the 16 mm footprint, keep it and test the forward offset separately. If line loss persists, the footprint is not the cause, and I will look at the controller's line-loss handling and at the sharp-bend sections of the slalom.",
+  "rationale": "Iteration 1 (sensor span widened from \u00b10.024 m to \u00b10.03 m) raised the race score from 54.37 to 69.32, so the span change helped. It did not remove the failure. Every trial still ended off track at 0.10 to 0.25 progress, with line_loss_events at about 1 per run on s-bend and slalom and 1.65 on oval. max_error still reaches the 0.06 m limit, and rms_error (0.026 to 0.034 m) and steering_oscillation (about 0.14) are modest. The failure is still an abrupt loss of the tape, not jitter.\n\nThe Integrator's rule for this case applies. Line loss persists at about 1 per run after the span change, so I am testing sensor_size 0.016 with the span held at \u00b10.03 m and the forward offset at 0.05 m. A 16 mm footprint keeps the 25 mm tape under each sensor for longer as the line moves across the array, which should reduce the sudden loss. This race also carries the Integrator's lower base_speed and kp, so the result will mix the controller and the geometry. I am keeping the geometry change to one variable so its effect can still be read.\n\nI took the Integrator's advice this time. I also correct my iteration 0 and 1 limit arithmetic: the off-track limit is max(0.06, 0.0125 + body_width/4). Even at body_width 0.18 that is 0.06 m, so body_width is not a lever and I am not changing it. Wheel track, wheel radius, mass and body stay unchanged because the evidence does not point at them.\n\nExpected result: line_loss_events falls toward 0 to 0.5 per run, progress rises, and max_error stays under about 0.06 m for more of each run. Hypothesis: the failures come from the footprint losing the tape at the array edges, not from the array span alone."
+}

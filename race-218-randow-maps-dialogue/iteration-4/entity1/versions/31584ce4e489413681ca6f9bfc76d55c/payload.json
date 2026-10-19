@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 1.3,
+    "kd": 0.6,
+    "ki": 0.2,
+    "kp": 2.4,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -2.0,
+      -1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.16,
+    "body_width": 0.14,
+    "mass": 0.6,
+    "sensor_positions": [
+      {
+        "x": -0.024,
+        "y": 0.06
+      },
+      {
+        "x": -0.012,
+        "y": 0.06
+      },
+      {
+        "x": 0.0,
+        "y": 0.06
+      },
+      {
+        "x": 0.012,
+        "y": 0.06
+      },
+      {
+        "x": 0.024,
+        "y": 0.06
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "learning": "If oval oscillation drops and slalom max_error reaches 0.06 m or below, the motor-mismatch bias was a real part of the drift and ki stays. If slalom max_error or s-bend completion worsens, ki caused overshoot, so return ki to 0 and test the forward offset y = 0.07 m next.",
+  "notes": "Complete robot for the held 0.6 kg geometry. The controller adds a small integral term (ki 0.2) to counter the fixed motor mismatch and a higher kd (0.6) to damp oval oscillation, with kp and base_speed unchanged.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Iteration 3 (0.6 kg geometry with the iteration-2 controller) is the best race so far at 575.8. The oval completes 20 of 20 but its steering oscillation is 0.21, above the roughly 0.15 level I flagged. The s-bend completes 12 of 20 with 8 off-track ends. The slalom still fails 20 of 20, with max_error 0.0645 m and progress 0.1975. Line losses are 1.0 per run, so sensing is not the limit.\n\nThe geometry is held exactly as iteration 3, so this race isolates controller changes. I make two small controller changes. (1) kd rises from 0.5 to 0.6 to damp the oval oscillation (0.21) without raising kp, since kp increases have previously raised oscillation. (2) ki is set to 0.2. The contract describes a fixed left/right motor mismatch in every race. A constant mismatch produces a steady bias in the signal that proportional and derivative terms cannot remove, so a small integral term should cut the slalom's drift toward the 0.06 m limit. The integral is already clamped to +/-2, which limits windup on bends. kp stays at 2.4, base_speed at 1.3 and line_loss at last_direction, because line losses are low and the sign convention is verified.\n\nExpected, not measured: oval oscillation falls below about 0.18, slalom max_error falls toward or below 0.06 m, and oval and s-bend completion hold. The main risk is that ki causes overshoot after bends. If the slalom gets worse with ki, the next step is to set ki back to 0 and test the geometry lever."
+}

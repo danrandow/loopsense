@@ -1,0 +1,63 @@
+{
+  "controller": {
+    "base_speed": 1.6,
+    "kd": 0.05,
+    "ki": 0.0,
+    "kp": 3.0,
+    "line_loss": "last_direction",
+    "sensor_weights": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ]
+  },
+  "geometry": {
+    "body_length": 0.18,
+    "body_width": 0.12,
+    "mass": 0.8,
+    "sensor_positions": [
+      {
+        "x": -0.05,
+        "y": 0.04
+      },
+      {
+        "x": -0.025,
+        "y": 0.04
+      },
+      {
+        "x": 0.0,
+        "y": 0.04
+      },
+      {
+        "x": 0.025,
+        "y": 0.04
+      },
+      {
+        "x": 0.05,
+        "y": 0.04
+      }
+    ],
+    "sensor_size": 0.012,
+    "wheel_radius": 0.03,
+    "wheel_track": 0.12
+  },
+  "learning": "Test whether outer sensors at +/-0.05 m keep the line in view through the s-bend and slalom. If line loss still occurs, the cause is controller gain or line-loss behaviour, not coverage. If max_error stays under 0.06 with no line loss, kp about 3.5 to 4.0 is the next lever, because the wider span lowers the effective steering gain.",
+  "notes": "Same controller as the baseline except sensor weights rescaled to the wider +/-0.05 m row, so the race isolates the Builder's sensing change. Gains are unchanged, and the first check is whether line_loss_events drop to near zero.",
+  "observation_request": {
+    "measurements": [
+      "completion",
+      "progress",
+      "completion_time",
+      "rms_error",
+      "max_error",
+      "line_loss_events",
+      "steering_oscillation",
+      "control_effort",
+      "controller_errors",
+      "noise_robustness"
+    ]
+  },
+  "rationale": "Iteration 0 raced the baseline geometry (five 12 mm sensors at x = -0.024 to +0.024, y = 0.04) and scored 26.04. All 60 trials on all three tracks ended off_track with one line-loss event each, progress of 0.04 to 0.12, and RMS error of about 0.03. The tracking was fine while the line was in view; the failure was line loss at the edge. Outer sensors at x = 0.024 reach the line only up to about 0.0425 m offset (0.024 + 0.0125 tape half-width + 0.006 footprint half-width), so a drift past that loses the line, throttle drops to 0.35, and the robot leaves the track. The Builder's new geometry widens the row to +/-0.05 m with the same 12 mm footprints, which extends coverage to about 0.0685 m offset, past the 0.06 m off-track limit. The sensing change is therefore the right fix for the binding limit. I am keeping the controller as close as possible to the proven baseline so the race isolates the sensing change: kp 3.0, ki 0, kd 0.05, base_speed 1.6, and last_direction line recovery. The weights are rescaled to the new positions, with the same proportional pattern [-1, -0.5, 0, 0.5, 1] matching x / 0.05. One caveat: with wider sensor spacing the signal changes more slowly per millimetre of offset, so the effective steering gain is somewhat lower. I am not raising kp yet because the only evidence so far is that the robot tracks well when it keeps the line. If the next race shows max_error still near 0.06 with no line loss, the next step is kp of about 3.5 to 4.0, not a geometry change. Expected result: line_loss_events near zero, runs ending by completion or stall, and progress well above 0.12. This is a prediction, not a measurement."
+}
