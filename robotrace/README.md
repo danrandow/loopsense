@@ -4,11 +4,19 @@
 
 Robot Race builds on [RobotraceSim](https://github.com/Koyoman/robotrace_Sim), created by Arthur Jose Sary and distributed under the MIT License. This repository vendors commit `2c99a9b63db8f9e0ef56c930cf1b360f2a1efc1c` with its original copyright and licence intact. The LoopSense experiment harness and headless adapter are separate additions.
 
+## Status: concluded for now
+
+Across ~20 pre-registered gates (one model, no tools, 12 iterations/race), a lone agent decisively beat
+every two-agent topology tested, including a more elaborate critique structure; the first critique-and-
+revise round degraded the design 96.5% of the time; and a permissive instruction variant shifted behaviour
+sharply without yet showing a confirmed score change. **Start with [`START_HERE.md`](START_HERE.md)** for
+the full orientation, or **[`FINDINGS.md`](FINDINGS.md)** for the results table and plain-language summary.
+
 ## Map-driven controller
 
 Races run from **map packages**: one self-contained package per entrant, cloned from `package-templates/` and owned by that race. A package holds `base.yaml` (the team's topology), `scenario-iteration-N.yaml` (the live work state), `config/workflow.yaml` and `config/race.yaml`, conventionally located action runtime and instruction files (`actions/<id>/`), entity contracts (`entities/<id>/`), and per-iteration artifacts and `events.jsonl` history. The map is the single source of truth for who does what; the controller reads it and nothing else to decide who may read, write and run.
 
-The two entrants are **Randow Maps** (producer–integrator: Geometry Builder → Robot Integrator), which is the LoopSense condition, and **Opt/Eval** (Robot Optimizer ⇄ Evaluator), which is the evaluator–optimizer control. Templates are in `package-templates/randow-maps` and `package-templates/opt-eval`; the authoritative design is [MAP_DRIVEN_ARCHITECTURE_SPEC.md](MAP_DRIVEN_ARCHITECTURE_SPEC.md).
+The two entrants are **Randow Maps** (producer–integrator: Geometry Builder → Robot Integrator), which is the LoopSense condition, and **Opt/Eval** (Robot Optimizer ⇄ Evaluator), which is the evaluator–optimizer control. Templates are in `package-templates/randow-maps` and `package-templates/opt-eval`; the authoritative design is [`docs/MAP_DRIVEN_ARCHITECTURE_SPEC.md`](docs/MAP_DRIVEN_ARCHITECTURE_SPEC.md). Race data (every `race-N-<entrant>/` package, its pair/leaderboard/report/replay files) lives in [`races/`](races/README.md), not the repository root.
 
 Verification from this directory:
 
@@ -22,11 +30,19 @@ python3 -m orchestrator.controller validate package-templates/opt-eval
 
 | File | Role |
 |---|---|
-| [MAP_DRIVEN_ARCHITECTURE_SPEC.md](MAP_DRIVEN_ARCHITECTURE_SPEC.md) | What the system is. **Canonical** architecture. |
-| [Loopsense-Robot-Race-Experiment-Design.md](Loopsense-Robot-Race-Experiment-Design.md) | The experiment: question, controls, measures, reporting rules. |
-| [COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md](COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md) | Work order for the map-driven cutover. |
-| [TRACK_VIEW_SVG_SPEC.md](TRACK_VIEW_SVG_SPEC.md) | Specification for the track-view SVGs. |
-| `RACE_16_CHANGES.md`, `RACE_17_CHANGES.md`, `RACE_19_CHANGES.md` | Harness revisions and why scores are not comparable across them. |
+| [`START_HERE.md`](START_HERE.md) | One-page orientation: headline result, where to look, how to run a race, gotchas. |
+| [`FINDINGS.md`](FINDINGS.md) | Results table and plain-language summary. |
+| [`PHASE0_FREEZE.md`](PHASE0_FREEZE.md) | Every pre-registered decision rule, committed before the data it governs existed. |
+| `GATE*_REPORT.md` | One per gate, full method behind every FINDINGS.md number. |
+| [`docs/MAP_DRIVEN_ARCHITECTURE_SPEC.md`](docs/MAP_DRIVEN_ARCHITECTURE_SPEC.md) | What the system is. **Canonical** architecture. |
+| [`docs/Loopsense-Robot-Race-Experiment-Design.md`](docs/Loopsense-Robot-Race-Experiment-Design.md) | The experiment: question, controls, measures, reporting rules. |
+| [`docs/COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md`](docs/COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md) | Work order for the map-driven cutover. |
+| [`docs/TRACK_VIEW_SVG_SPEC.md`](docs/TRACK_VIEW_SVG_SPEC.md) | Specification for the track-view SVGs. |
+| `docs/RACE_16_CHANGES.md`, `docs/RACE_17_CHANGES.md`, `docs/RACE_19_CHANGES.md`, `docs/RACE_34_CHANGES.md` | Harness revisions and why scores are not comparable across them. |
+| `docs/PHASE1_RESULTS.md`, `docs/PHASE2_DESIGN.md`, `docs/SIM_VALIDITY_CHANGES.md`, `docs/SIMULATOR_REVIEW_AND_DESIGN_APPROACH.md` | Earlier-phase design and review documents, superseded by FINDINGS.md/PHASE0_FREEZE.md as the current source of truth but kept for history. |
+
+Everything below describes the harness mechanics and is still accurate; it predates the conclusion above and
+is kept for anyone extending or re-running the experiment.
 
 This page serves three audiences, in order:
 
@@ -126,7 +142,7 @@ The harness records raw performance and learning-system measures, including:
 
 Development evidence is returned to the agents; held-out tracks are reserved for the final evaluation. The exact score weights, model, budgets, geometry bounds, run length, and track sets must be frozen before a recorded run.
 
-For the full protocol, contracts, controls, and rationale, see **[LoopSense Robot Race Experiment Design](Loopsense-Robot-Race-Experiment-Design.md)**. The architecture is specified in [MAP_DRIVEN_ARCHITECTURE_SPEC.md](MAP_DRIVEN_ARCHITECTURE_SPEC.md).
+For the full protocol, contracts, controls, and rationale, see **[LoopSense Robot Race Experiment Design](docs/Loopsense-Robot-Race-Experiment-Design.md)**. The architecture is specified in [docs/MAP_DRIVEN_ARCHITECTURE_SPEC.md](docs/MAP_DRIVEN_ARCHITECTURE_SPEC.md).
 
 ## 2. For the race operator
 
@@ -134,9 +150,9 @@ Use this section to run a race or find the evidence from an earlier one.
 
 ### Current status
 
-The map-driven harness runs complete races end to end: prepare, review, freeze, run, then a final held-out evaluation, leaderboard and report. Several races have completed, but this is still a **pilot harness**, not a recorded experiment. Race 18, for example, scored Opt/Eval 12.9 and Randow Maps 0.0, which led to the changes recorded in [RACE_19_CHANGES.md](RACE_19_CHANGES.md). Harness changes alter what the agents see and how runs are scored, so scores are **not comparable across harness versions** (see the `RACE_*_CHANGES.md` files and the `controller_version` in each race manifest). Pilot, dry-run and smoke scores are not experimental evidence.
+The map-driven harness runs complete races end to end: prepare, review, freeze, run, then a final held-out evaluation, leaderboard and report. **The pre-registered gate sequence (`PHASE0_FREEZE.md`, `GATE*_REPORT.md`) has now concluded** — see the status block above and `FINDINGS.md`/`START_HERE.md` for the result. The harness itself still runs, for anyone extending or re-running it: early races (e.g. race-18, which led to the changes in `docs/RACE_19_CHANGES.md`) predate the frozen setup and are not comparable to it. Harness changes alter what the agents see and how runs are scored, so scores are **not comparable across harness versions** (see the `docs/RACE_*_CHANGES.md` files and the `controller_version` in each race manifest). Pilot, dry-run and smoke scores are not experimental evidence.
 
-Before a recorded run, the settings listed in the [design document](Loopsense-Robot-Race-Experiment-Design.md#current-status-and-recorded-run-gate) must be frozen and the configuration tagged.
+Before any new recorded run, the settings listed in the [design document](docs/Loopsense-Robot-Race-Experiment-Design.md#current-status-and-recorded-run-gate) must be frozen and the configuration tagged, and a new pre-registration should go in `PHASE0_FREEZE.md` following the existing §4 convention.
 
 ### Run a race
 
@@ -177,7 +193,7 @@ Each iteration clones the previous iteration's carried-forward state, runs each 
 
 ### Find the leaderboard and evidence
 
-Completed races are listed in the interface with report and leaderboard links. On disk, results are written to the repository root (the parent of `robotrace/`):
+Completed races are listed in the interface with report and leaderboard links. On disk, results are written to `robotrace/races/` (see [`races/README.md`](races/README.md)):
 
 - `race-N-race-report.md` and `race-N-leaderboard.json` for the ranking and per-iteration summary;
 - `race-N-pair.json` for the race's status, frozen manifests and result hash;
@@ -198,7 +214,7 @@ python3 -m orchestrator.controller compare <previous-package> <current-package>
 
 ## 3. For implementers
 
-Read in this order: [MAP_DRIVEN_ARCHITECTURE_SPEC.md](MAP_DRIVEN_ARCHITECTURE_SPEC.md) (canonical design), the [experiment design](Loopsense-Robot-Race-Experiment-Design.md) (the research question, controls and reporting rules), then [COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md](COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md) (the work order for finishing the cutover). The `RACE_*_CHANGES.md` files record each harness revision. The broader product hypothesis is in the [LoopSense product definition](../Loopsense-product-definition.md).
+Read in this order: [docs/MAP_DRIVEN_ARCHITECTURE_SPEC.md](docs/MAP_DRIVEN_ARCHITECTURE_SPEC.md) (canonical design), the [experiment design](docs/Loopsense-Robot-Race-Experiment-Design.md) (the research question, controls and reporting rules), then [docs/COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md](docs/COMPLETE_MAP_DRIVEN_IMPLEMENTATION.md) (the work order for finishing the cutover). The `docs/RACE_*_CHANGES.md` files record each harness revision. The broader product hypothesis is in the [LoopSense product definition](../Loopsense-product-definition.md).
 
 The governing constraint: **the map is the single source of truth for team topology.** The controller must not branch on team names such as `randow-maps` or `opt-eval`, and must not keep a second routing table. Both entrants use the map identically; only the topology differs. Agents produce constrained data, a deterministic controller validates and routes it, and a fixed simulator produces the evidence.
 
