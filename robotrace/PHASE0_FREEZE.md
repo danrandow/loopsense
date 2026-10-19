@@ -613,3 +613,138 @@ stop on whichever of `/credits` ($9.6601) and `/auth/key`'s `limit_remaining` ($
 both checked and far above the cap just now.
 
 This section is committed before any Gate 15 race runs.
+
+## §4i. Gate 16 Part B pre-registration: randow-maps-dialogue (design only, not run)
+
+(Dan's message called this "§4h" -- §4h is Gate 15's section above; using §4i, same renumbering convention
+as every earlier gate's own note.)
+
+**This section documents a design, not a commitment to run it.** Per Dan's explicit instruction ("Design
+only: arm randow-maps-dialogue. Don't run it... Report at Gate 16 and stop. No paid runs"), no race under
+this template has been started, and none will be until a future gate explicitly authorises it.
+
+**Schema check, done before writing any instruction text (Dan's own stated condition on this design):**
+confirmed via `MapPackage.validate()` directly against `randow-maps` --
+
+```
+action0 (Builder) reads: ['entityPub0', 'entityR1', 'entityR2A']   writes: ['entity0']
+action1 (Integrator) reads: ['entity0', 'entityPub0', 'entityR2B'] writes: ['entity1', 'entityR1']
+entity0 contract required: ['rationale', 'geometry', 'intent', 'feedback_request']
+entityR1 contract required: ['feedback', 'requested_changes']
+```
+
+`action1` (Integrator) already reads `entity0` in full, which already requires `intent` -- the Integrator
+already sees the Builder's intent, every iteration, today. `action0` (Builder) already reads `entityR1` in
+full -- the Builder already sees the Integrator's feedback, every iteration, today. **No schema or topology
+change is needed.** The only schema-adjacent nuance: `entityR1.requested_changes` stays a required,
+non-empty array (unchanged), but nothing in the contract forces its entries to name a specific geometry
+field -- a holding entry such as "hold current geometry, no field change recommended" satisfies the schema
+without naming a field, so "naming geometry fields is optional" is satisfiable with the existing contract,
+not a schema loosening.
+
+**Build.** `randow-maps-dialogue` is a byte-for-byte copy of `randow-maps` (`diff -rq` confirms it:
+`entities`, `edges`, `workflow`, `entityPub0`/`entityPub2` contracts, `config/race.yaml`'s model/budget/track
+fields are all identical) with exactly two differences: (1) `config/race.yaml`'s `entrant` field, renamed to
+match the new template name (required by the harness's own directory-identity check, not a design choice),
+and (2) the Builder's and Integrator's `notes` text in `base.yaml` -- confirmed via
+`MapPackage.validate()` that the resulting package is valid and the `reads`/`writes` sets are unchanged from
+randow-maps' own.
+
+**Instruction diff, exact text, old (randow-maps) vs. new (randow-maps-dialogue):**
+
+*Shared "This team" section, both roles -- one sentence added, nothing removed:*
+```diff
+ You work in sequence. The Geometry Builder's proposal goes to the Robot Integrator, who adds a controller,
+ and the resulting complete robot races every iteration. The Builder never sees the controller, so the
+ Integrator's feedback is the Builder's only view of how its geometry works in practice.
++Only the final robot's score counts, and it is produced jointly: neither of you is scored on your own
++output alone.
+```
+
+*Geometry Builder role:*
+```diff
+ Design the sensor and body geometry that gives your teammate, the Robot Integrator, the best possible
+ platform to build a controller on, and that the race simulator rewards. Deliver a Geometry Proposal every
+-iteration. Read the Integration Feedback from the Integrator (they work with your geometry directly and
++iteration; you may deliver the same geometry unchanged. Read the Integration Feedback from the Integrator
++(they work with your geometry directly and
+ know what it costs them) and the Geometry Race Data (telemetry from the last race), and work out what in
+-that evidence points at geometry. In the proposal's intent say what you changed, why, and what result you
+-expect. Include your hypotheses and the measurements you want to see next. Do not produce a controller.
++that evidence points at geometry. In the proposal's rationale, say whether you took the Integrator's last
++advice and, if not, why. In the intent, say what you changed or kept and why, what result you expect, and
++you may also say what you are considering for geometry without committing to it yet. Include your
++hypotheses and the measurements you want to see next. Do not produce a controller.
+```
+
+*Robot Integrator role, part 2 (part 1, the controller-building half, is untouched):*
+```diff
+ 2. Integration Feedback for the Geometry Builder: they cannot see your controller and rely on you to tell
+ them how to improve. You give this feedback in the same iteration as the geometry, before the complete
+ robot has raced, so nothing has been measured for it yet. Base it only on what you have actually learned:
+ the outcome table and race data of earlier iterations, and what you had to do in your controller to work
+-with this geometry. Do not state how this robot will perform or has performed. Tell the Builder what to
+-change depending on what the next race shows (if one thing happens, change this field; if another, change
+-that), and give one to three specific requested_changes naming the geometry fields and values you want
+-tried and the earlier evidence behind each.
++with this geometry. Do not state how this robot will perform or has performed. Your feedback may recommend
++holding the current geometry, changing it, or exploring an alternative, and you may ask the Builder
++questions. Naming the specific geometry fields and values you want tried is optional.
+```
+
+**Checked against every one of Dan's stated constraints for this design:**
+- Builder may deliver unchanged geometry -- stated explicitly, permissively ("you may"), not required.
+- Builder states whether it took the last advice and why not if it didn't -- required, in `rationale`
+  (an existing free-text field; no new field needed).
+- Builder may use `intent` to preview geometry it is considering without committing -- stated explicitly.
+- Integrator's feedback may hold/change/explore and ask questions -- stated explicitly; "may," not "should."
+- Geometry field-naming is now optional for the Integrator -- the old mandatory "give one to three specific
+  requested_changes naming the geometry fields" is replaced with "naming ... is optional."
+- Neither role is told what to change, what is likely to help, or how often to hold -- checked by re-reading
+  both diffs above line by line: no field is named as a good or bad lever, no direction is suggested, no
+  frequency or ratio is given. The "Common to every agent" preamble (unchanged, byte-identical to
+  randow-maps') and the rest of the role text carry no design content either.
+- Shared goal, final-robot-only scoring, stated to both roles identically -- the one added sentence above,
+  present verbatim in both action0's and action1's notes.
+
+**Checks before calling this built, all done, zero cost:** `MapPackage.validate()` passes. A 3-iteration
+mock-provider smoke test ran clean (all 3 actions fire every iteration, `outcome.json` `complete: true` each
+time, no stalls, no schema errors) -- confirms the new free-text permissions don't break the mock
+provider's own synthetic-payload path. `diff -rq` against `randow-maps` confirms no entity, edge, workflow,
+or race-setting change crept in.
+
+**Design, n=8.** 8 races, 12 iterations each, same `race.yaml` (model `anthropic/claude-haiku-5.5` via
+OpenRouter, same token/iteration budget, same tracks/seeds) as `randow-maps` -- topology, information, tools,
+model, and budget held fixed; only the instruction text differs, per Dan's own framing of this arm.
+
+**Primary comparison, stated before any Gate 16 Part B race exists:** paired improvement
+(`primary_metric`, final iteration minus iteration 0) against randow-maps (n=16, mean +160.90, sd 179.72,
+from Gate 8) and opt-solo (n=16, mean +664.70, sd 160.96, from Gate 8), Welch 95% CI on each difference.
+Dan did not specify numeric thresholds this time; the rule below is proposed here, before any data exists,
+mirroring the "within 100 points + CI excludes 0" framework used in every earlier causal gate (§4g, §4h) so
+the same reasoning applies across arms:
+- **"Dialogue helps"** if dialogue's mean improvement is within 100 points of opt-solo's (+664.70) AND the
+  Welch 95% CI for dialogue vs. randow-maps excludes 0 (dialogue above randow-maps).
+- **"Dialogue hurts"** if the CI for dialogue vs. randow-maps excludes 0 the other way (randow-maps above
+  dialogue).
+- **"No detectable difference from randow-maps"** if that CI includes 0.
+- Also reported against opt-solo directly (CI, same test), for context, same as every earlier gate's second
+  comparison line.
+
+**Secondary measures, pre-specified as things to record, not predictions:**
+- How often geometry changes iteration-to-iteration (the same metric computed for Part A: share of
+  transitions where `entity1.geometry` differs from the previous iteration's raced geometry).
+- How often the Builder's `rationale` states it did *not* take the Integrator's last advice, and what reasons
+  it gives (read directly from the text, not inferred).
+- How the controller-field-change share (by field: `base_speed`, `kp`, `ki`, `kd`, `sensor_weights`,
+  `line_loss`) shifts relative to randow-maps' own Part A figures.
+
+**Cost estimate.** No new measurement is possible without running a race, so this is grounded entirely in
+randow-maps' own measured history: Gate 8's top-up batch measured $0.1311/race (sd $0.0116, n=5); Gate 12's
+randow-maps-muted (same two-call structure, same model, same budget) measured $0.1213/race (n=4 full-length
+races). The new instruction text is a few sentences longer per role and may produce marginally longer
+`rationale`/`feedback` text, but does not change the call count, model, or token budget, so the structural
+cost driver is unchanged. **Estimate: $0.12-0.18/race x 8 = $0.96-$1.44**, the same range every prior
+randow-maps-shaped gate has used. This is an estimate for planning only -- no spend has occurred against it.
+
+This section is committed before any Gate 16 Part B race runs, and no Gate 16 Part B race has run.
