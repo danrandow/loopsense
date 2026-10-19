@@ -535,3 +535,81 @@ provisioned limit was hit (Gate 12); they stay reported separately, not pooled i
 (202-205) will complete the set. Both `/credits` ($10.4667) and `/auth/key`'s `limit_remaining` ($19.4186)
 checked and well above the $2.00 stop threshold before starting -- both have been raised by Dan since Gate
 12. Decision rule applied exactly as written above, unchanged.
+
+## §4h. Gate 15 pre-registration: opt-eval-pre2, critique-before-commit (2026-10-19, committed before any
+Gate 15 race runs)
+
+(Dan's message called this "§4g" -- §4g is Gate 12's section above; using §4h, same renumbering convention
+as every earlier gate's own note.)
+
+**Topology.** `opt-eval-pre2`: a new 5-step linear pipeline per iteration -- Draft (Optimizer) -> Critique
+round 1 (Evaluator) -> Revise (Optimizer) -> Critique round 2 (Evaluator) -> Finalize (Optimizer) -> Race.
+The Evaluator has no approve/decline power anywhere; the Optimizer's own final submission races unchanged,
+whatever it chooses to do with either critique. No critique is carried into a later iteration (workflow
+`carry_forward` lists only `entityR2A`, the race telemetry).
+
+**Engineering note, stated plainly:** the harness's own validator requires exactly one action per actor
+(`every actor must own exactly one action` -- confirmed in `map_package.py`). A single Optimizer "role"
+cannot literally run three times and a single Evaluator "role" twice under that constraint without either
+(a) a reentry trigger (the mechanism Gate 11 found could silently break) or (b) distinct actor instances per
+stage. Chose (b): 6 actors (`Robot Optimizer (draft/revision/final)` x3, `Evaluator (round 1/round 2)` x2,
+`Race Simulator` x1), each owning exactly one action, with **zero reentry** -- every action's policy is
+`once_per_iteration`, sequencing is by `required_inputs` alone. This is a deliberate choice to make the
+Gate-11 defect class structurally impossible here (there is no input-triggered reentry anywhere to break),
+not an attempt to otherwise change what Dan specified.
+
+**Instruction diff vs. opt-eval:** the "Common to every agent" preamble is byte-identical across every one
+of the 5 model actions and opt-eval's own two (confirmed programmatically: `extract_common()` on both base
+files returns the same string). Everything after that is new text, scoped to only state what each role
+delivers and who reads it -- no design advice or method, checked by re-reading every instruction block in
+`base.yaml`.
+
+**Exact inputs at each step** (confirmed via `MapPackage.validate()`'s own `reads` sets, not just intent):
+
+| step | action | reads | writes |
+|---|---|---|---|
+| 1. Draft | action0 | `entityPub0`, `entityR2A` | `entity0` |
+| 2. Critique round 1 | action1 | `entity0`, `entityPub0`, `entityR2A` | `entityC1` |
+| 3. Revise | action2 | `entity0`, `entityC1`, `entityPub0`, `entityR2A` | `entity1` |
+| 4. Critique round 2 | action3 | `entity1`, `entityPub0`, `entityR2A` | `entityC2` |
+| 5. Finalize | action4 | `entity1`, `entityC2`, `entityPub0`, `entityR2A` | `entity2` |
+| (race) | action5 | `entity2`, `entityPub2` | `entityOut`, `entityR2A` (next iteration) |
+
+**Information parity confirmed exactly:** step 4 (critique round 2) reads `entity1`, `entityPub0`,
+`entityR2A` -- the same three the Optimizer has at that point -- and nothing else. It does **not** read
+`entity0` (the original draft) or `entityC1` (its own round-1 critique), matching "nothing beyond the
+Optimizer's own inputs plus the current draft and rationale" literally, not just in spirit.
+
+**`max_action_runs` set to 7**, documented: the pipeline needs exactly 6 action-runs every iteration (5
+model steps + 1 reserved race run, fixed and non-variable -- there is no early-exit or revise-loop here
+unlike opt-eval's variable-length approve/revise cycle), so 7 gives exactly 1 spare run of slack.
+
+**Checks before spending, all done:** `MapPackage.validate()` passes clean. 8-iteration mock smoke test,
+zero stalls, exactly 6 events/iteration throughout (confirming the budget math). Malformed-output and a
+genuine out-of-range-value validation failure both tested directly against this package's own action0 and
+the new `entityC1` contract (via a monkeypatched `urlopen`, zero spend): both are retried and, when
+exhausted, raise `ContractFailure` cleanly -- caught by the shared `controller.py` path exactly like every
+other arm, not a crash. Rationale confirmed present in `entity0`/`entity1`/`entity2`'s required fields and
+confirmed read-along at every downstream step via the `reads` table above.
+
+**Design.** 8 races, 12 iterations each, same paired-improvement measure (primary_metric, final iteration
+minus iteration 0) as every other gate.
+
+**Race-level decision rule, stated before any Gate 15 data exists:**
+- **"Critique before commit helps"** if opt-eval-pre2's mean improvement exceeds opt-solo's (+664.70, n=16)
+  with a Welch 95% CI on the difference that excludes 0.
+- **"Hurts"** if the CI excludes 0 the other way (opt-solo exceeds pre2).
+- **Otherwise: "no detectable difference"**, reported with the N needed at the observed sd, same power
+  formula as every earlier gate. Also compared against opt-eval (+242.46, n=16) the same way, for context.
+
+**Stage-level measure (the more powerful test, zero additional cost):** for every iteration (~96 across the
+8 races), score the draft, the round-1 revision, and the final design offline, on dev tracks (seeds 1-20)
+and primary_metric. Report the share improved/unchanged/worsened and the mean delta with a CI, for
+draft->revision, revision->final, and draft->final. Also: how often each stage actually changes the design
+at all, and tokens/iteration vs. opt-solo and opt-eval.
+
+**Cost.** Gate cap $3.00, per-race cap $0.60, 4-way concurrency, per-call cost summed from response usage,
+stop on whichever of `/credits` ($9.6601) and `/auth/key`'s `limit_remaining` ($18.6120) is smaller --
+both checked and far above the cap just now.
+
+This section is committed before any Gate 15 race runs.
